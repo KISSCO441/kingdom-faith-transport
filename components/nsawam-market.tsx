@@ -35,6 +35,7 @@ type CheckoutDetails = {
   phone: string
   email: string
   whatsapp: string
+  deliveryLocation: string
   address: string
   instructions: string
 }
@@ -122,11 +123,37 @@ const products: Product[] = [
   },
 ]
 
+/*
+ * PHASE 1 KFM DELIVERY LOCATIONS
+ *
+ * All current Nsawam Township locations use the
+ * current standard Okada delivery charge of GHS 10.
+ *
+ * More locations and different fees can be added later.
+ */
+const NSAWAM_DELIVERY_FEE = 10
+
+const nsawamLocations = [
+  "Nsawam Central",
+  "Djankrom",
+  "Oparekrom",
+  "Asafoa Adjei",
+  "Ayigbe Town",
+  "Avaga",
+  "Wangara",
+  "Atsikope",
+  "Bangalow",
+  "Duaeden",
+  "Asantikro",
+  "Ebenezer",
+]
+
 const emptyCheckoutDetails: CheckoutDetails = {
   fullName: "",
   phone: "",
   email: "",
   whatsapp: "",
+  deliveryLocation: "",
   address: "",
   instructions: "",
 }
@@ -164,7 +191,15 @@ export function NsawamMarket() {
     [cart]
   )
 
-  const deliveryFee: number = 0
+  /*
+   * Delivery is calculated from the selected location.
+   *
+   * All currently supported Nsawam Township locations
+   * have a GHS 10 delivery fee.
+   */
+  const deliveryFee = checkoutDetails.deliveryLocation
+    ? NSAWAM_DELIVERY_FEE
+    : 0
 
   const estimatedTotal = cartTotal + deliveryFee
 
@@ -201,8 +236,7 @@ export function NsawamMarket() {
   /*
    * ORDER NOW
    *
-   * Instead of sending the customer to WhatsApp,
-   * the product is added to the cart and the cart opens.
+   * Add the product to the cart and open the cart.
    */
   const orderProductNow = (product: Product) => {
     addToCart(product)
@@ -306,6 +340,13 @@ export function NsawamMarket() {
       return
     }
 
+    if (!checkoutDetails.deliveryLocation) {
+      setPaymentError(
+        "Please select your delivery location."
+      )
+      return
+    }
+
     if (checkoutDetails.address.trim().length < 5) {
       setPaymentError(
         "Please enter your delivery address."
@@ -338,6 +379,8 @@ export function NsawamMarket() {
       const pendingOrder = {
         orderNumber: newOrderNumber,
         customer: checkoutDetails,
+        deliveryLocation:
+          checkoutDetails.deliveryLocation,
         items: orderItems,
         subtotal: cartTotal,
         deliveryFee,
@@ -367,11 +410,16 @@ export function NsawamMarket() {
             phone: checkoutDetails.phone.trim(),
             whatsapp:
               checkoutDetails.whatsapp.trim(),
+            deliveryLocation:
+              checkoutDetails.deliveryLocation,
             address:
               checkoutDetails.address.trim(),
             instructions:
               checkoutDetails.instructions.trim(),
             items: orderItems,
+            subtotal: cartTotal,
+            deliveryFee,
+            total: estimatedTotal,
           }),
         }
       )
@@ -849,7 +897,7 @@ export function NsawamMarket() {
                     </span>
 
                     <span className="font-medium">
-                      To be confirmed
+                      Calculated at checkout
                     </span>
                   </div>
 
@@ -862,9 +910,7 @@ export function NsawamMarket() {
                       </span>
 
                       <span className="text-lg font-bold">
-                        {formatCurrency(
-                          estimatedTotal
-                        )}
+                        {formatCurrency(cartTotal)}
                       </span>
 
                     </div>
@@ -1105,6 +1151,66 @@ export function NsawamMarket() {
 
                     </div>
 
+                    {/* Delivery Location */}
+                    <div>
+
+                      <label
+                        htmlFor="deliveryLocation"
+                        className="mb-2 block text-sm font-medium"
+                      >
+                        Delivery Location
+                      </label>
+
+                      <div className="relative">
+
+                        <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                        <select
+                          id="deliveryLocation"
+                          value={
+                            checkoutDetails.deliveryLocation
+                          }
+                          onChange={(event) =>
+                            updateCheckoutField(
+                              "deliveryLocation",
+                              event.target.value
+                            )
+                          }
+                          className="h-11 w-full appearance-none rounded-lg border border-border bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          disabled={
+                            isProcessingPayment
+                          }
+                        >
+                          <option value="">
+                            Select your Nsawam location
+                          </option>
+
+                          {nsawamLocations.map(
+                            (location) => (
+                              <option
+                                key={location}
+                                value={location}
+                              >
+                                {location}
+                              </option>
+                            )
+                          )}
+                        </select>
+
+                      </div>
+
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Delivery within the listed Nsawam
+                        Township locations is currently{" "}
+                        <span className="font-semibold">
+                          GHS 10.00
+                        </span>
+                        .
+                      </p>
+
+                    </div>
+
+                    {/* Delivery Address */}
                     <div>
 
                       <label
@@ -1129,7 +1235,7 @@ export function NsawamMarket() {
                               event.target.value
                             )
                           }
-                          placeholder="Enter your full delivery address"
+                          placeholder="Enter your house number, street, landmark or other details"
                           rows={3}
                           className="w-full resize-none rounded-lg border border-border bg-background px-10 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                           disabled={
@@ -1297,10 +1403,40 @@ export function NsawamMarket() {
                       </span>
 
                       <span>
-                        To be confirmed
+                        {checkoutDetails.deliveryLocation
+                          ? formatCurrency(
+                              deliveryFee
+                            )
+                          : "Select location"}
                       </span>
 
                     </div>
+
+                    {checkoutDetails.deliveryLocation && (
+                      <div className="mt-2 rounded-lg bg-primary/5 p-3">
+
+                        <div className="flex items-start gap-2">
+
+                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+
+                          <div>
+
+                            <p className="text-xs text-muted-foreground">
+                              Delivering to
+                            </p>
+
+                            <p className="mt-0.5 text-sm font-semibold">
+                              {
+                                checkoutDetails.deliveryLocation
+                              }
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+                    )}
 
                     <div className="mt-4 border-t border-border pt-4">
 
