@@ -203,23 +203,25 @@ export function NsawamMarket() {
   )
 
   const handleProductOrder = (product: Product) => {
-    const message = `Hello Kingdom Faith Transport! 👋
+  const message = [
+    "Hello Kingdom Faith Transport! 👋",
+    "",
+    "I would like to order:",
+    "",
+    `Product: ${product.name}`,
+    `Category: ${product.category}`,
+    "Quantity: 1",
+    `Price: GHS ${product.price.toFixed(2)}`,
+    "",
+    "Please let me know the next steps for delivery. Thank you!",
+  ].join("\n")
 
-I would like to order:
+  const whatsappUrl = `https://wa.me/233240555688?text=${encodeURIComponent(
+    message
+  )}`
 
-Product: ${product.name}
-Category: ${product.category}
-Quantity: 1
-Price: GHS ${product.price.toFixed(2)}
-
-Please let me know the next steps for delivery. Thank you!`
-
-    const whatsappUrl = `https://wa.me/233240555688?text=${encodeURIComponent(
-      message
-    )}`
-
-    window.open(whatsappUrl, "_blank")
-  }
+  window.open(whatsappUrl, "_blank")
+}
 
   const handleCartOrder = () => {
     if (cart.length === 0) {
