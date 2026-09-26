@@ -231,13 +231,16 @@ export function NsawamMarket() {
     }
 
     const orderLines = cart
-      .map(
-        (item) =>
-          `• ${item.name} × ${item.quantity} = GHS ${(
-            item.price * item.quantity
-          ).toFixed(2)}`
-      )
-      .join("\n")
+  .map(
+    (item) =>
+      "- " +
+      item.name +
+      " x " +
+      item.quantity +
+      " = GHS " +
+      (item.price * item.quantity).toFixed(2)
+  )
+  .join("\n")
 
     const message = `Hello Kingdom Faith Transport! 👋
 
