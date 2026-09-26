@@ -1,229 +1,296 @@
+```tsx
 "use client"
 
-import { useMemo, useState } from "react"
-import Image from "next/image"
-import { Minus, Plus, ShoppingBasket, Truck, X } from "lucide-react"
+import { ShoppingCart, MapPin, ArrowRight, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type Product = {
-  id: string
   name: string
-  unit: string
+  description: string
   price: number
+  emoji: string
   category: string
-  image: string
 }
 
 const products: Product[] = [
-  { id: "tomatoes", name: "Fresh Tomatoes", unit: "per olonka", price: 25, category: "Vegetables", image: "/images/market-vegetables.png" },
-  { id: "garden-eggs", name: "Garden Eggs", unit: "per olonka", price: 18, category: "Vegetables", image: "/images/market-vegetables.png" },
-  { id: "pepper", name: "Green Pepper & Onions", unit: "small bag", price: 30, category: "Vegetables", image: "/images/market-vegetables.png" },
-  { id: "plantain", name: "Ripe Plantain", unit: "per bunch", price: 35, category: "Fruits", image: "/images/market-fruits.png" },
-  { id: "pineapple", name: "Pineapple", unit: "each", price: 12, category: "Fruits", image: "/images/market-fruits.png" },
-  { id: "oranges", name: "Oranges", unit: "dozen", price: 20, category: "Fruits", image: "/images/market-fruits.png" },
-  { id: "rice", name: "Local Rice", unit: "5kg bag", price: 90, category: "Staples", image: "/images/market-staples.png" },
-  { id: "yam", name: "Yam Tubers", unit: "per tuber", price: 28, category: "Staples", image: "/images/market-staples.png" },
-  { id: "gari", name: "Gari", unit: "per olonka", price: 22, category: "Staples", image: "/images/market-staples.png" },
-  { id: "fish", name: "Fresh Fish", unit: "per kg", price: 55, category: "Protein", image: "/images/market-protein.png" },
-  { id: "smoked-fish", name: "Smoked Fish", unit: "per pack", price: 40, category: "Protein", image: "/images/market-protein.png" },
-  { id: "eggs", name: "Eggs", unit: "per crate", price: 48, category: "Protein", image: "/images/market-protein.png" },
+  {
+    name: "Fresh Fruits",
+    description:
+      "Fresh seasonal fruits selected from local Nsawam market sellers.",
+    price: 25,
+    emoji: "🍊",
+    category: "Fresh Produce",
+  },
+  {
+    name: "Fresh Vegetables",
+    description:
+      "Fresh garden vegetables for your everyday meals.",
+    price: 20,
+    emoji: "🥬",
+    category: "Fresh Produce",
+  },
+  {
+    name: "Plantain",
+    description:
+      "Fresh locally sourced plantain, perfect for frying, boiling or roasting.",
+    price: 30,
+    emoji: "🍌",
+    category: "Farm Produce",
+  },
+  {
+    name: "Tomatoes",
+    description:
+      "Fresh ripe tomatoes selected for quality and freshness.",
+    price: 25,
+    emoji: "🍅",
+    category: "Fresh Produce",
+  },
+  {
+    name: "Onions",
+    description:
+      "Quality onions for your kitchen and everyday cooking.",
+    price: 20,
+    emoji: "🧅",
+    category: "Fresh Produce",
+  },
+  {
+    name: "Fresh Eggs",
+    description:
+      "Farm-fresh eggs carefully selected for your household.",
+    price: 35,
+    emoji: "🥚",
+    category: "Groceries",
+  },
+  {
+    name: "Chicken",
+    description:
+      "Quality chicken for family meals and special occasions.",
+    price: 85,
+    emoji: "🍗",
+    category: "Meat & Poultry",
+  },
+  {
+    name: "Drinks & Beverages",
+    description:
+      "Refreshing drinks and beverages available for delivery.",
+    price: 15,
+    emoji: "🥤",
+    category: "Beverages",
+  },
 ]
 
-const categories = ["All", "Vegetables", "Fruits", "Staples", "Protein"]
+function ProductVisual({ emoji }: { emoji: string }) {
+  return (
+    <div className="relative flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-green-50">
+      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-yellow-200/40" />
+      <div className="absolute -bottom-10 -left-8 h-32 w-32 rounded-full bg-green-200/40" />
 
-const DELIVERY_FEE = 15
-
-export function NsawamMarket() {
-  const [activeCategory, setActiveCategory] = useState("All")
-  const [cart, setCart] = useState<Record<string, number>>({})
-
-  const visibleProducts = useMemo(
-    () => (activeCategory === "All" ? products : products.filter((p) => p.category === activeCategory)),
-    [activeCategory],
+      <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-white/80 shadow-lg backdrop-blur-sm">
+        <span className="text-7xl drop-shadow-md">{emoji}</span>
+      </div>
+    </div>
   )
+}
 
-  const cartItems = useMemo(
-    () =>
-      Object.entries(cart)
-        .filter(([, qty]) => qty > 0)
-        .map(([id, qty]) => ({ product: products.find((p) => p.id === id)!, qty })),
-    [cart],
-  )
+export default function NsawamMarket() {
+  const handleOrder = (product: Product) => {
+    const message = `Hello Kingdom Faith Transport! 👋
 
-  const subtotal = cartItems.reduce((sum, { product, qty }) => sum + product.price * qty, 0)
-  const totalItems = cartItems.reduce((sum, { qty }) => sum + qty, 0)
+I would like to order:
 
-  function addItem(id: string) {
-    setCart((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }))
-  }
+Product: ${product.name}
+Category: ${product.category}
+Price: GHS ${product.price.toFixed(2)}
 
-  function removeItem(id: string) {
-    setCart((c) => {
-      const next = Math.max(0, (c[id] ?? 0) - 1)
-      return { ...c, [id]: next }
-    })
+Please let me know the next steps for delivery. Thank you!`
+
+    const whatsappNumber = "233240555688"
+
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+      message
+    )}`
+
+    window.open(whatsappUrl, "_blank")
   }
 
   return (
-    <section id="market" className="border-t border-border">
-      <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Nsawam Market</p>
-          <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight md:text-4xl">
-            Fresh market items delivered to your door
+    <section
+      id="nsawam-market"
+      className="w-full bg-background px-4 py-16 sm:px-6 lg:px-8"
+    >
+      <div className="mx-auto max-w-7xl">
+
+        {/* Section Header */}
+        <div className="mb-10 text-center">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700">
+            <MapPin className="h-4 w-4" />
+            Nsawam, Ghana
+          </div>
+
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Nsawam Market
           </h2>
-          <p className="mt-4 text-pretty text-muted-foreground">
-            Skip the crowd and the heat. Order fresh produce, staples and protein straight from Nsawam Market and our
-            riders bring it to your home.
+
+          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
+            Fresh picks, everyday essentials and local products delivered
+            conveniently through Kingdom Faith Transport.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">
-          <div>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                    activeCategory === cat
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+        {/* Market Banner */}
+        <div className="mb-10 overflow-hidden rounded-3xl bg-gradient-to-r from-green-700 via-green-600 to-emerald-500 p-6 text-white shadow-lg sm:p-8">
+          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {visibleProducts.map((product) => {
-                const qty = cart[product.id] ?? 0
-                return (
-                  <div
-                    key={product.id}
-                    className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-                  >
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, 300px"
-                      />
-                    </div>
-                    <div className="flex flex-1 flex-col p-4">
-                      <h3 className="text-sm font-semibold">{product.name}</h3>
-                      <p className="text-xs text-muted-foreground">{product.unit}</p>
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className="text-base font-bold">₵{product.price}</span>
-                        {qty === 0 ? (
-                          <Button size="sm" variant="outline" onClick={() => addItem(product.id)}>
-                            <Plus className="mr-1 h-4 w-4" />
-                            Add
-                          </Button>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="h-8 w-8 bg-transparent"
-                              onClick={() => removeItem(product.id)}
-                              aria-label={`Remove one ${product.name}`}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                            <span className="w-5 text-center text-sm font-semibold">{qty}</span>
-                            <Button
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => addItem(product.id)}
-                              aria-label={`Add one ${product.name}`}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-green-100">
+                Fresh Picks
+              </p>
 
-          <aside className="lg:sticky lg:top-20 lg:h-fit">
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <div className="flex items-center gap-2">
-                <ShoppingBasket className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">Your basket</h3>
-                {totalItems > 0 && (
-                  <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-                    {totalItems}
-                  </span>
-                )}
-              </div>
+              <h3 className="text-2xl font-bold sm:text-3xl">
+                Shop Nsawam Market
+              </h3>
 
-              {cartItems.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Your basket is empty. Add items from the market to get started.
-                </p>
-              ) : (
-                <>
-                  <ul className="mt-4 space-y-3">
-                    {cartItems.map(({ product, qty }) => (
-                      <li key={product.id} className="flex items-center justify-between gap-2 text-sm">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {qty} × ₵{product.price}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">₵{product.price * qty}</span>
-                          <button
-                            onClick={() => setCart((c) => ({ ...c, [product.id]: 0 }))}
-                            className="text-muted-foreground transition-colors hover:text-destructive"
-                            aria-label={`Remove ${product.name} from basket`}
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Subtotal</span>
-                      <span>₵{subtotal}</span>
-                    </div>
-                    <div className="flex justify-between text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Truck className="h-4 w-4" />
-                        Delivery
-                      </span>
-                      <span>₵{DELIVERY_FEE}</span>
-                    </div>
-                    <div className="flex justify-between text-base font-bold">
-                      <span>Total</span>
-                      <span>₵{subtotal + DELIVERY_FEE}</span>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <Button asChild className="mt-6 w-full" disabled={cartItems.length === 0}>
-                <a href="#book">Checkout &amp; schedule delivery</a>
-              </Button>
-              <p className="mt-3 text-center text-xs text-muted-foreground">
-                Pay on delivery or via mobile money
+              <p className="mt-2 max-w-xl text-sm text-green-50 sm:text-base">
+                Order your market essentials and let KFM help get them where
+                you need them.
               </p>
             </div>
-          </aside>
+
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-white/15 text-7xl backdrop-blur-sm">
+              🛍️
+            </div>
+
+          </div>
         </div>
+
+        {/* Product Cards */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {products.map((product) => (
+            <article
+              key={product.name}
+              className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+            >
+
+              <ProductVisual emoji={product.emoji} />
+
+              <div className="p-5">
+
+                <span className="text-xs font-semibold uppercase tracking-wide text-green-600">
+                  {product.category}
+                </span>
+
+                <h3 className="mt-1 text-lg font-bold">
+                  {product.name}
+                </h3>
+
+                <p className="mt-2 min-h-[48px] text-sm leading-6 text-muted-foreground">
+                  {product.description}
+                </p>
+
+                <div className="mt-5 flex items-center justify-between gap-3">
+
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Starting from
+                    </p>
+
+                    <p className="text-xl font-bold text-green-700">
+                      GHS {product.price.toFixed(2)}
+                    </p>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => handleOrder(product)}
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Order
+                  </Button>
+
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {/* Customer Contact */}
+        <div className="mt-10 rounded-2xl border bg-muted/40 p-6 text-center">
+
+          <h3 className="text-lg font-bold">
+            Need help with your market order?
+          </h3>
+
+          <p className="mt-2 text-sm text-muted-foreground">
+            Contact Kingdom Faith Transport and we will help you with your
+            order.
+          </p>
+
+          <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
+
+            {/* WhatsApp */}
+            <a
+              href="https://wa.me/233240555688"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 font-semibold text-green-700 hover:underline"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              WhatsApp: 024 0555 688
+            </a>
+
+            <span className="hidden text-muted-foreground sm:inline">
+              •
+            </span>
+
+            {/* Phone */}
+            <a
+              href="tel:+233204097129"
+              className="inline-flex items-center gap-2 font-semibold hover:underline"
+            >
+              <Phone className="h-4 w-4" />
+              Call: 020 409 7129
+            </a>
+
+          </div>
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border bg-muted/40 p-6 text-center sm:flex-row sm:text-left">
+
+          <div>
+            <h3 className="font-semibold">
+              Looking for something else?
+            </h3>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Contact KFM and tell us what you need from Nsawam Market.
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              const message =
+                "Hello Kingdom Faith Transport! I would like to ask about another product from Nsawam Market."
+
+              window.open(
+                `https://wa.me/233240555688?text=${encodeURIComponent(
+                  message
+                )}`,
+                "_blank"
+              )
+            }}
+          >
+            Ask About Products
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+
+        </div>
+
       </div>
     </section>
   )
 }
+```
