@@ -2,13 +2,16 @@
 
 import { useMemo, useState } from "react"
 import {
+  ArrowLeft,
   ArrowRight,
+  CheckCircle2,
   MapPin,
   Minus,
   Phone,
   Plus,
   ShoppingCart,
   Trash2,
+  User,
   X,
 } from "lucide-react"
 
@@ -25,6 +28,14 @@ type Product = {
 
 type CartItem = Product & {
   quantity: number
+}
+
+type CheckoutDetails = {
+  fullName: string
+  phone: string
+  whatsapp: string
+  address: string
+  instructions: string
 }
 
 const products: Product[] = [
@@ -110,6 +121,14 @@ const products: Product[] = [
   },
 ]
 
+const initialCheckoutDetails: CheckoutDetails = {
+  fullName: "",
+  phone: "",
+  whatsapp: "",
+  address: "",
+  instructions: "",
+}
+
 function ProductVisual({
   image,
   name,
@@ -139,6 +158,12 @@ function ProductVisual({
 export function NsawamMarket() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [checkoutDetails, setCheckoutDetails] = useState<CheckoutDetails>(
+    initialCheckoutDetails
+  )
+  const [orderSubmitted, setOrderSubmitted] = useState(false)
+  const [orderNumber, setOrderNumber] = useState("")
 
   const addToCart = (product: Product) => {
     setCart((currentCart) => {
@@ -210,7 +235,7 @@ export function NsawamMarket() {
     [cart]
   )
 
-  const cartTotal = useMemo(
+  const cartSubtotal = useMemo(
     () =>
       cart.reduce(
         (total, item) => total + item.price * item.quantity,
@@ -218,6 +243,132 @@ export function NsawamMarket() {
       ),
     [cart]
   )
+
+  /*
+   * Delivery is deliberately kept at GHS 0 for now.
+   *
+   * When we connect the real KFM delivery pricing system,
+   * this value can be calculated from the customer's location.
+   */
+  const deliveryFee = 0
+
+  const cartTotal = cartSubtotal + deliveryFee
+
+  const updateCheckoutField = (
+    field: keyof CheckoutDetails,
+    value: string
+  ) => {
+    setCheckoutDetails((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const openCheckout = () => {
+    if (cart.length === 0) {
+      return
+    }
+
+    setCartOpen(false)
+    setOrderSubmitted(false)
+    setCheckoutOpen(true)
+  }
+
+  const closeCheckout = () => {
+    setCheckoutOpen(false)
+  }
+
+  const isCheckoutValid =
+    checkoutDetails.fullName.trim().length >= 2 &&
+    checkoutDetails.phone.trim().length >= 9 &&
+    checkoutDetails.address.trim().length >= 5
+
+  const createOrderNumber = () => {
+    const timestamp = Date.now().toString().slice(-8)
+
+    return `KFM-${timestamp}`
+  }
+
+  const handleCheckoutSubmit = () => {
+    if (!isCheckoutValid || cart.length === 0) {
+      return
+    }
+
+    const newOrderNumber = createOrderNumber()
+
+    setOrderNumber(newOrderNumber)
+    setOrderSubmitted(true)
+
+    /*
+     * This is intentionally not clearing the cart yet.
+     *
+     * Once Paystack is connected, the cart should only be cleared
+     * after successful payment confirmation.
+     */
+  }
+
+  const handleWhatsAppFromCheckout = () => {
+    if (cart.length === 0) {
+      return
+    }
+
+    const orderLines = cart
+      .map(
+        (item) =>
+          "- " +
+          item.name +
+          " x " +
+          item.quantity +
+          " = GHS " +
+          (item.price * item.quantity).toFixed(2)
+      )
+      .join("\n")
+
+    const message =
+      "Hello Kingdom Faith Transport! 👋\n\n" +
+      "NEW MARKET ORDER\n\n" +
+      "Order: " +
+      (orderNumber || "Checkout Order") +
+      "\n\n" +
+      "CUSTOMER DETAILS\n" +
+      "Name: " +
+      checkoutDetails.fullName +
+      "\n" +
+      "Phone: " +
+      checkoutDetails.phone +
+      "\n" +
+      "WhatsApp: " +
+      (checkoutDetails.whatsapp || checkoutDetails.phone) +
+      "\n" +
+      "Delivery Address: " +
+      checkoutDetails.address +
+      "\n" +
+      "Instructions: " +
+      (checkoutDetails.instructions || "None") +
+      "\n\n" +
+      "ORDER ITEMS\n" +
+      orderLines +
+      "\n\n" +
+      "SUBTOTAL: GHS " +
+      cartSubtotal.toFixed(2) +
+      "\n" +
+      "DELIVERY: " +
+      (deliveryFee === 0
+        ? "To be confirmed"
+        : "GHS " + deliveryFee.toFixed(2)) +
+      "\n" +
+      "TOTAL: GHS " +
+      cartTotal.toFixed(2) +
+      "\n\n" +
+      "PAYMENT STATUS: Awaiting payment\n\n" +
+      "Please confirm the order and payment instructions. Thank you!"
+
+    const whatsappUrl =
+      "https://wa.me/233240555688?text=" +
+      encodeURIComponent(message)
+
+    window.open(whatsappUrl, "_blank")
+  }
 
   const handleProductOrder = (product: Product) => {
     const message =
@@ -242,42 +393,6 @@ export function NsawamMarket() {
     window.open(whatsappUrl, "_blank")
   }
 
-  const handleCartOrder = () => {
-    if (cart.length === 0) {
-      return
-    }
-
-    const orderLines = cart
-      .map(
-        (item) =>
-          "- " +
-          item.name +
-          " x " +
-          item.quantity +
-          " = GHS " +
-          (item.price * item.quantity).toFixed(2)
-      )
-      .join("\n")
-
-    const message =
-      "Hello Kingdom Faith Transport! 👋\n\n" +
-      "I would like to place a Nsawam Market order.\n\n" +
-      "ORDER DETAILS\n" +
-      orderLines +
-      "\n\n" +
-      "TOTAL: GHS " +
-      cartTotal.toFixed(2) +
-      "\n\n" +
-      "Please confirm availability and let me know the delivery arrangements.\n\n" +
-      "Thank you!"
-
-    const whatsappUrl =
-      "https://wa.me/233240555688?text=" +
-      encodeURIComponent(message)
-
-    window.open(whatsappUrl, "_blank")
-  }
-
   const handleGeneralOrder = () => {
     const message =
       "Hello Kingdom Faith Transport! I would like to ask about another product from Nsawam Market."
@@ -287,6 +402,15 @@ export function NsawamMarket() {
       encodeURIComponent(message)
 
     window.open(whatsappUrl, "_blank")
+  }
+
+  const resetOrder = () => {
+    setCart([])
+    setCheckoutOpen(false)
+    setCartOpen(false)
+    setOrderSubmitted(false)
+    setOrderNumber("")
+    setCheckoutDetails(initialCheckoutDetails)
   }
 
   return (
@@ -325,8 +449,8 @@ export function NsawamMarket() {
               </h3>
 
               <p className="mt-2 max-w-xl text-sm text-green-50 sm:text-base">
-                Choose your products, add them to your cart and send your
-                complete order to KFM through WhatsApp.
+                Choose your products, add them to your cart and continue
+                to checkout.
               </p>
             </div>
 
@@ -597,23 +721,45 @@ export function NsawamMarket() {
 
               {cart.length > 0 && (
                 <div className="border-t bg-muted/30 p-5">
-                  <div className="mb-4 flex items-center justify-between">
-                    <span className="font-semibold">
-                      Order Total
-                    </span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Subtotal
+                      </span>
 
-                    <span className="text-2xl font-bold text-green-700">
-                      GHS {cartTotal.toFixed(2)}
-                    </span>
+                      <span>
+                        GHS {cartSubtotal.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Delivery
+                      </span>
+
+                      <span className="text-muted-foreground">
+                        To be confirmed
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t pt-3">
+                      <span className="font-semibold">
+                        Estimated Total
+                      </span>
+
+                      <span className="text-2xl font-bold text-green-700">
+                        GHS {cartTotal.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
 
                   <Button
-                    className="w-full gap-2"
+                    className="mt-5 w-full gap-2"
                     size="lg"
-                    onClick={handleCartOrder}
+                    onClick={openCheckout}
                   >
-                    <ShoppingCart className="h-5 w-5" />
-                    Order Cart on WhatsApp
+                    Continue to Checkout
+                    <ArrowRight className="h-5 w-5" />
                   </Button>
 
                   <Button
@@ -625,12 +771,415 @@ export function NsawamMarket() {
                   </Button>
 
                   <p className="mt-3 text-center text-xs text-muted-foreground">
-                    Delivery charges and final availability will be
-                    confirmed through WhatsApp.
+                    Delivery charges will be confirmed based on your
+                    delivery location.
                   </p>
                 </div>
               )}
             </aside>
+          </div>
+        )}
+
+        {/* Checkout */}
+        {checkoutOpen && (
+          <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/60 p-0 sm:p-6">
+            <div className="min-h-full bg-background sm:mx-auto sm:max-w-5xl sm:rounded-3xl sm:shadow-2xl">
+              {/* Checkout Header */}
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/95 px-5 py-4 backdrop-blur-md sm:rounded-t-3xl sm:px-8">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-green-600">
+                    KFM Market
+                  </p>
+
+                  <h2 className="text-xl font-bold sm:text-2xl">
+                    {orderSubmitted
+                      ? "Order Received"
+                      : "Customer Checkout"}
+                  </h2>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={closeCheckout}
+                  aria-label="Close checkout"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {orderSubmitted ? (
+                /* Confirmation */
+                <div className="px-5 py-16 sm:px-8">
+                  <div className="mx-auto max-w-xl text-center">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+                      <CheckCircle2 className="h-10 w-10 text-green-600" />
+                    </div>
+
+                    <p className="mt-6 text-sm font-semibold uppercase tracking-widest text-green-600">
+                      Order Created
+                    </p>
+
+                    <h3 className="mt-2 text-3xl font-bold">
+                      Thank you, {checkoutDetails.fullName.split(" ")[0]}!
+                    </h3>
+
+                    <p className="mt-4 text-muted-foreground">
+                      Your market order has been prepared for the next
+                      payment step.
+                    </p>
+
+                    <div className="mt-8 rounded-2xl border bg-muted/40 p-6 text-left">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Order Number
+                        </span>
+
+                        <span className="font-bold">
+                          {orderNumber}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between border-t pt-4">
+                        <span className="font-semibold">
+                          Order Total
+                        </span>
+
+                        <span className="text-xl font-bold text-green-700">
+                          GHS {cartTotal.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                        <p className="text-sm font-semibold text-yellow-800">
+                          Payment status
+                        </p>
+
+                        <p className="mt-1 text-sm text-yellow-700">
+                          Awaiting Mobile Money payment.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                      <Button
+                        size="lg"
+                        className="gap-2"
+                        onClick={handleWhatsAppFromCheckout}
+                      >
+                        <ShoppingCart className="h-5 w-5" />
+                        Send Order to KFM
+                      </Button>
+
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        onClick={resetOrder}
+                      >
+                        Continue Shopping
+                      </Button>
+                    </div>
+
+                    <p className="mt-5 text-xs leading-5 text-muted-foreground">
+                      Mobile Money payment will be connected in the next
+                      stage. Do not treat this screen as confirmation of
+                      payment yet.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_380px]">
+                  {/* Customer Form */}
+                  <div>
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                          <User className="h-5 w-5 text-green-700" />
+                        </div>
+
+                        <div>
+                          <h3 className="text-xl font-bold">
+                            Your Details
+                          </h3>
+
+                          <p className="text-sm text-muted-foreground">
+                            Tell us where to deliver your order.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div>
+                        <label
+                          htmlFor="kfm-full-name"
+                          className="mb-2 block text-sm font-semibold"
+                        >
+                          Full Name
+                        </label>
+
+                        <input
+                          id="kfm-full-name"
+                          type="text"
+                          value={checkoutDetails.fullName}
+                          onChange={(event) =>
+                            updateCheckoutField(
+                              "fullName",
+                              event.target.value
+                            )
+                          }
+                          placeholder="Enter your full name"
+                          autoComplete="name"
+                          className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                        />
+                      </div>
+
+                      <div className="grid gap-5 sm:grid-cols-2">
+                        <div>
+                          <label
+                            htmlFor="kfm-phone"
+                            className="mb-2 block text-sm font-semibold"
+                          >
+                            Phone Number
+                          </label>
+
+                          <input
+                            id="kfm-phone"
+                            type="tel"
+                            value={checkoutDetails.phone}
+                            onChange={(event) =>
+                              updateCheckoutField(
+                                "phone",
+                                event.target.value
+                              )
+                            }
+                            placeholder="024 000 0000"
+                            autoComplete="tel"
+                            className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                          />
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor="kfm-whatsapp"
+                            className="mb-2 block text-sm font-semibold"
+                          >
+                            WhatsApp Number
+                            <span className="ml-1 font-normal text-muted-foreground">
+                              (optional)
+                            </span>
+                          </label>
+
+                          <input
+                            id="kfm-whatsapp"
+                            type="tel"
+                            value={checkoutDetails.whatsapp}
+                            onChange={(event) =>
+                              updateCheckoutField(
+                                "whatsapp",
+                                event.target.value
+                              )
+                            }
+                            placeholder="024 000 0000"
+                            autoComplete="tel"
+                            className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="kfm-address"
+                          className="mb-2 flex items-center gap-2 text-sm font-semibold"
+                        >
+                          <MapPin className="h-4 w-4 text-green-600" />
+                          Delivery Address
+                        </label>
+
+                        <textarea
+                          id="kfm-address"
+                          value={checkoutDetails.address}
+                          onChange={(event) =>
+                            updateCheckoutField(
+                              "address",
+                              event.target.value
+                            )
+                          }
+                          placeholder="Enter your delivery location, house number, landmark or directions"
+                          rows={4}
+                          autoComplete="street-address"
+                          className="w-full resize-none rounded-xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="kfm-instructions"
+                          className="mb-2 block text-sm font-semibold"
+                        >
+                          Delivery Instructions
+                          <span className="ml-1 font-normal text-muted-foreground">
+                            (optional)
+                          </span>
+                        </label>
+
+                        <textarea
+                          id="kfm-instructions"
+                          value={checkoutDetails.instructions}
+                          onChange={(event) =>
+                            updateCheckoutField(
+                              "instructions",
+                              event.target.value
+                            )
+                          }
+                          placeholder="Example: Call me when the rider arrives."
+                          rows={3}
+                          className="w-full resize-none rounded-xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Payment Placeholder */}
+                    <div className="mt-8 rounded-2xl border border-dashed border-green-300 bg-green-50/50 p-5">
+                      <div className="flex gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
+                          <Phone className="h-5 w-5 text-green-700" />
+                        </div>
+
+                        <div>
+                          <h3 className="font-bold">
+                            Mobile Money Payment
+                          </h3>
+
+                          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                            Mobile Money payment will be available here
+                            after the secure Paystack payment connection is
+                            added.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                      <Button
+                        variant="outline"
+                        className="gap-2"
+                        onClick={() => {
+                          setCheckoutOpen(false)
+                          setCartOpen(true)
+                        }}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Cart
+                      </Button>
+
+                      <Button
+                        className="flex-1 gap-2"
+                        size="lg"
+                        disabled={!isCheckoutValid}
+                        onClick={handleCheckoutSubmit}
+                      >
+                        Continue
+                        <ArrowRight className="h-5 w-5" />
+                      </Button>
+                    </div>
+
+                    {!isCheckoutValid && (
+                      <p className="mt-3 text-center text-xs text-muted-foreground">
+                        Please enter your name, phone number and delivery
+                        address to continue.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Order Summary */}
+                  <div className="lg:sticky lg:top-24 lg:self-start">
+                    <div className="rounded-2xl border bg-muted/30 p-5">
+                      <h3 className="text-lg font-bold">
+                        Order Summary
+                      </h3>
+
+                      <div className="mt-5 space-y-4">
+                        {cart.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex gap-3"
+                          >
+                            <div className="relative">
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="h-16 w-16 rounded-xl object-cover"
+                              />
+
+                              <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-green-700 px-1 text-xs font-bold text-white">
+                                {item.quantity}
+                              </span>
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold">
+                                {item.name}
+                              </p>
+
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                GHS {item.price.toFixed(2)} each
+                              </p>
+                            </div>
+
+                            <p className="font-semibold">
+                              GHS{" "}
+                              {(
+                                item.price * item.quantity
+                              ).toFixed(2)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-6 space-y-3 border-t pt-5">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Subtotal
+                          </span>
+
+                          <span>
+                            GHS {cartSubtotal.toFixed(2)}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Delivery
+                          </span>
+
+                          <span className="text-muted-foreground">
+                            To be confirmed
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between border-t pt-4">
+                          <span className="font-bold">
+                            Estimated Total
+                          </span>
+
+                          <span className="text-xl font-bold text-green-700">
+                            GHS {cartTotal.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 rounded-xl bg-background p-4">
+                        <p className="text-xs leading-5 text-muted-foreground">
+                          Your order will be prepared by KFM and arranged
+                          for local delivery after payment confirmation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
