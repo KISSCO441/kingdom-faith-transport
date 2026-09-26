@@ -15,11 +15,10 @@ import {
   User,
   X,
 } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 
 type Product = {
-  id: string
+  id: number
   name: string
   description: string
   price: number
@@ -42,27 +41,27 @@ type CheckoutDetails = {
 
 const products: Product[] = [
   {
-    id: "fresh-fruits",
+    id: 1,
     name: "Fresh Fruits",
     description:
-      "Fresh seasonal fruits selected from local Nsawam market sellers.",
+      "Fresh seasonal fruits selected from the local market.",
     price: 25,
     image:
-      "https://images.pexels.com/photos/36537192/pexels-photo-36537192.jpeg?cs=srgb&dl=pexels-reagan-agyei-mensah-2160161940-36537192.jpg&fm=jpg",
+      "https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=900",
     category: "Fresh Produce",
   },
   {
-    id: "fresh-vegetables",
+    id: 2,
     name: "Fresh Vegetables",
     description:
       "Fresh garden vegetables for your everyday meals.",
     price: 20,
     image:
-      "https://images.pexels.com/photos/19534771/pexels-photo-19534771.jpeg?cs=srgb&dl=pexels-tkirkgoz-19534771.jpg&fm=jpg",
+      "https://images.pexels.com/photos/165509/pexels-photo-165509.jpeg?auto=compress&cs=tinysrgb&w=900",
     category: "Fresh Produce",
   },
   {
-    id: "plantain",
+    id: 3,
     name: "Plantain",
     description:
       "Fresh locally sourced plantain, perfect for frying, boiling or roasting.",
@@ -72,7 +71,7 @@ const products: Product[] = [
     category: "Farm Produce",
   },
   {
-    id: "tomatoes",
+    id: 4,
     name: "Tomatoes",
     description:
       "Fresh ripe tomatoes selected for quality and freshness.",
@@ -82,7 +81,7 @@ const products: Product[] = [
     category: "Fresh Produce",
   },
   {
-    id: "onions",
+    id: 5,
     name: "Onions",
     description:
       "Quality onions for your kitchen and everyday cooking.",
@@ -92,38 +91,38 @@ const products: Product[] = [
     category: "Fresh Produce",
   },
   {
-    id: "fresh-eggs",
+    id: 6,
     name: "Fresh Eggs",
     description:
-      "Farm-fresh eggs carefully selected for your household.",
+      "Fresh eggs suitable for home cooking and baking.",
     price: 35,
     image:
-      "https://images.pexels.com/photos/35484359/pexels-photo-35484359.jpeg?cs=srgb&dl=pexels-ivett-35484359.jpg&fm=jpg",
+      "https://images.pexels.com/photos/162712/egg-white-food-protein-healthy-162712.jpeg?auto=compress&cs=tinysrgb&w=900",
     category: "Groceries",
   },
   {
-    id: "chicken",
+    id: 7,
     name: "Chicken",
     description:
-      "Quality chicken for family meals and special occasions.",
+      "Quality chicken for your home meals.",
     price: 85,
     image:
-      "https://images.pexels.com/photos/12381147/pexels-photo-12381147.jpeg?cs=srgb&dl=pexels-sonic-230970541-12381147.jpg&fm=jpg",
-    category: "Meat & Poultry",
+      "https://images.pexels.com/photos/616353/pexels-photo-616353.jpeg?auto=compress&cs=tinysrgb&w=900",
+    category: "Fresh Food",
   },
   {
-    id: "drinks",
+    id: 8,
     name: "Drinks & Beverages",
     description:
-      "Refreshing drinks and beverages available for delivery.",
+      "A selection of refreshing drinks and beverages.",
     price: 15,
     image:
-      "https://images.pexels.com/photos/15974934/pexels-photo-15974934.jpeg?cs=srgb&dl=pexels-efnanphotography-15974934.jpg&fm=jpg",
-    category: "Beverages",
+      "https://images.pexels.com/photos/969390/pexels-photo-969390.jpeg?auto=compress&cs=tinysrgb&w=900",
+    category: "Drinks",
   },
 ]
 
-const initialCheckoutDetails: CheckoutDetails = {
+const emptyCheckoutDetails: CheckoutDetails = {
   fullName: "",
   phone: "",
   email: "",
@@ -132,42 +131,45 @@ const initialCheckoutDetails: CheckoutDetails = {
   instructions: "",
 }
 
-function ProductVisual({
-  image,
-  name,
-}: {
-  image: string
-  name: string
-}) {
-  return (
-    <div className="relative h-48 overflow-hidden bg-muted">
-      <img
-        src={image}
-        alt={name}
-        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        loading="lazy"
-        referrerPolicy="no-referrer"
-      />
-
-      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/45 to-transparent" />
-
-      <div className="absolute bottom-3 left-3 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
-        Fresh selection
-      </div>
-    </div>
-  )
-}
-
 export function NsawamMarket() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
+
   const [checkoutDetails, setCheckoutDetails] =
-    useState<CheckoutDetails>(initialCheckoutDetails)
-  const [orderSubmitted, setOrderSubmitted] = useState(false)
+    useState<CheckoutDetails>(emptyCheckoutDetails)
+
   const [orderNumber, setOrderNumber] = useState("")
-  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentReference, setPaymentReference] = useState("")
   const [paymentError, setPaymentError] = useState("")
+  const [isProcessingPayment, setIsProcessingPayment] =
+    useState(false)
+
+  const cartCount = useMemo(
+    () =>
+      cart.reduce(
+        (total, item) => total + item.quantity,
+        0
+      ),
+    [cart]
+  )
+
+  const cartTotal = useMemo(
+    () =>
+      cart.reduce(
+        (total, item) =>
+          total + item.price * item.quantity,
+        0
+      ),
+    [cart]
+  )
+
+  const deliveryFee: number = 0
+
+  const estimatedTotal = cartTotal + deliveryFee
+
+  const formatCurrency = (amount: number) =>
+    `GHS ${amount.toFixed(2)}`
 
   const addToCart = (product: Product) => {
     setCart((currentCart) => {
@@ -196,7 +198,18 @@ export function NsawamMarket() {
     })
   }
 
-  const increaseQuantity = (productId: string) => {
+  /*
+   * ORDER NOW
+   *
+   * Instead of sending the customer to WhatsApp,
+   * the product is added to the cart and the cart opens.
+   */
+  const orderProductNow = (product: Product) => {
+    addToCart(product)
+    setCartOpen(true)
+  }
+
+  const increaseQuantity = (productId: number) => {
     setCart((currentCart) =>
       currentCart.map((item) =>
         item.id === productId
@@ -209,7 +222,7 @@ export function NsawamMarket() {
     )
   }
 
-  const decreaseQuantity = (productId: string) => {
+  const decreaseQuantity = (productId: number) => {
     setCart((currentCart) =>
       currentCart
         .map((item) =>
@@ -224,9 +237,11 @@ export function NsawamMarket() {
     )
   }
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = (productId: number) => {
     setCart((currentCart) =>
-      currentCart.filter((item) => item.id !== productId)
+      currentCart.filter(
+        (item) => item.id !== productId
+      )
     )
   }
 
@@ -234,29 +249,24 @@ export function NsawamMarket() {
     setCart([])
   }
 
-  const cartItemCount = useMemo(
-    () => cart.reduce((total, item) => total + item.quantity, 0),
-    [cart]
-  )
+  const openCheckout = () => {
+    if (cart.length === 0) {
+      return
+    }
 
-  const cartSubtotal = useMemo(
-    () =>
-      cart.reduce(
-        (total, item) => total + item.price * item.quantity,
-        0
-      ),
-    [cart]
-  )
+    setPaymentError("")
+    setCartOpen(false)
+    setCheckoutOpen(true)
+  }
 
-  /*
-   * Delivery is deliberately kept at GHS 0 for now.
-   *
-   * When the real KFM delivery pricing system is connected,
-   * this value can be calculated from the customer's location.
-   */
-  const deliveryFee: number = 0
+  const closeCheckout = () => {
+    if (isProcessingPayment) {
+      return
+    }
 
-  const cartTotal = cartSubtotal + deliveryFee
+    setCheckoutOpen(false)
+    setPaymentError("")
+  }
 
   const updateCheckoutField = (
     field: keyof CheckoutDetails,
@@ -268,768 +278,745 @@ export function NsawamMarket() {
     }))
   }
 
-  const openCheckout = () => {
+  const submitCheckout = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault()
+
+    setPaymentError("")
+
+    if (checkoutDetails.fullName.trim().length < 2) {
+      setPaymentError(
+        "Please enter your full name."
+      )
+      return
+    }
+
+    if (checkoutDetails.phone.trim().length < 9) {
+      setPaymentError(
+        "Please enter a valid phone number."
+      )
+      return
+    }
+
+    if (!checkoutDetails.email.includes("@")) {
+      setPaymentError(
+        "Please enter a valid email address."
+      )
+      return
+    }
+
+    if (checkoutDetails.address.trim().length < 5) {
+      setPaymentError(
+        "Please enter your delivery address."
+      )
+      return
+    }
+
     if (cart.length === 0) {
+      setPaymentError("Your cart is empty.")
       return
     }
 
-    setCartOpen(false)
-    setOrderSubmitted(false)
-    setOrderNumber("")
-    setPaymentError("")
-    setPaymentLoading(false)
-    setCheckoutOpen(true)
-  }
-
-  const closeCheckout = () => {
-    if (paymentLoading) {
-      return
-    }
-
-    setCheckoutOpen(false)
-  }
-
-  const isCheckoutValid =
-    checkoutDetails.fullName.trim().length >= 2 &&
-    checkoutDetails.phone.trim().length >= 9 &&
-    checkoutDetails.email.trim().includes("@") &&
-    checkoutDetails.address.trim().length >= 5
-
-  const createOrderNumber = () => {
-    const timestamp = Date.now().toString().slice(-8)
-
-    return `KFM-${timestamp}`
-  }
-
-  const handleCheckoutSubmit = async () => {
-    if (!isCheckoutValid || cart.length === 0 || paymentLoading) {
-      return
-    }
-
-    setPaymentLoading(true)
-    setPaymentError("")
-
-    const newOrderNumber = createOrderNumber()
-
-    const pendingOrder = {
-      orderNumber: newOrderNumber,
-      customer: checkoutDetails,
-      items: cart,
-      subtotal: cartSubtotal,
-      deliveryFee,
-      total: cartTotal,
-      createdAt: new Date().toISOString(),
-    }
+    setIsProcessingPayment(true)
 
     try {
+      const newOrderNumber = `KFM-${Date.now()
+        .toString()
+        .slice(-8)}`
+
+      setOrderNumber(newOrderNumber)
+
+      const orderItems = cart.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.price * item.quantity,
+      }))
+
+      const pendingOrder = {
+        orderNumber: newOrderNumber,
+        customer: checkoutDetails,
+        items: orderItems,
+        subtotal: cartTotal,
+        deliveryFee,
+        total: estimatedTotal,
+        paymentStatus: "PENDING",
+        createdAt: new Date().toISOString(),
+      }
+
       sessionStorage.setItem(
         "kfm_pending_order",
         JSON.stringify(pendingOrder)
       )
 
-      const response = await fetch("/api/paystack/initialize", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: checkoutDetails.email.trim(),
-          amount: cartTotal,
-          reference: newOrderNumber,
-          customerName: checkoutDetails.fullName.trim(),
-          phone: checkoutDetails.phone.trim(),
-          whatsapp: checkoutDetails.whatsapp.trim(),
-          address: checkoutDetails.address.trim(),
-          instructions: checkoutDetails.instructions.trim(),
-          items: cart.map((item) => ({
-            id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-            total: item.price * item.quantity,
-          })),
-        }),
-      })
+      const response = await fetch(
+        "/api/paystack/initialize",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: checkoutDetails.email.trim(),
+            amount: estimatedTotal,
+            reference: newOrderNumber,
+            customerName:
+              checkoutDetails.fullName.trim(),
+            phone: checkoutDetails.phone.trim(),
+            whatsapp:
+              checkoutDetails.whatsapp.trim(),
+            address:
+              checkoutDetails.address.trim(),
+            instructions:
+              checkoutDetails.instructions.trim(),
+            items: orderItems,
+          }),
+        }
+      )
 
       const data = await response.json()
 
-      if (!response.ok || !data.status) {
+      if (!response.ok || !data?.status) {
         throw new Error(
           data?.message ||
-            "Unable to start the Paystack payment."
+            "Unable to connect to Paystack. Please try again."
         )
       }
 
-      if (!data.data?.authorization_url) {
+      const authorizationUrl =
+        data?.data?.authorization_url
+
+      const returnedReference =
+        data?.data?.reference
+
+      if (returnedReference) {
+        setPaymentReference(returnedReference)
+      }
+
+      if (!authorizationUrl) {
         throw new Error(
-          "Paystack did not return a payment authorization link."
+          "Paystack did not return a payment page."
         )
       }
 
-      setOrderNumber(newOrderNumber)
-
-      window.location.href = data.data.authorization_url
+      window.location.href = authorizationUrl
     } catch (error) {
-      console.error("Paystack checkout error:", error)
-
-      sessionStorage.removeItem("kfm_pending_order")
+      console.error("Checkout error:", error)
 
       setPaymentError(
         error instanceof Error
           ? error.message
-          : "Unable to start payment. Please try again."
+          : "An unexpected payment error occurred. Please try again."
       )
 
-      setPaymentLoading(false)
+      setIsProcessingPayment(false)
     }
   }
 
-  const handleWhatsAppFromCheckout = () => {
-    if (cart.length === 0) {
-      return
-    }
-
-    const orderLines = cart
-      .map(
-        (item) =>
-          "- " +
-          item.name +
-          " x " +
-          item.quantity +
-          " = GHS " +
-          (item.price * item.quantity).toFixed(2)
-      )
-      .join("\n")
-
+  const contactKfm = () => {
     const message =
-      "Hello Kingdom Faith Transport! 👋\n\n" +
-      "NEW MARKET ORDER\n\n" +
-      "Order: " +
-      (orderNumber || "Checkout Order") +
-      "\n\n" +
-      "CUSTOMER DETAILS\n" +
-      "Name: " +
-      checkoutDetails.fullName +
-      "\n" +
-      "Phone: " +
-      checkoutDetails.phone +
-      "\n" +
-      "Email: " +
-      checkoutDetails.email +
-      "\n" +
-      "WhatsApp: " +
-      (checkoutDetails.whatsapp || checkoutDetails.phone) +
-      "\n" +
-      "Delivery Address: " +
-      checkoutDetails.address +
-      "\n" +
-      "Instructions: " +
-      (checkoutDetails.instructions || "None") +
-      "\n\n" +
-      "ORDER ITEMS\n" +
-      orderLines +
-      "\n\n" +
-      "SUBTOTAL: GHS " +
-      cartSubtotal.toFixed(2) +
-      "\n" +
-      "DELIVERY: " +
-      (deliveryFee === 0
-        ? "To be confirmed"
-        : "GHS " + deliveryFee.toFixed(2)) +
-      "\n" +
-      "TOTAL: GHS " +
-      cartTotal.toFixed(2) +
-      "\n\n" +
-      "PAYMENT STATUS: Awaiting payment\n\n" +
-      "Please confirm the order and payment instructions. Thank you!"
+      "Hello KFM, I need help with a Nsawam Market order."
 
-    const whatsappUrl =
-      "https://wa.me/233240555688?text=" +
-      encodeURIComponent(message)
-
-    window.open(whatsappUrl, "_blank")
+    window.open(
+      `https://wa.me/233240555688?text=${encodeURIComponent(
+        message
+      )}`,
+      "_blank"
+    )
   }
 
-  const handleProductOrder = (product: Product) => {
-    const message =
-      "Hello Kingdom Faith Transport! 👋\n\n" +
-      "I would like to order:\n\n" +
-      "Product: " +
-      product.name +
-      "\n" +
-      "Category: " +
-      product.category +
-      "\n" +
-      "Quantity: 1\n" +
-      "Price: GHS " +
-      product.price.toFixed(2) +
-      "\n\n" +
-      "Please let me know the next steps for delivery. Thank you!"
-
-    const whatsappUrl =
-      "https://wa.me/233240555688?text=" +
-      encodeURIComponent(message)
-
-    window.open(whatsappUrl, "_blank")
-  }
-
-  const handleGeneralOrder = () => {
-    const message =
-      "Hello Kingdom Faith Transport! I would like to ask about another product from Nsawam Market."
-
-    const whatsappUrl =
-      "https://wa.me/233240555688?text=" +
-      encodeURIComponent(message)
-
-    window.open(whatsappUrl, "_blank")
-  }
-
-  const resetOrder = () => {
-    setCart([])
-    setCheckoutOpen(false)
-    setCartOpen(false)
-    setOrderSubmitted(false)
-    setOrderNumber("")
-    setPaymentLoading(false)
-    setPaymentError("")
-    setCheckoutDetails(initialCheckoutDetails)
+  const callKfm = () => {
+    window.location.href = "tel:+233204097129"
   }
 
   return (
     <section
       id="nsawam-market"
-      className="w-full bg-background px-4 py-16 sm:px-6 lg:px-8"
+      className="border-t border-border bg-muted/30 py-20"
     >
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-10 text-center">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700">
-            <MapPin className="h-4 w-4" />
-            Nsawam, Ghana
-          </div>
+      <div className="mx-auto max-w-6xl px-4">
 
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+        {/* Heading */}
+        <div className="mx-auto max-w-3xl text-center">
+          <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
             Nsawam Market
+          </span>
+
+          <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+            Shop Fresh Products From Nsawam
           </h2>
 
-          <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-            Fresh picks, everyday essentials and local products delivered
-            conveniently through Kingdom Faith Transport.
+          <p className="mt-4 text-base leading-7 text-muted-foreground">
+            Choose products from the local market, add them
+            to your order, pay securely with Paystack, and
+            have your order prepared for delivery.
           </p>
         </div>
 
-        {/* Market Banner */}
-        <div className="mb-10 overflow-hidden rounded-3xl bg-gradient-to-r from-green-700 via-green-600 to-emerald-500 p-6 text-white shadow-lg sm:p-8">
-          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-green-100">
-                Fresh Picks
-              </p>
+        {/* Information cards */}
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
 
-              <h3 className="text-2xl font-bold sm:text-3xl">
-                Shop Nsawam Market
-              </h3>
-
-              <p className="mt-2 max-w-xl text-sm text-green-50 sm:text-base">
-                Choose your products, add them to your cart and continue
-                to secure checkout.
-              </p>
+          <div className="rounded-2xl border border-border bg-background p-5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <MapPin className="h-5 w-5" />
             </div>
 
-            <div className="h-28 w-40 shrink-0 overflow-hidden rounded-2xl border border-white/20 shadow-xl">
-              <img
-                src="https://images.pexels.com/photos/36537192/pexels-photo-36537192.jpeg?cs=srgb&dl=pexels-reagan-agyei-mensah-2160161940-36537192.jpg&fm=jpg"
-                alt="Ghanaian outdoor market"
-                className="h-full w-full object-cover"
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
-            </div>
+            <h3 className="mt-4 font-semibold">
+              Local Market Products
+            </h3>
+
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Shop everyday food and household products
+              sourced through the Nsawam market.
+            </p>
           </div>
-        </div>
 
-        {/* Cart Button */}
-        <div className="mb-8 flex justify-end">
-          <Button
-            onClick={() => setCartOpen(true)}
-            className="relative gap-2"
-          >
-            <ShoppingCart className="h-5 w-5" />
-            My Cart
+          <div className="rounded-2xl border border-border bg-background p-5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <ShoppingCart className="h-5 w-5" />
+            </div>
 
-            {cartItemCount > 0 && (
-              <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1.5 text-xs font-bold text-green-700">
-                {cartItemCount}
-              </span>
-            )}
-          </Button>
+            <h3 className="mt-4 font-semibold">
+              Simple Ordering
+            </h3>
+
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Select a product or add several products to
+              your cart before checkout.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-background p-5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+
+            <h3 className="mt-4 font-semibold">
+              Secure Payment
+            </h3>
+
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Pay through Paystack using supported Ghana
+              Mobile Money options or a bank card.
+            </p>
+          </div>
+
         </div>
 
         {/* Products */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {products.map((product) => {
-            const cartItem = cart.find(
-              (item) => item.id === product.id
-            )
+        <div className="mt-12">
 
-            return (
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+              <h3 className="text-xl font-bold">
+                Available Products
+              </h3>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Select a product to start your order.
+              </p>
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => setCartOpen(true)}
+              className="gap-2"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              My Cart
+
+              {cartCount > 0 && (
+                <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                  {cartCount}
+                </span>
+              )}
+            </Button>
+
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+
+            {products.map((product) => (
               <article
                 key={product.id}
-                className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                className="group overflow-hidden rounded-2xl border border-border bg-background shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
               >
-                <ProductVisual
-                  image={product.image}
-                  name={product.name}
-                />
 
-                <div className="p-5">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-green-600">
+                <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+
+                  <span className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-xs font-semibold backdrop-blur">
                     {product.category}
                   </span>
 
-                  <h3 className="mt-1 text-lg font-bold">
+                </div>
+
+                <div className="p-4">
+
+                  <h4 className="font-semibold">
                     {product.name}
-                  </h3>
+                  </h4>
 
                   <p className="mt-2 min-h-[48px] text-sm leading-6 text-muted-foreground">
                     {product.description}
                   </p>
 
-                  <div className="mt-5 flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Starting from
-                      </p>
+                  <div className="mt-4">
 
-                      <p className="text-xl font-bold text-green-700">
-                        GHS {product.price.toFixed(2)}
-                      </p>
-                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Starting from
+                    </span>
 
-                    {cartItem ? (
-                      <div className="flex items-center gap-1 rounded-lg border bg-muted p-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() =>
-                            decreaseQuantity(product.id)
-                          }
-                          aria-label={"Decrease " + product.name}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
+                    <div className="mt-1 flex items-center justify-between gap-3">
 
-                        <span className="min-w-6 text-center text-sm font-bold">
-                          {cartItem.quantity}
-                        </span>
+                      <span className="text-lg font-bold">
+                        {formatCurrency(product.price)}
+                      </span>
 
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() =>
-                            increaseQuantity(product.id)
-                          }
-                          aria-label={"Increase " + product.name}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ) : (
                       <Button
                         size="sm"
-                        className="gap-2"
-                        onClick={() => addToCart(product)}
+                        onClick={() =>
+                          orderProductNow(product)
+                        }
                       >
-                        <ShoppingCart className="h-4 w-4" />
-                        Add
+                        Order Now
                       </Button>
-                    )}
+
+                    </div>
+
                   </div>
 
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-3 w-full"
-                    onClick={() => handleProductOrder(product)}
+                    className="mt-2 w-full"
+                    onClick={() =>
+                      addToCart(product)
+                    }
                   >
-                    Order Now
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Add to Cart
                   </Button>
+
                 </div>
+
               </article>
-            )
-          })}
+            ))}
+
+          </div>
         </div>
 
-        {/* Cart Drawer */}
-        {cartOpen && (
-          <div className="fixed inset-0 z-50">
-            <button
-              type="button"
-              aria-label="Close cart"
-              className="absolute inset-0 h-full w-full bg-black/50"
-              onClick={() => setCartOpen(false)}
-            />
+        {/* Contact KFM */}
+        <div className="mt-12 rounded-2xl border border-border bg-background p-6">
 
-            <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-background shadow-2xl">
-              <div className="flex items-center justify-between border-b p-5">
-                <div>
-                  <h2 className="text-xl font-bold">
-                    Your Market Cart
-                  </h2>
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
 
-                  <p className="text-sm text-muted-foreground">
-                    {cartItemCount} item
-                    {cartItemCount === 1 ? "" : "s"}
-                  </p>
-                </div>
+            <div>
+              <h3 className="text-lg font-bold">
+                Need help with your order?
+              </h3>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setCartOpen(false)}
-                  aria-label="Close cart"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Contact KFM directly if you need help selecting
+                a product or completing your market order.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+
+              <Button
+                variant="outline"
+                onClick={contactKfm}
+                className="gap-2"
+              >
+                WhatsApp KFM
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={callKfm}
+                className="gap-2"
+              >
+                <Phone className="h-4 w-4" />
+                Call KFM
+              </Button>
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      {/* CART */}
+      {cartOpen && (
+        <div className="fixed inset-0 z-[100]">
+
+          <button
+            type="button"
+            aria-label="Close cart"
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setCartOpen(false)}
+          />
+
+          <div className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-background shadow-2xl">
+
+            <div className="flex items-center justify-between border-b border-border p-5">
+
+              <div>
+                <h2 className="text-xl font-bold">
+                  Your Cart
+                </h2>
+
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {cartCount}{" "}
+                  {cartCount === 1
+                    ? "item"
+                    : "items"}
+                </p>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-5">
-                {cart.length === 0 ? (
-                  <div className="flex h-full flex-col items-center justify-center text-center">
-                    <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted">
-                      <ShoppingCart className="h-9 w-9 text-muted-foreground" />
-                    </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  setCartOpen(false)
+                }
+                aria-label="Close cart"
+              >
+                <X className="h-5 w-5" />
+              </Button>
 
-                    <h3 className="font-semibold">
-                      Your cart is empty
-                    </h3>
+            </div>
 
-                    <p className="mt-2 max-w-xs text-sm text-muted-foreground">
-                      Add products from Nsawam Market to create your order.
-                    </p>
+            <div className="flex-1 overflow-y-auto p-5">
 
-                    <Button
-                      className="mt-5"
-                      onClick={() => setCartOpen(false)}
-                    >
-                      Continue Shopping
-                    </Button>
+              {cart.length === 0 ? (
+                <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
+
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                    <ShoppingCart className="h-7 w-7 text-muted-foreground" />
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {cart.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-xl border p-4"
-                      >
-                        <div className="flex items-start gap-3">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="h-14 w-14 shrink-0 rounded-xl object-cover"
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                          />
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <h3 className="font-semibold">
-                                  {item.name}
-                                </h3>
+                  <h3 className="mt-5 text-lg font-semibold">
+                    Your cart is empty
+                  </h3>
 
-                                <p className="text-sm text-muted-foreground">
-                                  GHS {item.price.toFixed(2)} each
-                                </p>
-                              </div>
+                  <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
+                    Choose products from the Nsawam Market
+                    to start your order.
+                  </p>
+
+                  <Button
+                    className="mt-5"
+                    onClick={() =>
+                      setCartOpen(false)
+                    }
+                  >
+                    Continue Shopping
+                  </Button>
+
+                </div>
+              ) : (
+
+                <div className="space-y-4">
+
+                  {cart.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-border p-4"
+                    >
+
+                      <div className="flex gap-4">
+
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-20 w-20 shrink-0 rounded-lg object-cover"
+                        />
+
+                        <div className="min-w-0 flex-1">
+
+                          <div className="flex items-start justify-between gap-3">
+
+                            <div>
+                              <h3 className="font-semibold">
+                                {item.name}
+                              </h3>
+
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                {formatCurrency(
+                                  item.price
+                                )}{" "}
+                                each
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeFromCart(
+                                  item.id
+                                )
+                              }
+                              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              aria-label={`Remove ${item.name}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between">
+
+                            <div className="flex items-center rounded-lg border border-border">
 
                               <button
                                 type="button"
                                 onClick={() =>
-                                  removeFromCart(item.id)
+                                  decreaseQuantity(
+                                    item.id
+                                  )
                                 }
-                                className="text-muted-foreground transition-colors hover:text-destructive"
-                                aria-label={"Remove " + item.name}
+                                className="p-2 hover:bg-muted"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Minus className="h-4 w-4" />
                               </button>
+
+                              <span className="min-w-10 text-center text-sm font-semibold">
+                                {item.quantity}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  increaseQuantity(
+                                    item.id
+                                  )
+                                }
+                                className="p-2 hover:bg-muted"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+
                             </div>
 
-                            <div className="mt-3 flex items-center justify-between">
-                              <div className="flex items-center gap-1 rounded-lg border bg-muted p-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() =>
-                                    decreaseQuantity(item.id)
-                                  }
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </Button>
+                            <span className="font-bold">
+                              {formatCurrency(
+                                item.price *
+                                  item.quantity
+                              )}
+                            </span>
 
-                                <span className="min-w-7 text-center text-sm font-bold">
-                                  {item.quantity}
-                                </span>
-
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() =>
-                                    increaseQuantity(item.id)
-                                  }
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </div>
-
-                              <p className="font-bold">
-                                GHS{" "}
-                                {(
-                                  item.price * item.quantity
-                                ).toFixed(2)}
-                              </p>
-                            </div>
                           </div>
+
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
+
+                </div>
+              )}
+
+            </div>
+
+            {cart.length > 0 && (
+              <div className="border-t border-border bg-background p-5">
+
+                <div className="space-y-3">
+
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Subtotal
+                    </span>
+
+                    <span className="font-medium">
+                      {formatCurrency(cartTotal)}
+                    </span>
                   </div>
-                )}
-              </div>
 
-              {cart.length > 0 && (
-                <div className="border-t bg-muted/30 p-5">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Subtotal
-                      </span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Delivery
+                    </span>
 
-                      <span>
-                        GHS {cartSubtotal.toFixed(2)}
-                      </span>
-                    </div>
+                    <span className="font-medium">
+                      To be confirmed
+                    </span>
+                  </div>
 
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        Delivery
-                      </span>
+                  <div className="border-t border-border pt-3">
 
-                      <span className="text-muted-foreground">
-                        To be confirmed
-                      </span>
-                    </div>
+                    <div className="flex justify-between">
 
-                    <div className="flex items-center justify-between border-t pt-3">
                       <span className="font-semibold">
                         Estimated Total
                       </span>
 
-                      <span className="text-2xl font-bold text-green-700">
-                        GHS {cartTotal.toFixed(2)}
+                      <span className="text-lg font-bold">
+                        {formatCurrency(
+                          estimatedTotal
+                        )}
                       </span>
+
                     </div>
+
                   </div>
 
-                  <Button
-                    className="mt-5 w-full gap-2"
-                    size="lg"
-                    onClick={openCheckout}
-                  >
-                    Continue to Checkout
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    className="mt-2 w-full"
-                    onClick={clearCart}
-                  >
-                    Clear Cart
-                  </Button>
-
-                  <p className="mt-3 text-center text-xs text-muted-foreground">
-                    Delivery charges will be confirmed based on your
-                    delivery location.
-                  </p>
-                </div>
-              )}
-            </aside>
-          </div>
-        )}
-
-        {/* Checkout */}
-        {checkoutOpen && (
-          <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/60 p-0 sm:p-6">
-            <div className="min-h-full bg-background sm:mx-auto sm:max-w-5xl sm:rounded-3xl sm:shadow-2xl">
-              {/* Checkout Header */}
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/95 px-5 py-4 backdrop-blur-md sm:rounded-t-3xl sm:px-8">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-green-600">
-                    KFM Market
-                  </p>
-
-                  <h2 className="text-xl font-bold sm:text-2xl">
-                    Customer Checkout
-                  </h2>
                 </div>
 
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={closeCheckout}
-                  disabled={paymentLoading}
-                  aria-label="Close checkout"
+                  className="mt-5 w-full"
+                  size="lg"
+                  onClick={openCheckout}
                 >
-                  <X className="h-5 w-5" />
+                  Continue to Checkout
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
+
+                <Button
+                  variant="ghost"
+                  className="mt-2 w-full"
+                  onClick={clearCart}
+                >
+                  Clear Cart
+                </Button>
+
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* CHECKOUT */}
+      {checkoutOpen && (
+        <div className="fixed inset-0 z-[110] overflow-y-auto bg-background">
+
+          <div className="min-h-screen">
+
+            <div className="border-b border-border bg-background/95 backdrop-blur">
+
+              <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
+
+                <Button
+                  variant="ghost"
+                  onClick={closeCheckout}
+                  disabled={isProcessingPayment}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
+
+                <div className="text-center">
+
+                  <h2 className="font-bold">
+                    Checkout
+                  </h2>
+
+                  <p className="text-xs text-muted-foreground">
+                    Secure Paystack Payment
+                  </p>
+
+                </div>
+
+                <div className="w-16" />
+
               </div>
 
-              {orderSubmitted ? (
-                /* Confirmation */
-                <div className="px-5 py-16 sm:px-8">
-                  <div className="mx-auto max-w-xl text-center">
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-                      <CheckCircle2 className="h-10 w-10 text-green-600" />
-                    </div>
+            </div>
 
-                    <p className="mt-6 text-sm font-semibold uppercase tracking-widest text-green-600">
-                      Order Created
+            <div className="mx-auto max-w-3xl px-4 py-8">
+
+              <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+
+                {/* Checkout form */}
+                <div>
+
+                  <div className="mb-6">
+
+                    <h1 className="text-2xl font-bold">
+                      Delivery Details
+                    </h1>
+
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      Enter your details so KFM can prepare
+                      and arrange delivery of your market order.
                     </p>
 
-                    <h3 className="mt-2 text-3xl font-bold">
-                      Thank you,{" "}
-                      {checkoutDetails.fullName.split(" ")[0]}!
-                    </h3>
-
-                    <p className="mt-4 text-muted-foreground">
-                      Your order has been submitted for payment processing.
-                    </p>
-
-                    <div className="mt-8 rounded-2xl border bg-muted/40 p-6 text-left">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Order Number
-                        </span>
-
-                        <span className="font-bold">
-                          {orderNumber}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-between border-t pt-4">
-                        <span className="font-semibold">
-                          Order Total
-                        </span>
-
-                        <span className="text-xl font-bold text-green-700">
-                          GHS {cartTotal.toFixed(2)}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4">
-                        <p className="text-sm font-semibold text-green-800">
-                          Payment status
-                        </p>
-
-                        <p className="mt-1 text-sm text-green-700">
-                          Payment processing through Paystack.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                      <Button
-                        size="lg"
-                        className="gap-2"
-                        onClick={handleWhatsAppFromCheckout}
-                      >
-                        <ShoppingCart className="h-5 w-5" />
-                        Send Order to KFM
-                      </Button>
-
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        onClick={resetOrder}
-                      >
-                        Continue Shopping
-                      </Button>
-                    </div>
-
-                    <p className="mt-5 text-xs leading-5 text-muted-foreground">
-                      Keep your order number and payment reference for
-                      your records. Final payment confirmation is handled
-                      through Paystack.
-                    </p>
                   </div>
-                </div>
-              ) : (
-                <div className="grid gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_380px]">
-                  {/* Customer Form */}
-                  <div>
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                          <User className="h-5 w-5 text-green-700" />
-                        </div>
 
-                        <div>
-                          <h3 className="text-xl font-bold">
-                            Your Details
-                          </h3>
+                  <form
+                    onSubmit={submitCheckout}
+                    className="space-y-5"
+                  >
 
-                          <p className="text-sm text-muted-foreground">
-                            Tell us where to deliver your order.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    <div>
 
-                    <div className="space-y-5">
-                      <div>
-                        <label
-                          htmlFor="kfm-full-name"
-                          className="mb-2 block text-sm font-semibold"
-                        >
-                          Full Name
-                        </label>
+                      <label
+                        htmlFor="fullName"
+                        className="mb-2 block text-sm font-medium"
+                      >
+                        Full Name
+                      </label>
+
+                      <div className="relative">
+
+                        <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
                         <input
-                          id="kfm-full-name"
+                          id="fullName"
                           type="text"
-                          value={checkoutDetails.fullName}
+                          value={
+                            checkoutDetails.fullName
+                          }
                           onChange={(event) =>
                             updateCheckoutField(
                               "fullName",
                               event.target.value
                             )
                           }
-                          placeholder="Enter your full name"
-                          autoComplete="name"
-                          className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                          placeholder="Your full name"
+                          className="h-11 w-full rounded-lg border border-border bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          disabled={
+                            isProcessingPayment
+                          }
                         />
+
                       </div>
 
-                      <div className="grid gap-5 sm:grid-cols-2">
-                        {/* Phone */}
-                        <div>
-                          <label
-                            htmlFor="kfm-phone"
-                            className="mb-2 flex items-center gap-2 text-sm font-semibold"
-                          >
-                            <Phone className="h-4 w-4 text-green-600" />
-                            Phone Number
-                          </label>
+                    </div>
+
+                    <div className="grid gap-5 sm:grid-cols-2">
+
+                      <div>
+
+                        <label
+                          htmlFor="phone"
+                          className="mb-2 block text-sm font-medium"
+                        >
+                          Phone Number
+                        </label>
+
+                        <div className="relative">
+
+                          <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
                           <input
-                            id="kfm-phone"
+                            id="phone"
                             type="tel"
-                            value={checkoutDetails.phone}
+                            value={
+                              checkoutDetails.phone
+                            }
                             onChange={(event) =>
                               updateCheckoutField(
                                 "phone",
@@ -1037,25 +1024,35 @@ export function NsawamMarket() {
                               )
                             }
                             placeholder="024 000 0000"
-                            autoComplete="tel"
-                            className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                            className="h-11 w-full rounded-lg border border-border bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            disabled={
+                              isProcessingPayment
+                            }
                           />
+
                         </div>
 
-                        {/* Email */}
-                        <div>
-                          <label
-                            htmlFor="kfm-email"
-                            className="mb-2 flex items-center gap-2 text-sm font-semibold"
-                          >
-                            <Mail className="h-4 w-4 text-green-600" />
-                            Email Address
-                          </label>
+                      </div>
+
+                      <div>
+
+                        <label
+                          htmlFor="email"
+                          className="mb-2 block text-sm font-medium"
+                        >
+                          Email Address
+                        </label>
+
+                        <div className="relative">
+
+                          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
                           <input
-                            id="kfm-email"
+                            id="email"
                             type="email"
-                            value={checkoutDetails.email}
+                            value={
+                              checkoutDetails.email
+                            }
                             onChange={(event) =>
                               updateCheckoutField(
                                 "email",
@@ -1063,316 +1060,278 @@ export function NsawamMarket() {
                               )
                             }
                             placeholder="you@example.com"
-                            autoComplete="email"
-                            className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                            className="h-11 w-full rounded-lg border border-border bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                            disabled={
+                              isProcessingPayment
+                            }
                           />
+
                         </div>
+
                       </div>
 
-                      {/* WhatsApp */}
-                      <div>
-                        <label
-                          htmlFor="kfm-whatsapp"
-                          className="mb-2 block text-sm font-semibold"
-                        >
-                          WhatsApp Number
-                          <span className="ml-1 font-normal text-muted-foreground">
-                            (optional)
-                          </span>
-                        </label>
+                    </div>
 
-                        <input
-                          id="kfm-whatsapp"
-                          type="tel"
-                          value={checkoutDetails.whatsapp}
-                          onChange={(event) =>
-                            updateCheckoutField(
-                              "whatsapp",
-                              event.target.value
-                            )
-                          }
-                          placeholder="024 000 0000"
-                          autoComplete="tel"
-                          className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-                        />
-                      </div>
+                    <div>
 
-                      {/* Delivery Address */}
-                      <div>
-                        <label
-                          htmlFor="kfm-address"
-                          className="mb-2 flex items-center gap-2 text-sm font-semibold"
-                        >
-                          <MapPin className="h-4 w-4 text-green-600" />
-                          Delivery Address
-                        </label>
+                      <label
+                        htmlFor="whatsapp"
+                        className="mb-2 block text-sm font-medium"
+                      >
+                        WhatsApp Number{" "}
+                        <span className="font-normal text-muted-foreground">
+                          (Optional)
+                        </span>
+                      </label>
+
+                      <input
+                        id="whatsapp"
+                        type="tel"
+                        value={
+                          checkoutDetails.whatsapp
+                        }
+                        onChange={(event) =>
+                          updateCheckoutField(
+                            "whatsapp",
+                            event.target.value
+                          )
+                        }
+                        placeholder="024 000 0000"
+                        className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        disabled={
+                          isProcessingPayment
+                        }
+                      />
+
+                    </div>
+
+                    <div>
+
+                      <label
+                        htmlFor="address"
+                        className="mb-2 block text-sm font-medium"
+                      >
+                        Delivery Address
+                      </label>
+
+                      <div className="relative">
+
+                        <MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
 
                         <textarea
-                          id="kfm-address"
-                          value={checkoutDetails.address}
+                          id="address"
+                          value={
+                            checkoutDetails.address
+                          }
                           onChange={(event) =>
                             updateCheckoutField(
                               "address",
                               event.target.value
                             )
                           }
-                          placeholder="Enter your delivery location, house number, landmark or directions"
-                          rows={4}
-                          autoComplete="street-address"
-                          className="w-full resize-none rounded-xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
-                        />
-                      </div>
-
-                      {/* Delivery Instructions */}
-                      <div>
-                        <label
-                          htmlFor="kfm-instructions"
-                          className="mb-2 block text-sm font-semibold"
-                        >
-                          Delivery Instructions
-                          <span className="ml-1 font-normal text-muted-foreground">
-                            (optional)
-                          </span>
-                        </label>
-
-                        <textarea
-                          id="kfm-instructions"
-                          value={checkoutDetails.instructions}
-                          onChange={(event) =>
-                            updateCheckoutField(
-                              "instructions",
-                              event.target.value
-                            )
-                          }
-                          placeholder="Example: Call me when the rider arrives."
+                          placeholder="Enter your full delivery address"
                           rows={3}
-                          className="w-full resize-none rounded-xl border bg-background px-4 py-3 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                          className="w-full resize-none rounded-lg border border-border bg-background px-10 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          disabled={
+                            isProcessingPayment
+                          }
                         />
+
                       </div>
+
                     </div>
 
-                    {/* Paystack Payment */}
-                    <div className="mt-8 rounded-2xl border border-green-300 bg-green-50/50 p-5">
-                      <div className="flex gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
-                          <Phone className="h-5 w-5 text-green-700" />
-                        </div>
+                    <div>
 
-                        <div>
-                          <h3 className="font-bold">
-                            Secure Paystack Payment
-                          </h3>
+                      <label
+                        htmlFor="instructions"
+                        className="mb-2 block text-sm font-medium"
+                      >
+                        Delivery Instructions{" "}
+                        <span className="font-normal text-muted-foreground">
+                          (Optional)
+                        </span>
+                      </label>
 
-                          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                            Pay securely with Mobile Money or Card through
-                            Paystack. Available Ghana Mobile Money options
-                            include MTN, Telecel and AirtelTigo.
-                          </p>
-                        </div>
-                      </div>
+                      <textarea
+                        id="instructions"
+                        value={
+                          checkoutDetails.instructions
+                        }
+                        onChange={(event) =>
+                          updateCheckoutField(
+                            "instructions",
+                            event.target.value
+                          )
+                        }
+                        placeholder="Any additional information for the delivery rider?"
+                        rows={3}
+                        className="w-full resize-none rounded-lg border border-border bg-background px-3 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        disabled={
+                          isProcessingPayment
+                        }
+                      />
+
                     </div>
 
                     {paymentError && (
-                      <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
-                        <p className="text-sm font-semibold text-red-800">
-                          Payment could not be started
-                        </p>
-
-                        <p className="mt-1 text-sm text-red-700">
-                          {paymentError}
-                        </p>
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm leading-6 text-destructive">
+                        {paymentError}
                       </div>
                     )}
 
-                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                      <Button
-                        variant="outline"
-                        className="gap-2"
-                        disabled={paymentLoading}
-                        onClick={() => {
-                          setCheckoutOpen(false)
-                          setCartOpen(true)
-                        }}
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to Cart
-                      </Button>
+                    <div className="rounded-xl border border-border bg-muted/40 p-4">
 
-                      <Button
-                        className="flex-1 gap-2"
-                        size="lg"
-                        disabled={!isCheckoutValid || paymentLoading}
-                        onClick={handleCheckoutSubmit}
-                      >
-                        {paymentLoading ? (
-                          "Connecting to Paystack..."
-                        ) : (
-                          <>
-                            Pay with Paystack
-                            <ArrowRight className="h-5 w-5" />
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex items-start gap-3">
+
+                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </div>
+
+                        <div>
+
+                          <p className="text-sm font-semibold">
+                            Secure Paystack Payment
+                          </p>
+
+                          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                            Pay securely with Mobile Money or
+                            Card through Paystack. Available Ghana
+                            Mobile Money options include MTN,
+                            Telecel and AirtelTigo.
+                          </p>
+
+                        </div>
+
+                      </div>
+
                     </div>
 
-                    {!isCheckoutValid && (
-                      <p className="mt-3 text-center text-xs text-muted-foreground">
-                        Please enter your name, phone number, email address
-                        and delivery address to continue.
-                      </p>
-                    )}
-                  </div>
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="w-full"
+                      disabled={
+                        isProcessingPayment
+                      }
+                    >
+                      {isProcessingPayment
+                        ? "Connecting to Paystack..."
+                        : `Pay ${formatCurrency(
+                            estimatedTotal
+                          )} with Paystack`}
+                    </Button>
 
-                  {/* Order Summary */}
-                  <div className="lg:sticky lg:top-24 lg:self-start">
-                    <div className="rounded-2xl border bg-muted/30 p-5">
-                      <h3 className="text-lg font-bold">
-                        Order Summary
-                      </h3>
+                    <p className="text-center text-xs leading-5 text-muted-foreground">
+                      You will be redirected to Paystack to
+                      securely complete your payment.
+                    </p>
 
-                      <div className="mt-5 space-y-4">
-                        {cart.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex gap-3"
-                          >
-                            <div className="relative">
-                              <img
-                                src={item.image}
-                                alt={item.name}
-                                className="h-16 w-16 rounded-xl object-cover"
-                              />
+                  </form>
 
-                              <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-green-700 px-1 text-xs font-bold text-white">
-                                {item.quantity}
-                              </span>
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold">
-                                {item.name}
-                              </p>
-
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                GHS {item.price.toFixed(2)} each
-                              </p>
-                            </div>
-
-                            <p className="font-semibold">
-                              GHS{" "}
-                              {(
-                                item.price * item.quantity
-                              ).toFixed(2)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-6 space-y-3 border-t pt-5">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Subtotal
-                          </span>
-
-                          <span>
-                            GHS {cartSubtotal.toFixed(2)}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Delivery
-                          </span>
-
-                          <span className="text-muted-foreground">
-                            To be confirmed
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between border-t pt-4">
-                          <span className="font-bold">
-                            Estimated Total
-                          </span>
-
-                          <span className="text-xl font-bold text-green-700">
-                            GHS {cartTotal.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-5 rounded-xl bg-background p-4">
-                        <p className="text-xs leading-5 text-muted-foreground">
-                          Your order will be prepared by KFM and arranged
-                          for local delivery after successful payment
-                          confirmation.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              )}
+
+                {/* Summary */}
+                <aside className="h-fit rounded-2xl border border-border bg-muted/30 p-5 lg:sticky lg:top-6">
+
+                  <h2 className="font-bold">
+                    Order Summary
+                  </h2>
+
+                  <div className="mt-5 space-y-4">
+
+                    {cart.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex gap-3"
+                      >
+
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-14 w-14 rounded-lg object-cover"
+                        />
+
+                        <div className="min-w-0 flex-1">
+
+                          <p className="text-sm font-medium">
+                            {item.name}
+                          </p>
+
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Qty: {item.quantity}
+                          </p>
+
+                        </div>
+
+                        <span className="text-sm font-semibold">
+                          {formatCurrency(
+                            item.price *
+                              item.quantity
+                          )}
+                        </span>
+
+                      </div>
+                    ))}
+
+                  </div>
+
+                  <div className="mt-5 border-t border-border pt-4">
+
+                    <div className="flex justify-between text-sm">
+
+                      <span className="text-muted-foreground">
+                        Subtotal
+                      </span>
+
+                      <span>
+                        {formatCurrency(cartTotal)}
+                      </span>
+
+                    </div>
+
+                    <div className="mt-2 flex justify-between text-sm">
+
+                      <span className="text-muted-foreground">
+                        Delivery
+                      </span>
+
+                      <span>
+                        To be confirmed
+                      </span>
+
+                    </div>
+
+                    <div className="mt-4 border-t border-border pt-4">
+
+                      <div className="flex justify-between">
+
+                        <span className="font-bold">
+                          Total
+                        </span>
+
+                        <span className="text-xl font-bold">
+                          {formatCurrency(
+                            estimatedTotal
+                          )}
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </aside>
+
+              </div>
+
             </div>
+
           </div>
-        )}
 
-        {/* Contact */}
-        <div className="mt-10 rounded-2xl border bg-muted/40 p-6 text-center">
-          <h3 className="text-lg font-bold">
-            Need help with your market order?
-          </h3>
-
-          <p className="mt-2 text-sm text-muted-foreground">
-            Contact Kingdom Faith Transport and we will help you with
-            your order.
-          </p>
-
-          <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
-            <a
-              href="https://wa.me/233240555688"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 font-semibold text-green-700 hover:underline"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              WhatsApp: 024 0555 688
-            </a>
-
-            <span className="hidden text-muted-foreground sm:inline">
-              •
-            </span>
-
-            <a
-              href="tel:+233204097129"
-              className="inline-flex items-center gap-2 font-semibold hover:underline"
-            >
-              <Phone className="h-4 w-4" />
-              Call: 020 409 7129
-            </a>
-          </div>
         </div>
-
-        {/* More Products */}
-        <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border bg-muted/40 p-6 text-center sm:flex-row sm:text-left">
-          <div>
-            <h3 className="font-semibold">
-              Looking for something else?
-            </h3>
-
-            <p className="mt-1 text-sm text-muted-foreground">
-              Contact KFM and tell us what you need from Nsawam Market.
-            </p>
-          </div>
-
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={handleGeneralOrder}
-          >
-            Ask About Products
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      )}
     </section>
   )
 }
