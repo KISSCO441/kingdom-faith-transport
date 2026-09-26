@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 const navLinks = [
   { label: "Rides", href: "#rides" },
   { label: "Servicing", href: "#servicing" },
-  { label: "Market", href: "#market" },
+  { label: "Market", href: "#nsawam-market" },
   { label: "Why Us", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Order", href: "#book" },
@@ -20,12 +20,14 @@ export function SiteHeader() {
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Car className="h-5 w-5" />
           </span>
+
           <span className="flex flex-col leading-tight">
             <span className="text-sm font-bold tracking-tight sm:text-base">
               Kingdom Faith Marketplace
             </span>
+
             <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:text-xs">
-              Transport App · Eastern Region
+              Transport App &middot; Eastern Region
             </span>
           </span>
         </a>
