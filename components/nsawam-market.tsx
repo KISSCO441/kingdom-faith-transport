@@ -19,7 +19,7 @@ type Product = {
   name: string
   description: string
   price: number
-  emoji: string
+  image: string
   category: string
 }
 
@@ -34,7 +34,8 @@ const products: Product[] = [
     description:
       "Fresh seasonal fruits selected from local Nsawam market sellers.",
     price: 25,
-    emoji: "🍊",
+    image:
+      "https://images.pexels.com/photos/36537192/pexels-photo-36537192.jpeg?cs=srgb&dl=pexels-reagan-agyei-mensah-2160161940-36537192.jpg&fm=jpg",
     category: "Fresh Produce",
   },
   {
@@ -43,7 +44,8 @@ const products: Product[] = [
     description:
       "Fresh garden vegetables for your everyday meals.",
     price: 20,
-    emoji: "🥬",
+    image:
+      "https://images.pexels.com/photos/19534771/pexels-photo-19534771.jpeg?cs=srgb&dl=pexels-tkirkgoz-19534771.jpg&fm=jpg",
     category: "Fresh Produce",
   },
   {
@@ -52,7 +54,8 @@ const products: Product[] = [
     description:
       "Fresh locally sourced plantain, perfect for frying, boiling or roasting.",
     price: 30,
-    emoji: "🍌",
+    image:
+      "https://images.pexels.com/photos/30893282/pexels-photo-30893282.jpeg?cs=srgb&dl=pexels-bertellifotografia-30893282.jpg&fm=jpg",
     category: "Farm Produce",
   },
   {
@@ -61,7 +64,8 @@ const products: Product[] = [
     description:
       "Fresh ripe tomatoes selected for quality and freshness.",
     price: 25,
-    emoji: "🍅",
+    image:
+      "https://images.pexels.com/photos/7656978/pexels-photo-7656978.jpeg?cs=srgb&dl=pexels-cup-of-couple-7656978.jpg&fm=jpg",
     category: "Fresh Produce",
   },
   {
@@ -70,7 +74,8 @@ const products: Product[] = [
     description:
       "Quality onions for your kitchen and everyday cooking.",
     price: 20,
-    emoji: "🧅",
+    image:
+      "https://images.pexels.com/photos/7129171/pexels-photo-7129171.jpeg?cs=srgb&dl=pexels-michael-burrows-7129171.jpg&fm=jpg",
     category: "Fresh Produce",
   },
   {
@@ -79,7 +84,8 @@ const products: Product[] = [
     description:
       "Farm-fresh eggs carefully selected for your household.",
     price: 35,
-    emoji: "🥚",
+    image:
+      "https://images.pexels.com/photos/35484359/pexels-photo-35484359.jpeg?cs=srgb&dl=pexels-ivett-35484359.jpg&fm=jpg",
     category: "Groceries",
   },
   {
@@ -88,7 +94,8 @@ const products: Product[] = [
     description:
       "Quality chicken for family meals and special occasions.",
     price: 85,
-    emoji: "🍗",
+    image:
+      "https://images.pexels.com/photos/12381147/pexels-photo-12381147.jpeg?cs=srgb&dl=pexels-sonic-230970541-12381147.jpg&fm=jpg",
     category: "Meat & Poultry",
   },
   {
@@ -97,20 +104,33 @@ const products: Product[] = [
     description:
       "Refreshing drinks and beverages available for delivery.",
     price: 15,
-    emoji: "🥤",
+    image:
+      "https://images.pexels.com/photos/15974934/pexels-photo-15974934.jpeg?cs=srgb&dl=pexels-efnanphotography-15974934.jpg&fm=jpg",
     category: "Beverages",
   },
 ]
 
-function ProductVisual({ emoji }: { emoji: string }) {
+function ProductVisual({
+  image,
+  name,
+}: {
+  image: string
+  name: string
+}) {
   return (
-    <div className="relative flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-green-50">
-      <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-yellow-200/40" />
+    <div className="relative h-48 overflow-hidden bg-muted">
+      <img
+        src={image}
+        alt={name}
+        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+      />
 
-      <div className="absolute -bottom-10 -left-8 h-32 w-32 rounded-full bg-green-200/40" />
+      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/45 to-transparent" />
 
-      <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-white/80 shadow-lg backdrop-blur-sm">
-        <span className="text-7xl drop-shadow-md">{emoji}</span>
+      <div className="absolute bottom-3 left-3 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+        Fresh selection
       </div>
     </div>
   )
@@ -275,7 +295,6 @@ export function NsawamMarket() {
       className="w-full bg-background px-4 py-16 sm:px-6 lg:px-8"
     >
       <div className="mx-auto max-w-7xl">
-
         {/* Header */}
         <div className="mb-10 text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700">
@@ -311,8 +330,14 @@ export function NsawamMarket() {
               </p>
             </div>
 
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-white/15 text-7xl backdrop-blur-sm">
-              🛍️
+            <div className="h-28 w-40 shrink-0 overflow-hidden rounded-2xl border border-white/20 shadow-xl">
+              <img
+                src="https://images.pexels.com/photos/36537192/pexels-photo-36537192.jpeg?cs=srgb&dl=pexels-reagan-agyei-mensah-2160161940-36537192.jpg&fm=jpg"
+                alt="Ghanaian outdoor market"
+                className="h-full w-full object-cover"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
             </div>
           </div>
         </div>
@@ -334,7 +359,7 @@ export function NsawamMarket() {
           </Button>
         </div>
 
-        {/* Product Cards */}
+        {/* Products */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((product) => {
             const cartItem = cart.find(
@@ -346,7 +371,10 @@ export function NsawamMarket() {
                 key={product.id}
                 className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
               >
-                <ProductVisual emoji={product.emoji} />
+                <ProductVisual
+                  image={product.image}
+                  name={product.name}
+                />
 
                 <div className="p-5">
                   <span className="text-xs font-semibold uppercase tracking-wide text-green-600">
@@ -381,7 +409,7 @@ export function NsawamMarket() {
                           onClick={() =>
                             decreaseQuantity(product.id)
                           }
-                          aria-label={`Decrease ${product.name}`}
+                          aria-label={"Decrease " + product.name}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -397,7 +425,7 @@ export function NsawamMarket() {
                           onClick={() =>
                             increaseQuantity(product.id)
                           }
-                          aria-label={`Increase ${product.name}`}
+                          aria-label={"Increase " + product.name}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -414,7 +442,6 @@ export function NsawamMarket() {
                     )}
                   </div>
 
-                  {/* Individual Order */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -432,8 +459,6 @@ export function NsawamMarket() {
         {/* Cart Drawer */}
         {cartOpen && (
           <div className="fixed inset-0 z-50">
-
-            {/* Backdrop */}
             <button
               type="button"
               aria-label="Close cart"
@@ -441,10 +466,7 @@ export function NsawamMarket() {
               onClick={() => setCartOpen(false)}
             />
 
-            {/* Cart */}
             <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-background shadow-2xl">
-
-              {/* Cart Header */}
               <div className="flex items-center justify-between border-b p-5">
                 <div>
                   <h2 className="text-xl font-bold">
@@ -467,7 +489,6 @@ export function NsawamMarket() {
                 </Button>
               </div>
 
-              {/* Cart Items */}
               <div className="flex-1 overflow-y-auto p-5">
                 {cart.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center text-center">
@@ -498,9 +519,13 @@ export function NsawamMarket() {
                         className="rounded-xl border p-4"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted text-3xl">
-                            {item.emoji}
-                          </div>
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start justify-between gap-2">
@@ -520,7 +545,7 @@ export function NsawamMarket() {
                                   removeFromCart(item.id)
                                 }
                                 className="text-muted-foreground transition-colors hover:text-destructive"
-                                aria-label={`Remove ${item.name}`}
+                                aria-label={"Remove " + item.name}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -570,7 +595,6 @@ export function NsawamMarket() {
                 )}
               </div>
 
-              {/* Cart Footer */}
               {cart.length > 0 && (
                 <div className="border-t bg-muted/30 p-5">
                   <div className="mb-4 flex items-center justify-between">
@@ -610,7 +634,7 @@ export function NsawamMarket() {
           </div>
         )}
 
-        {/* Customer Contact */}
+        {/* Contact */}
         <div className="mt-10 rounded-2xl border bg-muted/40 p-6 text-center">
           <h3 className="text-lg font-bold">
             Need help with your market order?
@@ -667,7 +691,6 @@ export function NsawamMarket() {
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
-
       </div>
     </section>
   )
