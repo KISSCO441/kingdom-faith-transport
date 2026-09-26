@@ -54,6 +54,17 @@ export async function POST(request: Request) {
 
     const paystackAmount = Math.round(numericAmount * 100)
 
+    const origin = new URL(request.url).origin
+
+    const metadata = {
+      customer_name: customerName || "",
+      phone: phone || "",
+      whatsapp: whatsapp || "",
+      delivery_address: address || "",
+      delivery_instructions: instructions || "",
+      items: Array.isArray(items) ? items : [],
+    }
+
     const response = await fetch(
       `${PAYSTACK_API_URL}/transaction/initialize`,
       {
@@ -68,14 +79,8 @@ export async function POST(request: Request) {
           currency: "GHS",
           reference,
           channels: ["card", "mobile_money"],
-          metadata: {
-            customer_name: customerName || "",
-            phone: phone || "",
-            whatsapp: whatsapp || "",
-            delivery_address: address || "",
-            delivery_instructions: instructions || "",
-            items: items || [],
-          },
+          callback_url: `${origin}/payment/callback`,
+          metadata: JSON.stringify(metadata),
         }),
       }
     )
