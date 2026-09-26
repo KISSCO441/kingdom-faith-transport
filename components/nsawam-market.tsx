@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  Mail,
   MapPin,
   Minus,
   Phone,
@@ -33,6 +34,7 @@ type CartItem = Product & {
 type CheckoutDetails = {
   fullName: string
   phone: string
+  email: string
   whatsapp: string
   address: string
   instructions: string
@@ -124,6 +126,7 @@ const products: Product[] = [
 const initialCheckoutDetails: CheckoutDetails = {
   fullName: "",
   phone: "",
+  email: "",
   whatsapp: "",
   address: "",
   instructions: "",
@@ -159,11 +162,12 @@ export function NsawamMarket() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [checkoutDetails, setCheckoutDetails] = useState<CheckoutDetails>(
-    initialCheckoutDetails
-  )
+  const [checkoutDetails, setCheckoutDetails] =
+    useState<CheckoutDetails>(initialCheckoutDetails)
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [orderNumber, setOrderNumber] = useState("")
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentError, setPaymentError] = useState("")
 
   const addToCart = (product: Product) => {
     setCart((currentCart) => {
@@ -245,11 +249,11 @@ export function NsawamMarket() {
   )
 
   /*
- * Delivery is deliberately kept at GHS 0 for now.
- *
- * When we connect the real KFM delivery pricing system,
- * this value can be calculated from the customer's location.
- */
+   * Delivery is deliberately kept at GHS 0 for now.
+   *
+   * When the real KFM delivery pricing system is connected,
+   * this value can be calculated from the customer's location.
+   */
   const deliveryFee: number = 0
 
   const cartTotal = cartSubtotal + deliveryFee
@@ -271,16 +275,24 @@ export function NsawamMarket() {
 
     setCartOpen(false)
     setOrderSubmitted(false)
+    setOrderNumber("")
+    setPaymentError("")
+    setPaymentLoading(false)
     setCheckoutOpen(true)
   }
 
   const closeCheckout = () => {
+    if (paymentLoading) {
+      return
+    }
+
     setCheckoutOpen(false)
   }
 
   const isCheckoutValid =
     checkoutDetails.fullName.trim().length >= 2 &&
     checkoutDetails.phone.trim().length >= 9 &&
+    checkoutDetails.email.trim().includes("@") &&
     checkoutDetails.address.trim().length >= 5
 
   const createOrderNumber = () => {
@@ -289,22 +301,87 @@ export function NsawamMarket() {
     return `KFM-${timestamp}`
   }
 
-  const handleCheckoutSubmit = () => {
-    if (!isCheckoutValid || cart.length === 0) {
+  const handleCheckoutSubmit = async () => {
+    if (!isCheckoutValid || cart.length === 0 || paymentLoading) {
       return
     }
 
+    setPaymentLoading(true)
+    setPaymentError("")
+
     const newOrderNumber = createOrderNumber()
 
-    setOrderNumber(newOrderNumber)
-    setOrderSubmitted(true)
+    const pendingOrder = {
+      orderNumber: newOrderNumber,
+      customer: checkoutDetails,
+      items: cart,
+      subtotal: cartSubtotal,
+      deliveryFee,
+      total: cartTotal,
+      createdAt: new Date().toISOString(),
+    }
 
-    /*
-     * This is intentionally not clearing the cart yet.
-     *
-     * Once Paystack is connected, the cart should only be cleared
-     * after successful payment confirmation.
-     */
+    try {
+      sessionStorage.setItem(
+        "kfm_pending_order",
+        JSON.stringify(pendingOrder)
+      )
+
+      const response = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: checkoutDetails.email.trim(),
+          amount: cartTotal,
+          reference: newOrderNumber,
+          customerName: checkoutDetails.fullName.trim(),
+          phone: checkoutDetails.phone.trim(),
+          whatsapp: checkoutDetails.whatsapp.trim(),
+          address: checkoutDetails.address.trim(),
+          instructions: checkoutDetails.instructions.trim(),
+          items: cart.map((item) => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            total: item.price * item.quantity,
+          })),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.status) {
+        throw new Error(
+          data?.message ||
+            "Unable to start the Paystack payment."
+        )
+      }
+
+      if (!data.data?.authorization_url) {
+        throw new Error(
+          "Paystack did not return a payment authorization link."
+        )
+      }
+
+      setOrderNumber(newOrderNumber)
+
+      window.location.href = data.data.authorization_url
+    } catch (error) {
+      console.error("Paystack checkout error:", error)
+
+      sessionStorage.removeItem("kfm_pending_order")
+
+      setPaymentError(
+        error instanceof Error
+          ? error.message
+          : "Unable to start payment. Please try again."
+      )
+
+      setPaymentLoading(false)
+    }
   }
 
   const handleWhatsAppFromCheckout = () => {
@@ -336,6 +413,9 @@ export function NsawamMarket() {
       "\n" +
       "Phone: " +
       checkoutDetails.phone +
+      "\n" +
+      "Email: " +
+      checkoutDetails.email +
       "\n" +
       "WhatsApp: " +
       (checkoutDetails.whatsapp || checkoutDetails.phone) +
@@ -410,6 +490,8 @@ export function NsawamMarket() {
     setCartOpen(false)
     setOrderSubmitted(false)
     setOrderNumber("")
+    setPaymentLoading(false)
+    setPaymentError("")
     setCheckoutDetails(initialCheckoutDetails)
   }
 
@@ -450,7 +532,7 @@ export function NsawamMarket() {
 
               <p className="mt-2 max-w-xl text-sm text-green-50 sm:text-base">
                 Choose your products, add them to your cart and continue
-                to checkout.
+                to secure checkout.
               </p>
             </div>
 
@@ -792,9 +874,7 @@ export function NsawamMarket() {
                   </p>
 
                   <h2 className="text-xl font-bold sm:text-2xl">
-                    {orderSubmitted
-                      ? "Order Received"
-                      : "Customer Checkout"}
+                    Customer Checkout
                   </h2>
                 </div>
 
@@ -802,6 +882,7 @@ export function NsawamMarket() {
                   variant="ghost"
                   size="icon"
                   onClick={closeCheckout}
+                  disabled={paymentLoading}
                   aria-label="Close checkout"
                 >
                   <X className="h-5 w-5" />
@@ -821,12 +902,12 @@ export function NsawamMarket() {
                     </p>
 
                     <h3 className="mt-2 text-3xl font-bold">
-                      Thank you, {checkoutDetails.fullName.split(" ")[0]}!
+                      Thank you,{" "}
+                      {checkoutDetails.fullName.split(" ")[0]}!
                     </h3>
 
                     <p className="mt-4 text-muted-foreground">
-                      Your market order has been prepared for the next
-                      payment step.
+                      Your order has been submitted for payment processing.
                     </p>
 
                     <div className="mt-8 rounded-2xl border bg-muted/40 p-6 text-left">
@@ -850,13 +931,13 @@ export function NsawamMarket() {
                         </span>
                       </div>
 
-                      <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-                        <p className="text-sm font-semibold text-yellow-800">
+                      <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4">
+                        <p className="text-sm font-semibold text-green-800">
                           Payment status
                         </p>
 
-                        <p className="mt-1 text-sm text-yellow-700">
-                          Awaiting Mobile Money payment.
+                        <p className="mt-1 text-sm text-green-700">
+                          Payment processing through Paystack.
                         </p>
                       </div>
                     </div>
@@ -881,9 +962,9 @@ export function NsawamMarket() {
                     </div>
 
                     <p className="mt-5 text-xs leading-5 text-muted-foreground">
-                      Mobile Money payment will be connected in the next
-                      stage. Do not treat this screen as confirmation of
-                      payment yet.
+                      Keep your order number and payment reference for
+                      your records. Final payment confirmation is handled
+                      through Paystack.
                     </p>
                   </div>
                 </div>
@@ -935,11 +1016,13 @@ export function NsawamMarket() {
                       </div>
 
                       <div className="grid gap-5 sm:grid-cols-2">
+                        {/* Phone */}
                         <div>
                           <label
                             htmlFor="kfm-phone"
-                            className="mb-2 block text-sm font-semibold"
+                            className="mb-2 flex items-center gap-2 text-sm font-semibold"
                           >
+                            <Phone className="h-4 w-4 text-green-600" />
                             Phone Number
                           </label>
 
@@ -959,34 +1042,62 @@ export function NsawamMarket() {
                           />
                         </div>
 
+                        {/* Email */}
                         <div>
                           <label
-                            htmlFor="kfm-whatsapp"
-                            className="mb-2 block text-sm font-semibold"
+                            htmlFor="kfm-email"
+                            className="mb-2 flex items-center gap-2 text-sm font-semibold"
                           >
-                            WhatsApp Number
-                            <span className="ml-1 font-normal text-muted-foreground">
-                              (optional)
-                            </span>
+                            <Mail className="h-4 w-4 text-green-600" />
+                            Email Address
                           </label>
 
                           <input
-                            id="kfm-whatsapp"
-                            type="tel"
-                            value={checkoutDetails.whatsapp}
+                            id="kfm-email"
+                            type="email"
+                            value={checkoutDetails.email}
                             onChange={(event) =>
                               updateCheckoutField(
-                                "whatsapp",
+                                "email",
                                 event.target.value
                               )
                             }
-                            placeholder="024 000 0000"
-                            autoComplete="tel"
+                            placeholder="you@example.com"
+                            autoComplete="email"
                             className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
                           />
                         </div>
                       </div>
 
+                      {/* WhatsApp */}
+                      <div>
+                        <label
+                          htmlFor="kfm-whatsapp"
+                          className="mb-2 block text-sm font-semibold"
+                        >
+                          WhatsApp Number
+                          <span className="ml-1 font-normal text-muted-foreground">
+                            (optional)
+                          </span>
+                        </label>
+
+                        <input
+                          id="kfm-whatsapp"
+                          type="tel"
+                          value={checkoutDetails.whatsapp}
+                          onChange={(event) =>
+                            updateCheckoutField(
+                              "whatsapp",
+                              event.target.value
+                            )
+                          }
+                          placeholder="024 000 0000"
+                          autoComplete="tel"
+                          className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                        />
+                      </div>
+
+                      {/* Delivery Address */}
                       <div>
                         <label
                           htmlFor="kfm-address"
@@ -1012,6 +1123,7 @@ export function NsawamMarket() {
                         />
                       </div>
 
+                      {/* Delivery Instructions */}
                       <div>
                         <label
                           htmlFor="kfm-instructions"
@@ -1039,8 +1151,8 @@ export function NsawamMarket() {
                       </div>
                     </div>
 
-                    {/* Payment Placeholder */}
-                    <div className="mt-8 rounded-2xl border border-dashed border-green-300 bg-green-50/50 p-5">
+                    {/* Paystack Payment */}
+                    <div className="mt-8 rounded-2xl border border-green-300 bg-green-50/50 p-5">
                       <div className="flex gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100">
                           <Phone className="h-5 w-5 text-green-700" />
@@ -1048,22 +1160,35 @@ export function NsawamMarket() {
 
                         <div>
                           <h3 className="font-bold">
-                            Mobile Money Payment
+                            Secure Paystack Payment
                           </h3>
 
                           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                            Mobile Money payment will be available here
-                            after the secure Paystack payment connection is
-                            added.
+                            Pay securely with Mobile Money or Card through
+                            Paystack. Available Ghana Mobile Money options
+                            include MTN, Telecel and AirtelTigo.
                           </p>
                         </div>
                       </div>
                     </div>
 
+                    {paymentError && (
+                      <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
+                        <p className="text-sm font-semibold text-red-800">
+                          Payment could not be started
+                        </p>
+
+                        <p className="mt-1 text-sm text-red-700">
+                          {paymentError}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                       <Button
                         variant="outline"
                         className="gap-2"
+                        disabled={paymentLoading}
                         onClick={() => {
                           setCheckoutOpen(false)
                           setCartOpen(true)
@@ -1076,18 +1201,24 @@ export function NsawamMarket() {
                       <Button
                         className="flex-1 gap-2"
                         size="lg"
-                        disabled={!isCheckoutValid}
+                        disabled={!isCheckoutValid || paymentLoading}
                         onClick={handleCheckoutSubmit}
                       >
-                        Continue
-                        <ArrowRight className="h-5 w-5" />
+                        {paymentLoading ? (
+                          "Connecting to Paystack..."
+                        ) : (
+                          <>
+                            Pay with Paystack
+                            <ArrowRight className="h-5 w-5" />
+                          </>
+                        )}
                       </Button>
                     </div>
 
                     {!isCheckoutValid && (
                       <p className="mt-3 text-center text-xs text-muted-foreground">
-                        Please enter your name, phone number and delivery
-                        address to continue.
+                        Please enter your name, phone number, email address
+                        and delivery address to continue.
                       </p>
                     )}
                   </div>
@@ -1172,7 +1303,8 @@ export function NsawamMarket() {
                       <div className="mt-5 rounded-xl bg-background p-4">
                         <p className="text-xs leading-5 text-muted-foreground">
                           Your order will be prepared by KFM and arranged
-                          for local delivery after payment confirmation.
+                          for local delivery after successful payment
+                          confirmation.
                         </p>
                       </div>
                     </div>
