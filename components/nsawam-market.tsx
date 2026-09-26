@@ -245,12 +245,12 @@ export function NsawamMarket() {
   )
 
   /*
-   * Delivery is deliberately kept at GHS 0 for now.
-   *
-   * When we connect the real KFM delivery pricing system,
-   * this value can be calculated from the customer's location.
-   */
-  const deliveryFee = 0
+ * Delivery is deliberately kept at GHS 0 for now.
+ *
+ * When we connect the real KFM delivery pricing system,
+ * this value can be calculated from the customer's location.
+ */
+  const deliveryFee: number = 0
 
   const cartTotal = cartSubtotal + deliveryFee
 
