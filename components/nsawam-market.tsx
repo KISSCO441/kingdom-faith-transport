@@ -1,4 +1,3 @@
-```tsx
 "use client"
 
 import { useMemo, useState } from "react"
@@ -111,9 +110,7 @@ function ProductVisual({ emoji }: { emoji: string }) {
       <div className="absolute -bottom-10 -left-8 h-32 w-32 rounded-full bg-green-200/40" />
 
       <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-white/80 shadow-lg backdrop-blur-sm">
-        <span className="text-7xl drop-shadow-md">
-          {emoji}
-        </span>
+        <span className="text-7xl drop-shadow-md">{emoji}</span>
       </div>
     </div>
   )
@@ -203,27 +200,27 @@ export function NsawamMarket() {
   )
 
   const handleProductOrder = (product: Product) => {
-  const message =
-    "Hello Kingdom Faith Transport! 👋\n\n" +
-    "I would like to order:\n\n" +
-    "Product: " +
-    product.name +
-    "\n" +
-    "Category: " +
-    product.category +
-    "\n" +
-    "Quantity: 1\n" +
-    "Price: GHS " +
-    product.price.toFixed(2) +
-    "\n\n" +
-    "Please let me know the next steps for delivery. Thank you!"
+    const message =
+      "Hello Kingdom Faith Transport! 👋\n\n" +
+      "I would like to order:\n\n" +
+      "Product: " +
+      product.name +
+      "\n" +
+      "Category: " +
+      product.category +
+      "\n" +
+      "Quantity: 1\n" +
+      "Price: GHS " +
+      product.price.toFixed(2) +
+      "\n\n" +
+      "Please let me know the next steps for delivery. Thank you!"
 
-  const whatsappUrl =
-    "https://wa.me/233240555688?text=" +
-    encodeURIComponent(message)
+    const whatsappUrl =
+      "https://wa.me/233240555688?text=" +
+      encodeURIComponent(message)
 
-  window.open(whatsappUrl, "_blank")
-}
+    window.open(whatsappUrl, "_blank")
+  }
 
   const handleCartOrder = () => {
     if (cart.length === 0) {
@@ -231,33 +228,32 @@ export function NsawamMarket() {
     }
 
     const orderLines = cart
-  .map(
-    (item) =>
-      "- " +
-      item.name +
-      " x " +
-      item.quantity +
-      " = GHS " +
-      (item.price * item.quantity).toFixed(2)
-  )
-  .join("\n")
+      .map(
+        (item) =>
+          "- " +
+          item.name +
+          " x " +
+          item.quantity +
+          " = GHS " +
+          (item.price * item.quantity).toFixed(2)
+      )
+      .join("\n")
 
-    const message = `Hello Kingdom Faith Transport! 👋
+    const message =
+      "Hello Kingdom Faith Transport! 👋\n\n" +
+      "I would like to place a Nsawam Market order.\n\n" +
+      "ORDER DETAILS\n" +
+      orderLines +
+      "\n\n" +
+      "TOTAL: GHS " +
+      cartTotal.toFixed(2) +
+      "\n\n" +
+      "Please confirm availability and let me know the delivery arrangements.\n\n" +
+      "Thank you!"
 
-I would like to place a Nsawam Market order.
-
-ORDER DETAILS
-${orderLines}
-
-TOTAL: GHS ${cartTotal.toFixed(2)}
-
-Please confirm availability and let me know the delivery arrangements.
-
-Thank you!`
-
-    const whatsappUrl = `https://wa.me/233240555688?text=${encodeURIComponent(
-      message
-    )}`
+    const whatsappUrl =
+      "https://wa.me/233240555688?text=" +
+      encodeURIComponent(message)
 
     window.open(whatsappUrl, "_blank")
   }
@@ -266,9 +262,9 @@ Thank you!`
     const message =
       "Hello Kingdom Faith Transport! I would like to ask about another product from Nsawam Market."
 
-    const whatsappUrl = `https://wa.me/233240555688?text=${encodeURIComponent(
-      message
-    )}`
+    const whatsappUrl =
+      "https://wa.me/233240555688?text=" +
+      encodeURIComponent(message)
 
     window.open(whatsappUrl, "_blank")
   }
@@ -300,7 +296,6 @@ Thank you!`
         {/* Market Banner */}
         <div className="mb-10 overflow-hidden rounded-3xl bg-gradient-to-r from-green-700 via-green-600 to-emerald-500 p-6 text-white shadow-lg sm:p-8">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-
             <div>
               <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-green-100">
                 Fresh Picks
@@ -319,7 +314,6 @@ Thank you!`
             <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-white/15 text-7xl backdrop-blur-sm">
               🛍️
             </div>
-
           </div>
         </div>
 
@@ -355,7 +349,6 @@ Thank you!`
                 <ProductVisual emoji={product.emoji} />
 
                 <div className="p-5">
-
                   <span className="text-xs font-semibold uppercase tracking-wide text-green-600">
                     {product.category}
                   </span>
@@ -369,7 +362,6 @@ Thank you!`
                   </p>
 
                   <div className="mt-5 flex items-end justify-between gap-3">
-
                     <div>
                       <p className="text-xs text-muted-foreground">
                         Starting from
@@ -382,7 +374,6 @@ Thank you!`
 
                     {cartItem ? (
                       <div className="flex items-center gap-1 rounded-lg border bg-muted p-1">
-
                         <Button
                           variant="ghost"
                           size="icon"
@@ -410,7 +401,6 @@ Thank you!`
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
-
                       </div>
                     ) : (
                       <Button
@@ -422,7 +412,6 @@ Thank you!`
                         Add
                       </Button>
                     )}
-
                   </div>
 
                   {/* Individual Order */}
@@ -434,7 +423,6 @@ Thank you!`
                   >
                     Order Now
                   </Button>
-
                 </div>
               </article>
             )
@@ -458,7 +446,6 @@ Thank you!`
 
               {/* Cart Header */}
               <div className="flex items-center justify-between border-b p-5">
-
                 <div>
                   <h2 className="text-xl font-bold">
                     Your Market Cart
@@ -478,15 +465,12 @@ Thank you!`
                 >
                   <X className="h-5 w-5" />
                 </Button>
-
               </div>
 
               {/* Cart Items */}
               <div className="flex-1 overflow-y-auto p-5">
-
                 {cart.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center text-center">
-
                     <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted">
                       <ShoppingCart className="h-9 w-9 text-muted-foreground" />
                     </div>
@@ -505,27 +489,21 @@ Thank you!`
                     >
                       Continue Shopping
                     </Button>
-
                   </div>
                 ) : (
                   <div className="space-y-4">
-
                     {cart.map((item) => (
                       <div
                         key={item.id}
                         className="rounded-xl border p-4"
                       >
-
                         <div className="flex items-start gap-3">
-
                           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted text-3xl">
                             {item.emoji}
                           </div>
 
                           <div className="min-w-0 flex-1">
-
                             <div className="flex items-start justify-between gap-2">
-
                               <div>
                                 <h3 className="font-semibold">
                                   {item.name}
@@ -546,13 +524,10 @@ Thank you!`
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
-
                             </div>
 
                             <div className="mt-3 flex items-center justify-between">
-
                               <div className="flex items-center gap-1 rounded-lg border bg-muted p-1">
-
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -578,7 +553,6 @@ Thank you!`
                                 >
                                   <Plus className="h-4 w-4" />
                                 </Button>
-
                               </div>
 
                               <p className="font-bold">
@@ -587,25 +561,19 @@ Thank you!`
                                   item.price * item.quantity
                                 ).toFixed(2)}
                               </p>
-
                             </div>
-
                           </div>
                         </div>
                       </div>
                     ))}
-
                   </div>
                 )}
-
               </div>
 
               {/* Cart Footer */}
               {cart.length > 0 && (
                 <div className="border-t bg-muted/30 p-5">
-
                   <div className="mb-4 flex items-center justify-between">
-
                     <span className="font-semibold">
                       Order Total
                     </span>
@@ -613,7 +581,6 @@ Thank you!`
                     <span className="text-2xl font-bold text-green-700">
                       GHS {cartTotal.toFixed(2)}
                     </span>
-
                   </div>
 
                   <Button
@@ -637,17 +604,14 @@ Thank you!`
                     Delivery charges and final availability will be
                     confirmed through WhatsApp.
                   </p>
-
                 </div>
               )}
-
             </aside>
           </div>
         )}
 
         {/* Customer Contact */}
         <div className="mt-10 rounded-2xl border bg-muted/40 p-6 text-center">
-
           <h3 className="text-lg font-bold">
             Need help with your market order?
           </h3>
@@ -658,7 +622,6 @@ Thank you!`
           </p>
 
           <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
-
             <a
               href="https://wa.me/233240555688"
               target="_blank"
@@ -680,13 +643,11 @@ Thank you!`
               <Phone className="h-4 w-4" />
               Call: 020 409 7129
             </a>
-
           </div>
         </div>
 
         {/* More Products */}
         <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border bg-muted/40 p-6 text-center sm:flex-row sm:text-left">
-
           <div>
             <h3 className="font-semibold">
               Looking for something else?
@@ -705,11 +666,9 @@ Thank you!`
             Ask About Products
             <ArrowRight className="h-4 w-4" />
           </Button>
-
         </div>
 
       </div>
     </section>
   )
 }
-```
