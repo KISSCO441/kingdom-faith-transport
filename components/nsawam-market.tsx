@@ -83,16 +83,19 @@ function ProductVisual({ emoji }: { emoji: string }) {
   return (
     <div className="relative flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-green-50">
       <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-yellow-200/40" />
+
       <div className="absolute -bottom-10 -left-8 h-32 w-32 rounded-full bg-green-200/40" />
 
       <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-white/80 shadow-lg backdrop-blur-sm">
-        <span className="text-7xl drop-shadow-md">{emoji}</span>
+        <span className="text-7xl drop-shadow-md">
+          {emoji}
+        </span>
       </div>
     </div>
   )
 }
 
-export default function NsawamMarket() {
+export function NsawamMarket() {
   const handleOrder = (product: Product) => {
     const message = `Hello Kingdom Faith Transport! 👋
 
@@ -107,6 +110,17 @@ Please let me know the next steps for delivery. Thank you!`
     const whatsappNumber = "233240555688"
 
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+      message
+    )}`
+
+    window.open(whatsappUrl, "_blank")
+  }
+
+  const handleGeneralOrder = () => {
+    const message =
+      "Hello Kingdom Faith Transport! I would like to ask about another product from Nsawam Market."
+
+    const whatsappUrl = `https://wa.me/233240555688?text=${encodeURIComponent(
       message
     )}`
 
@@ -170,7 +184,6 @@ Please let me know the next steps for delivery. Thank you!`
               key={product.name}
               className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
-
               <ProductVisual emoji={product.emoji} />
 
               <div className="p-5">
@@ -228,7 +241,6 @@ Please let me know the next steps for delivery. Thank you!`
 
           <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
 
-            {/* WhatsApp */}
             <a
               href="https://wa.me/233240555688"
               target="_blank"
@@ -243,7 +255,6 @@ Please let me know the next steps for delivery. Thank you!`
               •
             </span>
 
-            {/* Phone */}
             <a
               href="tel:+233204097129"
               className="inline-flex items-center gap-2 font-semibold hover:underline"
@@ -255,7 +266,7 @@ Please let me know the next steps for delivery. Thank you!`
           </div>
         </div>
 
-        {/* Bottom CTA */}
+        {/* More Products CTA */}
         <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl border bg-muted/40 p-6 text-center sm:flex-row sm:text-left">
 
           <div>
@@ -271,17 +282,7 @@ Please let me know the next steps for delivery. Thank you!`
           <Button
             variant="outline"
             className="gap-2"
-            onClick={() => {
-              const message =
-                "Hello Kingdom Faith Transport! I would like to ask about another product from Nsawam Market."
-
-              window.open(
-                `https://wa.me/233240555688?text=${encodeURIComponent(
-                  message
-                )}`,
-                "_blank"
-              )
-            }}
+            onClick={handleGeneralOrder}
           >
             Ask About Products
             <ArrowRight className="h-4 w-4" />
