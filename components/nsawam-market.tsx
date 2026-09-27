@@ -12,8 +12,7 @@ type Product = {
   price: number
   category: string
   image: string
-  amountOptions?: number[]
-  amountBased?: boolean
+  amountOptions: number[]
 }
 
 type CartItem = {
@@ -22,22 +21,34 @@ type CartItem = {
   selectedAmount?: number
 }
 
+function createAmountOptions(start: number) {
+  const options: number[] = []
+
+  for (let amount = start; amount <= 50; amount += 5) {
+    options.push(amount)
+  }
+
+  return options
+}
+
 const products: Product[] = [
   {
     id: "tomatoes",
     name: "Fresh Tomatoes",
-    unit: "per olonka",
-    price: 25,
+    unit: "select your amount",
+    price: 10,
     category: "Vegetables",
     image: "/images/market-vegetables.png",
+    amountOptions: createAmountOptions(10),
   },
   {
     id: "garden-eggs",
     name: "Garden Eggs",
-    unit: "per olonka",
-    price: 18,
+    unit: "select your amount",
+    price: 5,
     category: "Vegetables",
     image: "/images/market-vegetables.png",
+    amountOptions: createAmountOptions(5),
   },
   {
     id: "pepper",
@@ -46,48 +57,52 @@ const products: Product[] = [
     price: 5,
     category: "Vegetables",
     image: "/images/market-vegetables.png",
-    amountBased: true,
-    amountOptions: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+    amountOptions: createAmountOptions(5),
   },
   {
     id: "plantain",
     name: "Ripe Plantain",
-    unit: "per bunch",
-    price: 35,
+    unit: "select your amount",
+    price: 10,
     category: "Fruits",
     image: "/images/market-fruits.png",
+    amountOptions: createAmountOptions(10),
   },
   {
     id: "pineapple",
     name: "Pineapple",
-    unit: "each",
-    price: 12,
+    unit: "select your amount",
+    price: 10,
     category: "Fruits",
     image: "/images/market-fruits.png",
+    amountOptions: createAmountOptions(10),
   },
   {
     id: "oranges",
     name: "Oranges",
-    unit: "dozen",
-    price: 20,
+    unit: "select your amount",
+    price: 5,
     category: "Fruits",
     image: "/images/market-fruits.png",
+    amountOptions: createAmountOptions(5),
   },
   {
     id: "rice",
     name: "Local Rice",
-    unit: "5kg bag",
-    price: 90,
+    unit: "select your amount",
+    price: 10,
     category: "Staples",
     image: "/images/market-staples.png",
+    amountOptions: createAmountOptions(10),
   },
   {
     id: "yam",
     name: "Yam Tubers",
-    unit: "per tuber",
-    price: 28,
+    unit: "select your amount",
+    price: 30,
     category: "Staples",
     image: "/images/market-staples.png",
+    amountOptions: createAmountOptions(30),
   },
   {
     id: "gari",
@@ -96,32 +111,34 @@ const products: Product[] = [
     price: 10,
     category: "Staples",
     image: "/images/market-staples.png",
-    amountBased: true,
-    amountOptions: [10, 15, 20, 25, 30, 35, 40, 45, 50],
+    amountOptions: createAmountOptions(10),
   },
   {
     id: "fish",
     name: "Fresh Fish",
-    unit: "per kg",
-    price: 55,
+    unit: "select your amount",
+    price: 15,
     category: "Protein",
     image: "/images/market-protein.png",
+    amountOptions: createAmountOptions(15),
   },
   {
     id: "smoked-fish",
     name: "Smoked Fish",
-    unit: "per pack",
-    price: 40,
+    unit: "select your amount",
+    price: 10,
     category: "Protein",
     image: "/images/market-protein.png",
+    amountOptions: createAmountOptions(10),
   },
   {
     id: "eggs",
     name: "Eggs",
-    unit: "per crate",
-    price: 48,
+    unit: "select your amount",
+    price: 10,
     category: "Protein",
     image: "/images/market-protein.png",
+    amountOptions: createAmountOptions(10),
   },
 ]
 
@@ -150,10 +167,7 @@ export function NsawamMarket() {
 
           if (!product) return null
 
-          const unitPrice =
-            product.amountBased && item.selectedAmount
-              ? item.selectedAmount
-              : product.price
+          const unitPrice = item.selectedAmount ?? product.price
 
           return {
             ...item,
@@ -181,51 +195,24 @@ export function NsawamMarket() {
 
   const minimumOrderReached = subtotal >= MINIMUM_ORDER
 
-  const grandTotal =
-    subtotal > 0 ? subtotal + DELIVERY_FEE : 0
+  const grandTotal = subtotal > 0 ? subtotal + DELIVERY_FEE : 0
 
-  function addRegularItem(id: string) {
+  function selectAmount(product: Product, amount: number) {
     setCart((current) => {
-      const existing = current[id]
+      const existing = current[product.id]
 
       return {
         ...current,
-        [id]: {
-          productId: id,
-          quantity: (existing?.quantity ?? 0) + 1,
+        [product.id]: {
+          productId: product.id,
+          quantity: existing?.quantity ?? 1,
+          selectedAmount: amount,
         },
       }
     })
   }
 
-  function removeRegularItem(id: string) {
-    setCart((current) => {
-      const existing = current[id]
-
-      if (!existing) return current
-
-      const nextQuantity = Math.max(0, existing.quantity - 1)
-
-      if (nextQuantity === 0) {
-        const next = { ...current }
-        delete next[id]
-        return next
-      }
-
-      return {
-        ...current,
-        [id]: {
-          ...existing,
-          quantity: nextQuantity,
-        },
-      }
-    })
-  }
-
-  function addAmountBasedItem(
-    product: Product,
-    amount: number,
-  ) {
+  function addItem(product: Product) {
     setCart((current) => {
       const existing = current[product.id]
 
@@ -234,13 +221,14 @@ export function NsawamMarket() {
         [product.id]: {
           productId: product.id,
           quantity: (existing?.quantity ?? 0) + 1,
-          selectedAmount: amount,
+          selectedAmount:
+            existing?.selectedAmount ?? product.amountOptions[0],
         },
       }
     })
   }
 
-  function removeAmountBasedItem(id: string) {
+  function removeItemQuantity(id: string) {
     setCart((current) => {
       const existing = current[id]
 
@@ -291,9 +279,7 @@ export function NsawamMarket() {
           </p>
 
           <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
-            <p className="font-semibold">
-              KFM Market Ordering
-            </p>
+            <p className="font-semibold">KFM Market Ordering</p>
 
             <p className="mt-1 text-muted-foreground">
               Minimum product order:{" "}
@@ -355,110 +341,50 @@ export function NsawamMarket() {
                         {product.unit}
                       </p>
 
-                      {product.amountBased ? (
-                        <div className="mt-3">
-                          <label
-                            htmlFor={`${product.id}-amount`}
-                            className="text-xs font-medium"
-                          >
-                            Choose amount
-                          </label>
+                      <div className="mt-3">
+                        <label
+                          htmlFor={`${product.id}-amount`}
+                          className="text-xs font-medium"
+                        >
+                          Choose amount
+                        </label>
 
-                          <select
-                            id={`${product.id}-amount`}
-                            className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-                            value={cartItem?.selectedAmount ?? ""}
-                            onChange={(event) => {
-                              const amount = Number(event.target.value)
+                        <select
+                          id={`${product.id}-amount`}
+                          className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                          value={cartItem?.selectedAmount ?? ""}
+                          onChange={(event) => {
+                            const amount = Number(event.target.value)
 
-                              if (!amount) return
+                            if (!amount) return
 
-                              setCart((current) => ({
-                                ...current,
-                                [product.id]: {
-                                  productId: product.id,
-                                  quantity: 1,
-                                  selectedAmount: amount,
-                                },
-                              }))
-                            }}
-                          >
-                            <option value="">
-                              Select GH₵ amount
+                            selectAmount(product, amount)
+                          }}
+                        >
+                          <option value="">
+                            Select GH₵ amount
+                          </option>
+
+                          {product.amountOptions.map((amount) => (
+                            <option key={amount} value={amount}>
+                              GH₵{amount}
                             </option>
+                          ))}
+                        </select>
 
-                            {product.amountOptions?.map((amount) => (
-                              <option key={amount} value={amount}>
-                                GH₵{amount}
-                              </option>
-                            ))}
-                          </select>
+                        {quantity > 0 && cartItem?.selectedAmount ? (
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="text-sm font-bold">
+                              GH₵{cartItem.selectedAmount}
+                            </span>
 
-                          {quantity > 0 && cartItem?.selectedAmount ? (
-                            <div className="mt-3 flex items-center justify-between">
-                              <span className="text-sm font-bold">
-                                GH₵{cartItem.selectedAmount}
-                              </span>
-
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="icon"
-                                  variant="outline"
-                                  className="h-8 w-8 bg-transparent"
-                                  onClick={() =>
-                                    removeAmountBasedItem(product.id)
-                                  }
-                                  aria-label={`Remove one ${product.name}`}
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </Button>
-
-                                <span className="w-5 text-center text-sm font-semibold">
-                                  {quantity}
-                                </span>
-
-                                <Button
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() =>
-                                    addAmountBasedItem(
-                                      product,
-                                      cartItem.selectedAmount!,
-                                    )
-                                  }
-                                  aria-label={`Add another ${product.name}`}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <div className="mt-3 flex items-center justify-between">
-                          <span className="text-base font-bold">
-                            GH₵{product.price}
-                          </span>
-
-                          {quantity === 0 ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                addRegularItem(product.id)
-                              }
-                            >
-                              <Plus className="mr-1 h-4 w-4" />
-                              Add
-                            </Button>
-                          ) : (
                             <div className="flex items-center gap-2">
                               <Button
                                 size="icon"
                                 variant="outline"
                                 className="h-8 w-8 bg-transparent"
                                 onClick={() =>
-                                  removeRegularItem(product.id)
+                                  removeItemQuantity(product.id)
                                 }
                                 aria-label={`Remove one ${product.name}`}
                               >
@@ -472,17 +398,15 @@ export function NsawamMarket() {
                               <Button
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() =>
-                                  addRegularItem(product.id)
-                                }
-                                aria-label={`Add one ${product.name}`}
+                                onClick={() => addItem(product)}
+                                aria-label={`Add another ${product.name}`}
                               >
                                 <Plus className="h-4 w-4" />
                               </Button>
                             </div>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 )
