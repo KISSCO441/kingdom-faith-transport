@@ -1,1473 +1,624 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  Mail,
-  MapPin,
-  Minus,
-  Phone,
-  Plus,
-  ShoppingCart,
-  Trash2,
-  User,
-  X,
-} from "lucide-react"
+import Image from "next/image"
+import { Minus, Plus, ShoppingBasket, Truck, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type Product = {
-  id: number
+  id: string
   name: string
-  description: string
+  unit: string
   price: number
-  image: string
   category: string
+  image: string
+  amountOptions?: number[]
+  amountBased?: boolean
 }
 
-type CartItem = Product & {
+type CartItem = {
+  productId: string
   quantity: number
-}
-
-type CheckoutDetails = {
-  fullName: string
-  phone: string
-  email: string
-  whatsapp: string
-  deliveryLocation: string
-  address: string
-  instructions: string
+  selectedAmount?: number
 }
 
 const products: Product[] = [
   {
-    id: 1,
-    name: "Fresh Fruits",
-    description:
-      "Fresh seasonal fruits selected from the local market.",
+    id: "tomatoes",
+    name: "Fresh Tomatoes",
+    unit: "per olonka",
     price: 25,
-    image:
-      "https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=900",
-    category: "Fresh Produce",
+    category: "Vegetables",
+    image: "/images/market-vegetables.png",
   },
   {
-    id: 2,
-    name: "Fresh Vegetables",
-    description:
-      "Fresh garden vegetables for your everyday meals.",
-    price: 20,
-    image:
-      "https://images.pexels.com/photos/165509/pexels-photo-165509.jpeg?auto=compress&cs=tinysrgb&w=900",
-    category: "Fresh Produce",
+    id: "garden-eggs",
+    name: "Garden Eggs",
+    unit: "per olonka",
+    price: 18,
+    category: "Vegetables",
+    image: "/images/market-vegetables.png",
   },
   {
-    id: 3,
-    name: "Plantain",
-    description:
-      "Fresh locally sourced plantain, perfect for frying, boiling or roasting.",
-    price: 30,
-    image:
-      "https://images.pexels.com/photos/30893282/pexels-photo-30893282.jpeg?cs=srgb&dl=pexels-bertellifotografia-30893282.jpg&fm=jpg",
-    category: "Farm Produce",
+    id: "pepper",
+    name: "Pepper",
+    unit: "select your amount",
+    price: 5,
+    category: "Vegetables",
+    image: "/images/market-vegetables.png",
+    amountBased: true,
+    amountOptions: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
   },
   {
-    id: 4,
-    name: "Tomatoes",
-    description:
-      "Fresh ripe tomatoes selected for quality and freshness.",
-    price: 25,
-    image:
-      "https://images.pexels.com/photos/7656978/pexels-photo-7656978.jpeg?cs=srgb&dl=pexels-cup-of-couple-7656978.jpg&fm=jpg",
-    category: "Fresh Produce",
-  },
-  {
-    id: 5,
-    name: "Onions",
-    description:
-      "Quality onions for your kitchen and everyday cooking.",
-    price: 20,
-    image:
-      "https://images.pexels.com/photos/7129171/pexels-photo-7129171.jpeg?cs=srgb&dl=pexels-michael-burrows-7129171.jpg&fm=jpg",
-    category: "Fresh Produce",
-  },
-  {
-    id: 6,
-    name: "Fresh Eggs",
-    description:
-      "Fresh eggs suitable for home cooking and baking.",
+    id: "plantain",
+    name: "Ripe Plantain",
+    unit: "per bunch",
     price: 35,
-    image:
-      "https://images.pexels.com/photos/162712/egg-white-food-protein-healthy-162712.jpeg?auto=compress&cs=tinysrgb&w=900",
-    category: "Groceries",
+    category: "Fruits",
+    image: "/images/market-fruits.png",
   },
   {
-    id: 7,
-    name: "Chicken",
-    description:
-      "Quality chicken for your home meals.",
-    price: 85,
-    image:
-      "https://images.pexels.com/photos/616353/pexels-photo-616353.jpeg?auto=compress&cs=tinysrgb&w=900",
-    category: "Fresh Food",
+    id: "pineapple",
+    name: "Pineapple",
+    unit: "each",
+    price: 12,
+    category: "Fruits",
+    image: "/images/market-fruits.png",
   },
   {
-    id: 8,
-    name: "Drinks & Beverages",
-    description:
-      "A selection of refreshing drinks and beverages.",
-    price: 15,
-    image:
-      "https://images.pexels.com/photos/969390/pexels-photo-969390.jpeg?auto=compress&cs=tinysrgb&w=900",
-    category: "Drinks",
+    id: "oranges",
+    name: "Oranges",
+    unit: "dozen",
+    price: 20,
+    category: "Fruits",
+    image: "/images/market-fruits.png",
+  },
+  {
+    id: "rice",
+    name: "Local Rice",
+    unit: "5kg bag",
+    price: 90,
+    category: "Staples",
+    image: "/images/market-staples.png",
+  },
+  {
+    id: "yam",
+    name: "Yam Tubers",
+    unit: "per tuber",
+    price: 28,
+    category: "Staples",
+    image: "/images/market-staples.png",
+  },
+  {
+    id: "gari",
+    name: "Gari",
+    unit: "select your amount",
+    price: 10,
+    category: "Staples",
+    image: "/images/market-staples.png",
+    amountBased: true,
+    amountOptions: [10, 15, 20, 25, 30, 35, 40, 45, 50],
+  },
+  {
+    id: "fish",
+    name: "Fresh Fish",
+    unit: "per kg",
+    price: 55,
+    category: "Protein",
+    image: "/images/market-protein.png",
+  },
+  {
+    id: "smoked-fish",
+    name: "Smoked Fish",
+    unit: "per pack",
+    price: 40,
+    category: "Protein",
+    image: "/images/market-protein.png",
+  },
+  {
+    id: "eggs",
+    name: "Eggs",
+    unit: "per crate",
+    price: 48,
+    category: "Protein",
+    image: "/images/market-protein.png",
   },
 ]
 
-/*
- * PHASE 1 KFM DELIVERY LOCATIONS
- *
- * All current Nsawam Township locations use the
- * current standard Okada delivery charge of GHS 10.
- *
- * More locations and different fees can be added later.
- */
-const NSAWAM_DELIVERY_FEE = 10
+const categories = ["All", "Vegetables", "Fruits", "Staples", "Protein"]
 
-const nsawamLocations = [
-  "Nsawam Central",
-  "Djankrom",
-  "Oparekrom",
-  "Asafoa Adjei",
-  "Ayigbe Town",
-  "Avaga",
-  "Wangara",
-  "Atsikope",
-  "Bangalow",
-  "Duaeden",
-  "Asantikro",
-  "Ebenezer",
-]
-
-const emptyCheckoutDetails: CheckoutDetails = {
-  fullName: "",
-  phone: "",
-  email: "",
-  whatsapp: "",
-  deliveryLocation: "",
-  address: "",
-  instructions: "",
-}
+const MINIMUM_ORDER = 50
+const DELIVERY_FEE = 20
 
 export function NsawamMarket() {
-  const [cart, setCart] = useState<CartItem[]>([])
-  const [cartOpen, setCartOpen] = useState(false)
-  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [activeCategory, setActiveCategory] = useState("All")
+  const [cart, setCart] = useState<Record<string, CartItem>>({})
 
-  const [checkoutDetails, setCheckoutDetails] =
-    useState<CheckoutDetails>(emptyCheckoutDetails)
-
-  const [orderNumber, setOrderNumber] = useState("")
-  const [paymentReference, setPaymentReference] = useState("")
-  const [paymentError, setPaymentError] = useState("")
-  const [isProcessingPayment, setIsProcessingPayment] =
-    useState(false)
-
-  const cartCount = useMemo(
+  const visibleProducts = useMemo(
     () =>
-      cart.reduce(
-        (total, item) => total + item.quantity,
-        0
-      ),
-    [cart]
+      activeCategory === "All"
+        ? products
+        : products.filter((product) => product.category === activeCategory),
+    [activeCategory],
   )
 
-  const cartTotal = useMemo(
+  const cartItems = useMemo(
     () =>
-      cart.reduce(
-        (total, item) =>
-          total + item.price * item.quantity,
-        0
-      ),
-    [cart]
+      Object.values(cart)
+        .map((item) => {
+          const product = products.find((p) => p.id === item.productId)
+
+          if (!product) return null
+
+          const unitPrice =
+            product.amountBased && item.selectedAmount
+              ? item.selectedAmount
+              : product.price
+
+          return {
+            ...item,
+            product,
+            unitPrice,
+            total: unitPrice * item.quantity,
+          }
+        })
+        .filter(Boolean) as Array<
+        CartItem & {
+          product: Product
+          unitPrice: number
+          total: number
+        }
+      >,
+    [cart],
   )
 
-  /*
-   * Delivery is calculated from the selected location.
-   *
-   * All currently supported Nsawam Township locations
-   * have a GHS 10 delivery fee.
-   */
-  const deliveryFee = checkoutDetails.deliveryLocation
-    ? NSAWAM_DELIVERY_FEE
-    : 0
+  const subtotal = cartItems.reduce((sum, item) => sum + item.total, 0)
 
-  const estimatedTotal = cartTotal + deliveryFee
+  const totalItems = cartItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  )
 
-  const formatCurrency = (amount: number) =>
-    `GHS ${amount.toFixed(2)}`
+  const minimumOrderReached = subtotal >= MINIMUM_ORDER
 
-  const addToCart = (product: Product) => {
-    setCart((currentCart) => {
-      const existingItem = currentCart.find(
-        (item) => item.id === product.id
-      )
+  const grandTotal =
+    subtotal > 0 ? subtotal + DELIVERY_FEE : 0
 
-      if (existingItem) {
-        return currentCart.map((item) =>
-          item.id === product.id
-            ? {
-                ...item,
-                quantity: item.quantity + 1,
-              }
-            : item
-        )
-      }
+  function addRegularItem(id: string) {
+    setCart((current) => {
+      const existing = current[id]
 
-      return [
-        ...currentCart,
-        {
-          ...product,
-          quantity: 1,
+      return {
+        ...current,
+        [id]: {
+          productId: id,
+          quantity: (existing?.quantity ?? 0) + 1,
         },
-      ]
+      }
     })
   }
 
-  /*
-   * ORDER NOW
-   *
-   * Add the product to the cart and open the cart.
-   */
-  const orderProductNow = (product: Product) => {
-    addToCart(product)
-    setCartOpen(true)
-  }
+  function removeRegularItem(id: string) {
+    setCart((current) => {
+      const existing = current[id]
 
-  const increaseQuantity = (productId: number) => {
-    setCart((currentCart) =>
-      currentCart.map((item) =>
-        item.id === productId
-          ? {
-              ...item,
-              quantity: item.quantity + 1,
-            }
-          : item
-      )
-    )
-  }
+      if (!existing) return current
 
-  const decreaseQuantity = (productId: number) => {
-    setCart((currentCart) =>
-      currentCart
-        .map((item) =>
-          item.id === productId
-            ? {
-                ...item,
-                quantity: item.quantity - 1,
-              }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    )
-  }
+      const nextQuantity = Math.max(0, existing.quantity - 1)
 
-  const removeFromCart = (productId: number) => {
-    setCart((currentCart) =>
-      currentCart.filter(
-        (item) => item.id !== productId
-      )
-    )
-  }
-
-  const clearCart = () => {
-    setCart([])
-  }
-
-  const openCheckout = () => {
-    if (cart.length === 0) {
-      return
-    }
-
-    setPaymentError("")
-    setCartOpen(false)
-    setCheckoutOpen(true)
-  }
-
-  const closeCheckout = () => {
-    if (isProcessingPayment) {
-      return
-    }
-
-    setCheckoutOpen(false)
-    setPaymentError("")
-  }
-
-  const updateCheckoutField = (
-    field: keyof CheckoutDetails,
-    value: string
-  ) => {
-    setCheckoutDetails((current) => ({
-      ...current,
-      [field]: value,
-    }))
-  }
-
-  const submitCheckout = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
-    event.preventDefault()
-
-    setPaymentError("")
-
-    if (checkoutDetails.fullName.trim().length < 2) {
-      setPaymentError(
-        "Please enter your full name."
-      )
-      return
-    }
-
-    if (checkoutDetails.phone.trim().length < 9) {
-      setPaymentError(
-        "Please enter a valid phone number."
-      )
-      return
-    }
-
-    if (!checkoutDetails.email.includes("@")) {
-      setPaymentError(
-        "Please enter a valid email address."
-      )
-      return
-    }
-
-    if (!checkoutDetails.deliveryLocation) {
-      setPaymentError(
-        "Please select your delivery location."
-      )
-      return
-    }
-
-    if (checkoutDetails.address.trim().length < 5) {
-      setPaymentError(
-        "Please enter your delivery address."
-      )
-      return
-    }
-
-    if (cart.length === 0) {
-      setPaymentError("Your cart is empty.")
-      return
-    }
-
-    setIsProcessingPayment(true)
-
-    try {
-      const newOrderNumber = `KFM-${Date.now()
-        .toString()
-        .slice(-8)}`
-
-      setOrderNumber(newOrderNumber)
-
-      const orderItems = cart.map((item) => ({
-        id: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        total: item.price * item.quantity,
-      }))
-
-      const pendingOrder = {
-        orderNumber: newOrderNumber,
-        customer: checkoutDetails,
-        deliveryLocation:
-          checkoutDetails.deliveryLocation,
-        items: orderItems,
-        subtotal: cartTotal,
-        deliveryFee,
-        total: estimatedTotal,
-        paymentStatus: "PENDING",
-        createdAt: new Date().toISOString(),
+      if (nextQuantity === 0) {
+        const next = { ...current }
+        delete next[id]
+        return next
       }
 
-      sessionStorage.setItem(
-        "kfm_pending_order",
-        JSON.stringify(pendingOrder)
-      )
-
-      const response = await fetch(
-        "/api/paystack/initialize",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: checkoutDetails.email.trim(),
-            amount: estimatedTotal,
-            reference: newOrderNumber,
-            customerName:
-              checkoutDetails.fullName.trim(),
-            phone: checkoutDetails.phone.trim(),
-            whatsapp:
-              checkoutDetails.whatsapp.trim(),
-            deliveryLocation:
-              checkoutDetails.deliveryLocation,
-            address:
-              checkoutDetails.address.trim(),
-            instructions:
-              checkoutDetails.instructions.trim(),
-            items: orderItems,
-            subtotal: cartTotal,
-            deliveryFee,
-            total: estimatedTotal,
-          }),
-        }
-      )
-
-      const data = await response.json()
-
-      if (!response.ok || !data?.status) {
-        throw new Error(
-          data?.message ||
-            "Unable to connect to Paystack. Please try again."
-        )
+      return {
+        ...current,
+        [id]: {
+          ...existing,
+          quantity: nextQuantity,
+        },
       }
-
-      const authorizationUrl =
-        data?.data?.authorization_url
-
-      const returnedReference =
-        data?.data?.reference
-
-      if (returnedReference) {
-        setPaymentReference(returnedReference)
-      }
-
-      if (!authorizationUrl) {
-        throw new Error(
-          "Paystack did not return a payment page."
-        )
-      }
-
-      window.location.href = authorizationUrl
-    } catch (error) {
-      console.error("Checkout error:", error)
-
-      setPaymentError(
-        error instanceof Error
-          ? error.message
-          : "An unexpected payment error occurred. Please try again."
-      )
-
-      setIsProcessingPayment(false)
-    }
+    })
   }
 
-  const contactKfm = () => {
-    const message =
-      "Hello KFM, I need help with a Nsawam Market order."
+  function addAmountBasedItem(
+    product: Product,
+    amount: number,
+  ) {
+    setCart((current) => {
+      const existing = current[product.id]
 
-    window.open(
-      `https://wa.me/233240555688?text=${encodeURIComponent(
-        message
-      )}`,
-      "_blank"
-    )
+      return {
+        ...current,
+        [product.id]: {
+          productId: product.id,
+          quantity: (existing?.quantity ?? 0) + 1,
+          selectedAmount: amount,
+        },
+      }
+    })
   }
 
-  const callKfm = () => {
-    window.location.href = "tel:+233204097129"
+  function removeAmountBasedItem(id: string) {
+    setCart((current) => {
+      const existing = current[id]
+
+      if (!existing) return current
+
+      const nextQuantity = Math.max(0, existing.quantity - 1)
+
+      if (nextQuantity === 0) {
+        const next = { ...current }
+        delete next[id]
+        return next
+      }
+
+      return {
+        ...current,
+        [id]: {
+          ...existing,
+          quantity: nextQuantity,
+        },
+      }
+    })
+  }
+
+  function removeItem(id: string) {
+    setCart((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
   }
 
   return (
-    <section
-      id="nsawam-market"
-      className="border-t border-border bg-muted/30 py-20"
-    >
-      <div className="mx-auto max-w-6xl px-4">
-
-        {/* Heading */}
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+    <section id="market" className="border-t border-border">
+      <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
             Nsawam Market
-          </span>
+          </p>
 
-          <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-            Shop Fresh Products From Nsawam
+          <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight md:text-4xl">
+            Fresh market items delivered to your door
           </h2>
 
-          <p className="mt-4 text-base leading-7 text-muted-foreground">
-            Choose products from the local market, add them
-            to your order, pay securely with Paystack, and
-            have your order prepared for delivery.
+          <p className="mt-4 text-pretty text-muted-foreground">
+            Skip the crowd and the heat. Order fresh produce, staples and
+            protein straight from Nsawam Market and our riders bring them
+            to your home.
           </p>
-        </div>
 
-        {/* Information cards */}
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+            <p className="font-semibold">
+              KFM Market Ordering
+            </p>
 
-          <div className="rounded-2xl border border-border bg-background p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <MapPin className="h-5 w-5" />
-            </div>
-
-            <h3 className="mt-4 font-semibold">
-              Local Market Products
-            </h3>
-
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Shop everyday food and household products
-              sourced through the Nsawam market.
+            <p className="mt-1 text-muted-foreground">
+              Minimum product order:{" "}
+              <span className="font-semibold text-foreground">
+                GH₵{MINIMUM_ORDER}
+              </span>{" "}
+              • Nsawam delivery:{" "}
+              <span className="font-semibold text-foreground">
+                GH₵{DELIVERY_FEE}
+              </span>
             </p>
           </div>
-
-          <div className="rounded-2xl border border-border bg-background p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <ShoppingCart className="h-5 w-5" />
-            </div>
-
-            <h3 className="mt-4 font-semibold">
-              Simple Ordering
-            </h3>
-
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Select a product or add several products to
-              your cart before checkout.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-background p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-
-            <h3 className="mt-4 font-semibold">
-              Secure Payment
-            </h3>
-
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Pay through Paystack using supported Ghana
-              Mobile Money options or a bank card.
-            </p>
-          </div>
-
         </div>
 
-        {/* Products */}
-        <div className="mt-12">
-
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-            <div>
-              <h3 className="text-xl font-bold">
-                Available Products
-              </h3>
-
-              <p className="mt-1 text-sm text-muted-foreground">
-                Select a product to start your order.
-              </p>
-            </div>
-
-            <Button
-              variant="outline"
-              onClick={() => setCartOpen(true)}
-              className="gap-2"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              My Cart
-
-              {cartCount > 0 && (
-                <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
-                  {cartCount}
-                </span>
-              )}
-            </Button>
-
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-
-            {products.map((product) => (
-              <article
-                key={product.id}
-                className="group overflow-hidden rounded-2xl border border-border bg-background shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
-              >
-
-                <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-
-                  <span className="absolute left-3 top-3 rounded-full bg-background/90 px-2.5 py-1 text-xs font-semibold backdrop-blur">
-                    {product.category}
-                  </span>
-
-                </div>
-
-                <div className="p-4">
-
-                  <h4 className="font-semibold">
-                    {product.name}
-                  </h4>
-
-                  <p className="mt-2 min-h-[48px] text-sm leading-6 text-muted-foreground">
-                    {product.description}
-                  </p>
-
-                  <div className="mt-4">
-
-                    <span className="text-xs text-muted-foreground">
-                      Starting from
-                    </span>
-
-                    <div className="mt-1 flex items-center justify-between gap-3">
-
-                      <span className="text-lg font-bold">
-                        {formatCurrency(product.price)}
-                      </span>
-
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          orderProductNow(product)
-                        }
-                      >
-                        Order Now
-                      </Button>
-
-                    </div>
-
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 w-full"
-                    onClick={() =>
-                      addToCart(product)
-                    }
-                  >
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Add to Cart
-                  </Button>
-
-                </div>
-
-              </article>
-            ))}
-
-          </div>
-        </div>
-
-        {/* Contact KFM */}
-        <div className="mt-12 rounded-2xl border border-border bg-background p-6">
-
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-
-            <div>
-              <h3 className="text-lg font-bold">
-                Need help with your order?
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Contact KFM directly if you need help selecting
-                a product or completing your market order.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-
-              <Button
-                variant="outline"
-                onClick={contactKfm}
-                className="gap-2"
-              >
-                WhatsApp KFM
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={callKfm}
-                className="gap-2"
-              >
-                <Phone className="h-4 w-4" />
-                Call KFM
-              </Button>
-
-            </div>
-
-          </div>
-        </div>
-
-      </div>
-
-      {/* CART */}
-      {cartOpen && (
-        <div className="fixed inset-0 z-[100]">
-
-          <button
-            type="button"
-            aria-label="Close cart"
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setCartOpen(false)}
-          />
-
-          <div className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-background shadow-2xl">
-
-            <div className="flex items-center justify-between border-b border-border p-5">
-
-              <div>
-                <h2 className="text-xl font-bold">
-                  Your Cart
-                </h2>
-
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {cartCount}{" "}
-                  {cartCount === 1
-                    ? "item"
-                    : "items"}
-                </p>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() =>
-                  setCartOpen(false)
-                }
-                aria-label="Close cart"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-5">
-
-              {cart.length === 0 ? (
-                <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
-
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                    <ShoppingCart className="h-7 w-7 text-muted-foreground" />
-                  </div>
-
-                  <h3 className="mt-5 text-lg font-semibold">
-                    Your cart is empty
-                  </h3>
-
-                  <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
-                    Choose products from the Nsawam Market
-                    to start your order.
-                  </p>
-
-                  <Button
-                    className="mt-5"
-                    onClick={() =>
-                      setCartOpen(false)
-                    }
-                  >
-                    Continue Shopping
-                  </Button>
-
-                </div>
-              ) : (
-
-                <div className="space-y-4">
-
-                  {cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-border p-4"
-                    >
-
-                      <div className="flex gap-4">
-
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-20 w-20 shrink-0 rounded-lg object-cover"
-                        />
-
-                        <div className="min-w-0 flex-1">
-
-                          <div className="flex items-start justify-between gap-3">
-
-                            <div>
-                              <h3 className="font-semibold">
-                                {item.name}
-                              </h3>
-
-                              <p className="mt-1 text-sm text-muted-foreground">
-                                {formatCurrency(
-                                  item.price
-                                )}{" "}
-                                each
-                              </p>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeFromCart(
-                                  item.id
-                                )
-                              }
-                              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                              aria-label={`Remove ${item.name}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-
-                          </div>
-
-                          <div className="mt-3 flex items-center justify-between">
-
-                            <div className="flex items-center rounded-lg border border-border">
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  decreaseQuantity(
-                                    item.id
-                                  )
-                                }
-                                className="p-2 hover:bg-muted"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </button>
-
-                              <span className="min-w-10 text-center text-sm font-semibold">
-                                {item.quantity}
-                              </span>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  increaseQuantity(
-                                    item.id
-                                  )
-                                }
-                                className="p-2 hover:bg-muted"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
-
-                            </div>
-
-                            <span className="font-bold">
-                              {formatCurrency(
-                                item.price *
-                                  item.quantity
-                              )}
-                            </span>
-
-                          </div>
-
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                </div>
-              )}
-
-            </div>
-
-            {cart.length > 0 && (
-              <div className="border-t border-border bg-background p-5">
-
-                <div className="space-y-3">
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Subtotal
-                    </span>
-
-                    <span className="font-medium">
-                      {formatCurrency(cartTotal)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Delivery
-                    </span>
-
-                    <span className="font-medium">
-                      Calculated at checkout
-                    </span>
-                  </div>
-
-                  <div className="border-t border-border pt-3">
-
-                    <div className="flex justify-between">
-
-                      <span className="font-semibold">
-                        Estimated Total
-                      </span>
-
-                      <span className="text-lg font-bold">
-                        {formatCurrency(cartTotal)}
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <Button
-                  className="mt-5 w-full"
-                  size="lg"
-                  onClick={openCheckout}
+        <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">
+          <div>
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+                    activeCategory === cat
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  Continue to Checkout
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  className="mt-2 w-full"
-                  onClick={clearCart}
-                >
-                  Clear Cart
-                </Button>
-
-              </div>
-            )}
-
-          </div>
-        </div>
-      )}
-
-      {/* CHECKOUT */}
-      {checkoutOpen && (
-        <div className="fixed inset-0 z-[110] overflow-y-auto bg-background">
-
-          <div className="min-h-screen">
-
-            <div className="border-b border-border bg-background/95 backdrop-blur">
-
-              <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
-
-                <Button
-                  variant="ghost"
-                  onClick={closeCheckout}
-                  disabled={isProcessingPayment}
-                  className="gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </Button>
-
-                <div className="text-center">
-
-                  <h2 className="font-bold">
-                    Checkout
-                  </h2>
-
-                  <p className="text-xs text-muted-foreground">
-                    Secure Paystack Payment
-                  </p>
-
-                </div>
-
-                <div className="w-16" />
-
-              </div>
-
+                  {cat}
+                </button>
+              ))}
             </div>
 
-            <div className="mx-auto max-w-3xl px-4 py-8">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {visibleProducts.map((product) => {
+                const cartItem = cart[product.id]
+                const quantity = cartItem?.quantity ?? 0
 
-              <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-
-                {/* Checkout form */}
-                <div>
-
-                  <div className="mb-6">
-
-                    <h1 className="text-2xl font-bold">
-                      Delivery Details
-                    </h1>
-
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                      Enter your details so KFM can prepare
-                      and arrange delivery of your market order.
-                    </p>
-
-                  </div>
-
-                  <form
-                    onSubmit={submitCheckout}
-                    className="space-y-5"
+                return (
+                  <div
+                    key={product.id}
+                    className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
                   >
-
-                    <div>
-
-                      <label
-                        htmlFor="fullName"
-                        className="mb-2 block text-sm font-medium"
-                      >
-                        Full Name
-                      </label>
-
-                      <div className="relative">
-
-                        <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
-                        <input
-                          id="fullName"
-                          type="text"
-                          value={
-                            checkoutDetails.fullName
-                          }
-                          onChange={(event) =>
-                            updateCheckoutField(
-                              "fullName",
-                              event.target.value
-                            )
-                          }
-                          placeholder="Your full name"
-                          className="h-11 w-full rounded-lg border border-border bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                          disabled={
-                            isProcessingPayment
-                          }
-                        />
-
-                      </div>
-
-                    </div>
-
-                    <div className="grid gap-5 sm:grid-cols-2">
-
-                      <div>
-
-                        <label
-                          htmlFor="phone"
-                          className="mb-2 block text-sm font-medium"
-                        >
-                          Phone Number
-                        </label>
-
-                        <div className="relative">
-
-                          <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
-                          <input
-                            id="phone"
-                            type="tel"
-                            value={
-                              checkoutDetails.phone
-                            }
-                            onChange={(event) =>
-                              updateCheckoutField(
-                                "phone",
-                                event.target.value
-                              )
-                            }
-                            placeholder="024 000 0000"
-                            className="h-11 w-full rounded-lg border border-border bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                            disabled={
-                              isProcessingPayment
-                            }
-                          />
-
-                        </div>
-
-                      </div>
-
-                      <div>
-
-                        <label
-                          htmlFor="email"
-                          className="mb-2 block text-sm font-medium"
-                        >
-                          Email Address
-                        </label>
-
-                        <div className="relative">
-
-                          <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
-                          <input
-                            id="email"
-                            type="email"
-                            value={
-                              checkoutDetails.email
-                            }
-                            onChange={(event) =>
-                              updateCheckoutField(
-                                "email",
-                                event.target.value
-                              )
-                            }
-                            placeholder="you@example.com"
-                            className="h-11 w-full rounded-lg border border-border bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                            disabled={
-                              isProcessingPayment
-                            }
-                          />
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                    <div>
-
-                      <label
-                        htmlFor="whatsapp"
-                        className="mb-2 block text-sm font-medium"
-                      >
-                        WhatsApp Number{" "}
-                        <span className="font-normal text-muted-foreground">
-                          (Optional)
-                        </span>
-                      </label>
-
-                      <input
-                        id="whatsapp"
-                        type="tel"
-                        value={
-                          checkoutDetails.whatsapp
-                        }
-                        onChange={(event) =>
-                          updateCheckoutField(
-                            "whatsapp",
-                            event.target.value
-                          )
-                        }
-                        placeholder="024 000 0000"
-                        className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        disabled={
-                          isProcessingPayment
-                        }
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+                      <Image
+                        src={product.image || "/placeholder.svg"}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, 300px"
                       />
-
                     </div>
 
-                    {/* Delivery Location */}
-                    <div>
+                    <div className="flex flex-1 flex-col p-4">
+                      <h3 className="text-sm font-semibold">
+                        {product.name}
+                      </h3>
 
-                      <label
-                        htmlFor="deliveryLocation"
-                        className="mb-2 block text-sm font-medium"
-                      >
-                        Delivery Location
-                      </label>
-
-                      <div className="relative">
-
-                        <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
-                        <select
-                          id="deliveryLocation"
-                          value={
-                            checkoutDetails.deliveryLocation
-                          }
-                          onChange={(event) =>
-                            updateCheckoutField(
-                              "deliveryLocation",
-                              event.target.value
-                            )
-                          }
-                          className="h-11 w-full appearance-none rounded-lg border border-border bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                          disabled={
-                            isProcessingPayment
-                          }
-                        >
-                          <option value="">
-                            Select your Nsawam location
-                          </option>
-
-                          {nsawamLocations.map(
-                            (location) => (
-                              <option
-                                key={location}
-                                value={location}
-                              >
-                                {location}
-                              </option>
-                            )
-                          )}
-                        </select>
-
-                      </div>
-
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Delivery within the listed Nsawam
-                        Township locations is currently{" "}
-                        <span className="font-semibold">
-                          GHS 10.00
-                        </span>
-                        .
+                      <p className="text-xs text-muted-foreground">
+                        {product.unit}
                       </p>
 
-                    </div>
+                      {product.amountBased ? (
+                        <div className="mt-3">
+                          <label
+                            htmlFor={`${product.id}-amount`}
+                            className="text-xs font-medium"
+                          >
+                            Choose amount
+                          </label>
 
-                    {/* Delivery Address */}
-                    <div>
+                          <select
+                            id={`${product.id}-amount`}
+                            className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                            value={cartItem?.selectedAmount ?? ""}
+                            onChange={(event) => {
+                              const amount = Number(event.target.value)
 
-                      <label
-                        htmlFor="address"
-                        className="mb-2 block text-sm font-medium"
-                      >
-                        Delivery Address
-                      </label>
+                              if (!amount) return
 
-                      <div className="relative">
+                              setCart((current) => ({
+                                ...current,
+                                [product.id]: {
+                                  productId: product.id,
+                                  quantity: 1,
+                                  selectedAmount: amount,
+                                },
+                              }))
+                            }}
+                          >
+                            <option value="">
+                              Select GH₵ amount
+                            </option>
 
-                        <MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            {product.amountOptions?.map((amount) => (
+                              <option key={amount} value={amount}>
+                                GH₵{amount}
+                              </option>
+                            ))}
+                          </select>
 
-                        <textarea
-                          id="address"
-                          value={
-                            checkoutDetails.address
-                          }
-                          onChange={(event) =>
-                            updateCheckoutField(
-                              "address",
-                              event.target.value
-                            )
-                          }
-                          placeholder="Enter your house number, street, landmark or other details"
-                          rows={3}
-                          className="w-full resize-none rounded-lg border border-border bg-background px-10 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                          disabled={
-                            isProcessingPayment
-                          }
-                        />
+                          {quantity > 0 && cartItem?.selectedAmount ? (
+                            <div className="mt-3 flex items-center justify-between">
+                              <span className="text-sm font-bold">
+                                GH₵{cartItem.selectedAmount}
+                              </span>
 
-                      </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-8 w-8 bg-transparent"
+                                  onClick={() =>
+                                    removeAmountBasedItem(product.id)
+                                  }
+                                  aria-label={`Remove one ${product.name}`}
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
 
-                    </div>
+                                <span className="w-5 text-center text-sm font-semibold">
+                                  {quantity}
+                                </span>
 
-                    <div>
-
-                      <label
-                        htmlFor="instructions"
-                        className="mb-2 block text-sm font-medium"
-                      >
-                        Delivery Instructions{" "}
-                        <span className="font-normal text-muted-foreground">
-                          (Optional)
-                        </span>
-                      </label>
-
-                      <textarea
-                        id="instructions"
-                        value={
-                          checkoutDetails.instructions
-                        }
-                        onChange={(event) =>
-                          updateCheckoutField(
-                            "instructions",
-                            event.target.value
-                          )
-                        }
-                        placeholder="Any additional information for the delivery rider?"
-                        rows={3}
-                        className="w-full resize-none rounded-lg border border-border bg-background px-3 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        disabled={
-                          isProcessingPayment
-                        }
-                      />
-
-                    </div>
-
-                    {paymentError && (
-                      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm leading-6 text-destructive">
-                        {paymentError}
-                      </div>
-                    )}
-
-                    <div className="rounded-xl border border-border bg-muted/40 p-4">
-
-                      <div className="flex items-start gap-3">
-
-                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <CheckCircle2 className="h-4 w-4" />
+                                <Button
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() =>
+                                    addAmountBasedItem(
+                                      product,
+                                      cartItem.selectedAmount!,
+                                    )
+                                  }
+                                  aria-label={`Add another ${product.name}`}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
+                      ) : (
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-base font-bold">
+                            GH₵{product.price}
+                          </span>
 
-                        <div>
-
-                          <p className="text-sm font-semibold">
-                            Secure Paystack Payment
-                          </p>
-
-                          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                            Pay securely with Mobile Money or
-                            Card through Paystack. Available Ghana
-                            Mobile Money options include MTN,
-                            Telecel and AirtelTigo.
-                          </p>
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full"
-                      disabled={
-                        isProcessingPayment
-                      }
-                    >
-                      {isProcessingPayment
-                        ? "Connecting to Paystack..."
-                        : `Pay ${formatCurrency(
-                            estimatedTotal
-                          )} with Paystack`}
-                    </Button>
-
-                    <p className="text-center text-xs leading-5 text-muted-foreground">
-                      You will be redirected to Paystack to
-                      securely complete your payment.
-                    </p>
-
-                  </form>
-
-                </div>
-
-                {/* Summary */}
-                <aside className="h-fit rounded-2xl border border-border bg-muted/30 p-5 lg:sticky lg:top-6">
-
-                  <h2 className="font-bold">
-                    Order Summary
-                  </h2>
-
-                  <div className="mt-5 space-y-4">
-
-                    {cart.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex gap-3"
-                      >
-
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-14 w-14 rounded-lg object-cover"
-                        />
-
-                        <div className="min-w-0 flex-1">
-
-                          <p className="text-sm font-medium">
-                            {item.name}
-                          </p>
-
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Qty: {item.quantity}
-                          </p>
-
-                        </div>
-
-                        <span className="text-sm font-semibold">
-                          {formatCurrency(
-                            item.price *
-                              item.quantity
-                          )}
-                        </span>
-
-                      </div>
-                    ))}
-
-                  </div>
-
-                  <div className="mt-5 border-t border-border pt-4">
-
-                    <div className="flex justify-between text-sm">
-
-                      <span className="text-muted-foreground">
-                        Subtotal
-                      </span>
-
-                      <span>
-                        {formatCurrency(cartTotal)}
-                      </span>
-
-                    </div>
-
-                    <div className="mt-2 flex justify-between text-sm">
-
-                      <span className="text-muted-foreground">
-                        Delivery
-                      </span>
-
-                      <span>
-                        {checkoutDetails.deliveryLocation
-                          ? formatCurrency(
-                              deliveryFee
-                            )
-                          : "Select location"}
-                      </span>
-
-                    </div>
-
-                    {checkoutDetails.deliveryLocation && (
-                      <div className="mt-2 rounded-lg bg-primary/5 p-3">
-
-                        <div className="flex items-start gap-2">
-
-                          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-
-                          <div>
-
-                            <p className="text-xs text-muted-foreground">
-                              Delivering to
-                            </p>
-
-                            <p className="mt-0.5 text-sm font-semibold">
-                              {
-                                checkoutDetails.deliveryLocation
+                          {quantity === 0 ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                addRegularItem(product.id)
                               }
-                            </p>
+                            >
+                              <Plus className="mr-1 h-4 w-4" />
+                              Add
+                            </Button>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-8 w-8 bg-transparent"
+                                onClick={() =>
+                                  removeRegularItem(product.id)
+                                }
+                                aria-label={`Remove one ${product.name}`}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
 
-                          </div>
+                              <span className="w-5 text-center text-sm font-semibold">
+                                {quantity}
+                              </span>
 
-                        </div>
-
-                      </div>
-                    )}
-
-                    <div className="mt-4 border-t border-border pt-4">
-
-                      <div className="flex justify-between">
-
-                        <span className="font-bold">
-                          Total
-                        </span>
-
-                        <span className="text-xl font-bold">
-                          {formatCurrency(
-                            estimatedTotal
+                              <Button
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() =>
+                                  addRegularItem(product.id)
+                                }
+                                aria-label={`Add one ${product.name}`}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
                           )}
-                        </span>
-
-                      </div>
-
+                        </div>
+                      )}
                     </div>
-
                   </div>
-
-                </aside>
-
-              </div>
-
+                )
+              })}
             </div>
-
           </div>
 
+          <aside className="lg:sticky lg:top-20 lg:h-fit">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-2">
+                <ShoppingBasket className="h-5 w-5 text-primary" />
+
+                <h3 className="text-lg font-semibold">
+                  Your basket
+                </h3>
+
+                {totalItems > 0 && (
+                  <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                    {totalItems}
+                  </span>
+                )}
+              </div>
+
+              {cartItems.length === 0 ? (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Your basket is empty. Add items from the market to get
+                  started.
+                </p>
+              ) : (
+                <>
+                  <ul className="mt-4 space-y-3">
+                    {cartItems.map(
+                      ({
+                        product,
+                        quantity,
+                        unitPrice,
+                        total,
+                      }) => (
+                        <li
+                          key={product.id}
+                          className="flex items-center justify-between gap-2 text-sm"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">
+                              {product.name}
+                            </p>
+
+                            <p className="text-xs text-muted-foreground">
+                              {quantity} × GH₵{unitPrice}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">
+                              GH₵{total}
+                            </span>
+
+                            <button
+                              onClick={() =>
+                                removeItem(product.id)
+                              }
+                              className="text-muted-foreground transition-colors hover:text-destructive"
+                              aria-label={`Remove ${product.name} from basket`}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </li>
+                      ),
+                    )}
+                  </ul>
+
+                  <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Products subtotal</span>
+                      <span>GH₵{subtotal}</span>
+                    </div>
+
+                    <div className="flex justify-between text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Truck className="h-4 w-4" />
+                        Nsawam delivery
+                      </span>
+
+                      <span>GH₵{DELIVERY_FEE}</span>
+                    </div>
+
+                    <div className="flex justify-between text-base font-bold">
+                      <span>Total</span>
+                      <span>GH₵{grandTotal}</span>
+                    </div>
+                  </div>
+
+                  {!minimumOrderReached && (
+                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                      Add GH₵
+                      {MINIMUM_ORDER - subtotal} more in products
+                      to reach the GH₵{MINIMUM_ORDER} minimum order.
+                    </div>
+                  )}
+
+                  {minimumOrderReached && (
+                    <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-xs text-green-800">
+                      Minimum order reached. Your basket is ready for
+                      checkout.
+                    </div>
+                  )}
+                </>
+              )}
+
+              <Button
+                asChild={minimumOrderReached}
+                className="mt-6 w-full"
+                disabled={
+                  cartItems.length === 0 ||
+                  !minimumOrderReached
+                }
+              >
+                {minimumOrderReached ? (
+                  <a href="#book">
+                    Checkout &amp; schedule delivery
+                  </a>
+                ) : (
+                  <span>
+                    Minimum GH₵{MINIMUM_ORDER} Required
+                  </span>
+                )}
+              </Button>
+
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Delivery within Nsawam: GH₵{DELIVERY_FEE}
+              </p>
+            </div>
+          </aside>
         </div>
-      )}
+      </div>
     </section>
   )
 }
