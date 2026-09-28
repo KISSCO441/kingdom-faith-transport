@@ -62,32 +62,81 @@ const fieldClass =
 export function BookingForm() {
   const [vehicle, setVehicle] = useState<VehicleType>("car")
   const [submitted, setSubmitted] = useState(false)
+  const [bookingCode, setBookingCode] = useState("")
+  const [error, setError] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [pickupTown, setPickupTown] = useState("Koforidua")
   const [destinationTown, setDestinationTown] = useState("Nkawkaw")
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSubmitted(true)
+    setError("")
+    setIsSubmitting(true)
+
+    const formData = new FormData(event.currentTarget)
+
+    const bookingData = {
+      customer_name: String(formData.get("name") || ""),
+      customer_phone: String(formData.get("phone") || ""),
+      vehicle_type: vehicle,
+      ride_option: String(formData.get("ride") || ""),
+      pickup_town: String(formData.get("pickup") || ""),
+      pickup_area: String(formData.get("pickupArea") || ""),
+      destination_town: String(formData.get("destination") || ""),
+      destination_area: String(formData.get("destinationArea") || ""),
+      when_option: String(formData.get("when") || ""),
+      notes: String(formData.get("notes") || ""),
+    }
+
+    try {
+      const response = await fetch("/api/rides", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bookingData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to submit your ride request.")
+      }
+
+      setBookingCode(data.booking?.booking_code || "")
+      setSubmitted(true)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to submit your ride request. Please try again.",
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <section id="book" className="border-t border-border bg-muted/40">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-20 md:grid-cols-2 md:py-28">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Order a ride</p>
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+            Order a ride
+          </p>
+
           <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight md:text-4xl">
             Where are you going?
           </h2>
+
           <p className="mt-4 text-pretty text-muted-foreground">
-            Set your pickup and destination, choose your ride, and we&apos;ll match you with the
-            nearest verified driver. You&apos;ll get your fare estimate before you confirm.
+            Set your pickup and destination, choose your ride, and request your KFM trip.
           </p>
 
           <ul className="mt-8 space-y-4">
             {[
-              "Upfront fare estimate, no surprises",
-              "Pay with mobile money or cash",
-              "Live driver tracking to your pickup",
+              "Submit your ride request",
+              "Receive a unique KFM booking number",
+              "KFM can assign a driver to your request",
             ].map((item) => (
               <li key={item} className="flex items-center gap-3 text-sm">
                 <CheckCircle2 className="h-5 w-5 text-primary" />
@@ -101,12 +150,36 @@ export function BookingForm() {
           {submitted ? (
             <div className="flex h-full flex-col items-center justify-center py-10 text-center">
               <CheckCircle2 className="h-14 w-14 text-primary" />
-              <h3 className="mt-4 text-xl font-semibold">Ride requested</h3>
-              <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-                We&apos;re matching you with the nearest driver. You&apos;ll get a call or SMS with
-                your driver&apos;s details and fare shortly.
+
+              <h3 className="mt-4 text-xl font-semibold">
+                Ride request received
+              </h3>
+
+              {bookingCode && (
+                <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 px-5 py-4">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Your KFM booking number
+                  </p>
+                  <p className="mt-1 text-2xl font-bold tracking-wide">
+                    {bookingCode}
+                  </p>
+                </div>
+              )}
+
+              <p className="mt-4 max-w-sm text-sm text-muted-foreground">
+                Keep your booking number. KFM can use it to identify and manage
+                your ride request.
               </p>
-              <Button className="mt-6" variant="outline" onClick={() => setSubmitted(false)}>
+
+              <Button
+                className="mt-6"
+                variant="outline"
+                onClick={() => {
+                  setSubmitted(false)
+                  setBookingCode("")
+                  setError("")
+                }}
+              >
                 Order another ride
               </Button>
             </div>
@@ -114,6 +187,7 @@ export function BookingForm() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <span className="mb-2 block text-sm font-medium">Ride type</span>
+
                 <div className="grid grid-cols-2 gap-3">
                   {(
                     [
@@ -145,6 +219,7 @@ export function BookingForm() {
                   <label htmlFor="pickup" className="text-sm font-medium">
                     Pickup town
                   </label>
+
                   <select
                     id="pickup"
                     name="pickup"
@@ -160,11 +235,19 @@ export function BookingForm() {
                     ))}
                   </select>
                 </div>
+
                 <div className="space-y-2">
                   <label htmlFor="pickupArea" className="text-sm font-medium">
                     Local area in {pickupTown}
                   </label>
-                  <select id="pickupArea" name="pickupArea" required className={fieldClass} key={pickupTown}>
+
+                  <select
+                    id="pickupArea"
+                    name="pickupArea"
+                    required
+                    className={fieldClass}
+                    key={pickupTown}
+                  >
                     {townAreas[pickupTown].map((area) => (
                       <option key={area} value={area}>
                         {area}
@@ -179,6 +262,7 @@ export function BookingForm() {
                   <label htmlFor="destination" className="text-sm font-medium">
                     Destination town
                   </label>
+
                   <select
                     id="destination"
                     name="destination"
@@ -194,10 +278,15 @@ export function BookingForm() {
                     ))}
                   </select>
                 </div>
+
                 <div className="space-y-2">
-                  <label htmlFor="destinationArea" className="text-sm font-medium">
+                  <label
+                    htmlFor="destinationArea"
+                    className="text-sm font-medium"
+                  >
                     Local area in {destinationTown}
                   </label>
+
                   <select
                     id="destinationArea"
                     name="destinationArea"
@@ -219,12 +308,21 @@ export function BookingForm() {
                   <label htmlFor="name" className="text-sm font-medium">
                     Full name
                   </label>
-                  <input id="name" name="name" required className={fieldClass} placeholder="Ama Mensah" />
+
+                  <input
+                    id="name"
+                    name="name"
+                    required
+                    className={fieldClass}
+                    placeholder="Ama Mensah"
+                  />
                 </div>
+
                 <div className="space-y-2">
                   <label htmlFor="phone" className="text-sm font-medium">
                     Phone
                   </label>
+
                   <input
                     id="phone"
                     name="phone"
@@ -241,7 +339,13 @@ export function BookingForm() {
                   <label htmlFor="ride" className="text-sm font-medium">
                     Ride option
                   </label>
-                  <select id="ride" name="ride" required className={fieldClass}>
+
+                  <select
+                    id="ride"
+                    name="ride"
+                    required
+                    className={fieldClass}
+                  >
                     {rideOptions[vehicle].map((option) => (
                       <option key={option} value={option}>
                         {option}
@@ -249,11 +353,18 @@ export function BookingForm() {
                     ))}
                   </select>
                 </div>
+
                 <div className="space-y-2">
                   <label htmlFor="when" className="text-sm font-medium">
                     When
                   </label>
-                  <select id="when" name="when" required className={fieldClass}>
+
+                  <select
+                    id="when"
+                    name="when"
+                    required
+                    className={fieldClass}
+                  >
                     <option value="now">Pick me up now</option>
                     <option value="15">In 15 minutes</option>
                     <option value="30">In 30 minutes</option>
@@ -264,8 +375,10 @@ export function BookingForm() {
 
               <div className="space-y-2">
                 <label htmlFor="notes" className="text-sm font-medium">
-                  Notes for driver <span className="text-muted-foreground">(optional)</span>
+                  Notes for driver{" "}
+                  <span className="text-muted-foreground">(optional)</span>
                 </label>
+
                 <textarea
                   id="notes"
                   name="notes"
@@ -275,8 +388,19 @@ export function BookingForm() {
                 />
               </div>
 
-              <Button type="submit" size="lg" className="w-full">
-                Request ride
+              {error && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting ride request..." : "Request ride"}
               </Button>
             </form>
           )}
