@@ -38,7 +38,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 10,
     category: "Vegetables",
-    image: "/images/market-vegetables.png",
+    image: "/images/vegetables.jpg",
     amountOptions: createAmountOptions(10),
   },
   {
@@ -47,7 +47,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 5,
     category: "Vegetables",
-    image: "/images/market-vegetables.png",
+    image: "/images/vegetables.jpg",
     amountOptions: createAmountOptions(5),
   },
   {
@@ -56,7 +56,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 5,
     category: "Vegetables",
-    image: "/images/market-vegetables.png",
+    image: "/images/vegetables.jpg",
     amountOptions: createAmountOptions(5),
   },
   {
@@ -74,7 +74,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 10,
     category: "Fruits",
-    image: "/images/market-fruits.png",
+    image: "/images/fruits.jpg",
     amountOptions: createAmountOptions(10),
   },
   {
@@ -83,7 +83,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 5,
     category: "Fruits",
-    image: "/images/market-fruits.png",
+    image: "/images/fruits.jpg",
     amountOptions: createAmountOptions(5),
   },
   {
@@ -92,7 +92,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 10,
     category: "Staples",
-    image: "/images/market-staples.png",
+    image: "/images/Staples.jpg",
     amountOptions: createAmountOptions(10),
   },
   {
@@ -101,7 +101,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 30,
     category: "Staples",
-    image: "/images/market-staples.png",
+    image: "/images/Staples.jpg",
     amountOptions: createAmountOptions(30),
   },
   {
@@ -110,7 +110,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 10,
     category: "Staples",
-    image: "/images/market-staples.png",
+    image: "/images/Staples.jpg",
     amountOptions: createAmountOptions(10),
   },
   {
@@ -119,7 +119,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 15,
     category: "Protein",
-    image: "/images/market-protein.png",
+    image: "/images/Proteins.jpg",
     amountOptions: createAmountOptions(15),
   },
   {
@@ -128,7 +128,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 10,
     category: "Protein",
-    image: "/images/market-protein.png",
+    image: "/images/Proteins.jpg",
     amountOptions: createAmountOptions(10),
   },
   {
@@ -137,7 +137,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 10,
     category: "Protein",
-    image: "/images/market-protein.png",
+    image: "/images/Proteins.jpg",
     amountOptions: createAmountOptions(10),
   },
 ]
