@@ -147,9 +147,18 @@ const categories = ["All", "Vegetables", "Fruits", "Staples", "Protein"]
 const MINIMUM_ORDER = 50
 const DELIVERY_FEE = 20
 
+const WHATSAPP_NUMBER = "233240555688"
+const KFM_PHONE_1 = "024 0555 688"
+const KFM_PHONE_2 = "020 409 7129"
+
 export function NsawamMarket() {
   const [activeCategory, setActiveCategory] = useState("All")
   const [cart, setCart] = useState<Record<string, CartItem>>({})
+
+  const [customerName, setCustomerName] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
+  const [deliveryLocation, setDeliveryLocation] = useState("")
+  const [showOrderOptions, setShowOrderOptions] = useState(false)
 
   const visibleProducts = useMemo(
     () =>
@@ -210,6 +219,8 @@ export function NsawamMarket() {
         },
       }
     })
+
+    setShowOrderOptions(false)
   }
 
   function addItem(product: Product) {
@@ -226,6 +237,8 @@ export function NsawamMarket() {
         },
       }
     })
+
+    setShowOrderOptions(false)
   }
 
   function removeItemQuantity(id: string) {
@@ -250,6 +263,8 @@ export function NsawamMarket() {
         },
       }
     })
+
+    setShowOrderOptions(false)
   }
 
   function removeItem(id: string) {
@@ -258,17 +273,78 @@ export function NsawamMarket() {
       delete next[id]
       return next
     })
+
+    setShowOrderOptions(false)
+  }
+
+  function prepareOrder() {
+    if (!minimumOrderReached) {
+      alert(`Minimum market order is GH₵${MINIMUM_ORDER}.`)
+      return
+    }
+
+    if (!customerName.trim() || !customerPhone.trim() || !deliveryLocation.trim()) {
+      alert(
+        "Please enter your name, phone number and delivery location before placing your order.",
+      )
+      return
+    }
+
+    setShowOrderOptions(true)
+
+    setTimeout(() => {
+      document
+        .getElementById("market-order-options")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }, 100)
+  }
+
+  function createWhatsAppMessage() {
+    const orderLines = cartItems
+      .map(
+        ({ product, quantity, unitPrice, total }) =>
+          `${product.name}: ${quantity} × GH₵${unitPrice} = GH₵${total}`,
+      )
+      .join("\n")
+
+    return [
+      "KFM NSAWAM MARKET ORDER",
+      "",
+      `Customer: ${customerName.trim()}`,
+      `Phone: ${customerPhone.trim()}`,
+      `Delivery Location: ${deliveryLocation.trim()}`,
+      "",
+      "ORDER ITEMS:",
+      orderLines,
+      "",
+      `Products Subtotal: GH₵${subtotal}`,
+      `Nsawam Delivery: GH₵${DELIVERY_FEE}`,
+      `TOTAL: GH₵${grandTotal}`,
+      "",
+      "Please confirm this order with the customer.",
+    ].join("\n")
+  }
+
+  function sendWhatsAppOrder() {
+    const message = createWhatsAppMessage()
+
+    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer")
+  }
+
+  function callKFM(phoneNumber: string) {
+    window.location.href = `tel:${phoneNumber.replace(/\s/g, "")}`
   }
 
   return (
-    
     <section id="nsawam-market" className="border-t border-border">
       <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">
             Nsawam Market
           </p>
-     
+
           <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight md:text-4xl">
             Fresh market items delivered to your door
           </h2>
@@ -519,21 +595,27 @@ export function NsawamMarket() {
               )}
 
               <Button
-                asChild={minimumOrderReached}
+                type="button"
                 className="mt-6 w-full"
                 disabled={
                   cartItems.length === 0 ||
                   !minimumOrderReached
                 }
+                onClick={() => {
+                  if (!minimumOrderReached) return
+
+                  document
+                    .getElementById("market-checkout")
+                    ?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    })
+                }}
               >
                 {minimumOrderReached ? (
-                  <a href="#book">
-                    Checkout &amp; schedule delivery
-                  </a>
+                  "Checkout & schedule delivery"
                 ) : (
-                  <span>
-                    Minimum GH₵{MINIMUM_ORDER} Required
-                  </span>
+                  `Minimum GH₵${MINIMUM_ORDER} Required`
                 )}
               </Button>
 
@@ -543,6 +625,196 @@ export function NsawamMarket() {
             </div>
           </aside>
         </div>
+
+        {minimumOrderReached && (
+          <div
+            id="market-checkout"
+            className="mx-auto mt-12 max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-sm"
+          >
+            <div className="text-center">
+              <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                Market Checkout
+              </p>
+
+              <h3 className="mt-2 text-2xl font-bold">
+                Complete Your Market Order
+              </h3>
+
+              <p className="mt-2 text-sm text-muted-foreground">
+                Enter your details below to continue with your order.
+              </p>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label
+                  htmlFor="market-customer-name"
+                  className="text-sm font-medium"
+                >
+                  Customer Name
+                </label>
+
+                <input
+                  id="market-customer-name"
+                  type="text"
+                  value={customerName}
+                  onChange={(event) => {
+                    setCustomerName(event.target.value)
+                    setShowOrderOptions(false)
+                  }}
+                  placeholder="Enter your name"
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="market-customer-phone"
+                  className="text-sm font-medium"
+                >
+                  Phone Number
+                </label>
+
+                <input
+                  id="market-customer-phone"
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(event) => {
+                    setCustomerPhone(event.target.value)
+                    setShowOrderOptions(false)
+                  }}
+                  placeholder="e.g. 024 000 0000"
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="market-delivery-location"
+                  className="text-sm font-medium"
+                >
+                  Delivery Location
+                </label>
+
+                <input
+                  id="market-delivery-location"
+                  type="text"
+                  value={deliveryLocation}
+                  onChange={(event) => {
+                    setDeliveryLocation(event.target.value)
+                    setShowOrderOptions(false)
+                  }}
+                  placeholder="Enter your delivery location in Nsawam"
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                />
+              </div>
+
+              <div className="rounded-xl border border-border bg-muted/40 p-4">
+                <h4 className="font-semibold">
+                  Order Summary
+                </h4>
+
+                <div className="mt-3 space-y-2 text-sm">
+                  {cartItems.map(
+                    ({
+                      product,
+                      quantity,
+                      unitPrice,
+                      total,
+                    }) => (
+                      <div
+                        key={product.id}
+                        className="flex justify-between gap-4"
+                      >
+                        <span>
+                          {product.name} ({quantity} × GH₵
+                          {unitPrice})
+                        </span>
+
+                        <span className="font-medium">
+                          GH₵{total}
+                        </span>
+                      </div>
+                    ),
+                  )}
+
+                  <div className="border-t border-border pt-2">
+                    <div className="flex justify-between">
+                      <span>Products subtotal</span>
+                      <span>GH₵{subtotal}</span>
+                    </div>
+
+                    <div className="mt-1 flex justify-between">
+                      <span>Nsawam delivery</span>
+                      <span>GH₵{DELIVERY_FEE}</span>
+                    </div>
+
+                    <div className="mt-2 flex justify-between text-base font-bold">
+                      <span>Total</span>
+                      <span>GH₵{grandTotal}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                className="w-full"
+                onClick={prepareOrder}
+              >
+                Place Market Order
+              </Button>
+
+              {showOrderOptions && (
+                <div
+                  id="market-order-options"
+                  className="rounded-xl border border-primary/20 bg-primary/5 p-5"
+                >
+                  <h4 className="text-center font-bold">
+                    How would you like to confirm your order?
+                  </h4>
+
+                  <p className="mt-2 text-center text-sm text-muted-foreground">
+                    Choose WhatsApp or call KFM directly. You do not need
+                    WhatsApp to place your order.
+                  </p>
+
+                  <div className="mt-5 grid gap-3">
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={sendWhatsAppOrder}
+                    >
+                      Send Order via WhatsApp
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => callKFM(KFM_PHONE_1)}
+                    >
+                      Call KFM: {KFM_PHONE_1}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => callKFM(KFM_PHONE_2)}
+                    >
+                      Call KFM: {KFM_PHONE_2}
+                    </Button>
+                  </div>
+
+                  <p className="mt-4 text-center text-xs text-muted-foreground">
+                    KFM will confirm your order and delivery details with you.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )
