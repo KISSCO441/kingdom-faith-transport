@@ -65,7 +65,7 @@ const products: Product[] = [
     unit: "select your amount",
     price: 10,
     category: "Fruits",
-    image: "/images/market-fruits.png",
+    image: "/images/fruits.jpg",
     amountOptions: createAmountOptions(10),
   },
   {
