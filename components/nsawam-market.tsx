@@ -261,7 +261,13 @@ export function NsawamMarket() {
   }
 
   return (
-    <section id="market" className="border-t border-border">
+    
+    <section id="nsawam-market" className="border-t border-border">
+      <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+            Nsawam Market
+          </p>
       <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">
