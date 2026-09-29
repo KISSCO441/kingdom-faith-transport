@@ -13,26 +13,11 @@ type OkadaZone = {
 }
 
 const okadaZones: OkadaZone[] = [
-  {
-    label: "Nsawam Central",
-    fare: 15,
-  },
-  {
-    label: "Adoagyiri / Close Areas",
-    fare: 25,
-  },
-  {
-    label: "Ntoaso / Nsumia Area",
-    fare: 40,
-  },
-  {
-    label: "Sakyikrom / Ahodwo Area",
-    fare: 60,
-  },
-  {
-    label: "Fotobi / Outer Local Area",
-    fare: 80,
-  },
+  { label: "Nsawam Central", fare: 15 },
+  { label: "Adoagyiri / Close Areas", fare: 25 },
+  { label: "Ntoaso / Nsumia Area", fare: 40 },
+  { label: "Sakyikrom / Ahodwo Area", fare: 60 },
+  { label: "Fotobi / Outer Local Area", fare: 80 },
 ]
 
 const townAreas: Record<string, string[]> = {
@@ -50,7 +35,6 @@ const townAreas: Record<string, string[]> = {
     "Old Town",
     "Newtown",
   ],
-
   Suhum: [
     "Suhum Roundabout",
     "Zongo",
@@ -59,7 +43,6 @@ const townAreas: Record<string, string[]> = {
     "Densuso",
     "Anum Apapam",
   ],
-
   Koforidua: [
     "Central Market",
     "Adweso",
@@ -71,7 +54,6 @@ const townAreas: Record<string, string[]> = {
     "Galloway",
     "Oyoko",
   ],
-
   Nkawkaw: [
     "Nkawkaw Station",
     "Zongo",
@@ -81,7 +63,6 @@ const townAreas: Record<string, string[]> = {
     "Praso",
     "Nsuta",
   ],
-
   Akosombo: [
     "Akosombo Township",
     "Atimpoku",
@@ -90,7 +71,6 @@ const townAreas: Record<string, string[]> = {
     "New Akrade",
     "Dam Site",
   ],
-
   Begoro: [
     "Begoro Central",
     "Zongo",
@@ -98,7 +78,6 @@ const townAreas: Record<string, string[]> = {
     "Nkubem",
     "Ehiamankyene",
   ],
-
   Kibi: [
     "Kibi Central",
     "Apedwa",
@@ -106,7 +85,6 @@ const townAreas: Record<string, string[]> = {
     "Kwabeng Road",
     "Bunso",
   ],
-
   Mpraeso: [
     "Mpraeso Central",
     "Nkwatia",
@@ -114,7 +92,6 @@ const townAreas: Record<string, string[]> = {
     "Bepong",
     "Kwahu Pepease",
   ],
-
   "Akim Oda": [
     "Oda Central Market",
     "Zongo",
@@ -122,7 +99,6 @@ const townAreas: Record<string, string[]> = {
     "Swedru Junction",
     "Ofoase",
   ],
-
   Kade: [
     "Kade Township",
     "Akwatia Road",
@@ -130,7 +106,6 @@ const townAreas: Record<string, string[]> = {
     "Takrowase",
     "Otwereso",
   ],
-
   Somanya: [
     "Somanya Central",
     "Kpong Road",
@@ -138,7 +113,6 @@ const townAreas: Record<string, string[]> = {
     "Huhunya",
     "Bueryonye",
   ],
-
   Akropong: [
     "Akropong Central",
     "Akuapem Ridge",
@@ -146,7 +120,6 @@ const townAreas: Record<string, string[]> = {
     "Abiriw",
     "Dawu",
   ],
-
   Accra: [
     "Accra Central",
     "Circle",
@@ -174,7 +147,8 @@ export function BookingForm() {
   const [pickupArea, setPickupArea] = useState("Nsawam Station")
 
   const [destinationTown, setDestinationTown] = useState("Koforidua")
-  const [destinationArea, setDestinationArea] = useState("Central Market")
+  const [destinationArea, setDestinationArea] =
+    useState("Central Market")
 
   const [okadaZone, setOkadaZone] = useState("")
 
@@ -194,7 +168,7 @@ export function BookingForm() {
       setPickupTown("Nsawam")
       setPickupArea("Nsawam Station")
       setDestinationTown("Nsawam")
-      setDestinationArea("Nsawam Station")
+      setDestinationArea("")
       setOkadaZone("")
     } else {
       setPickupTown("Nsawam")
@@ -215,15 +189,9 @@ export function BookingForm() {
     setDestinationArea(townAreas[value]?.[0] || "")
   }
 
-  function handleOkadaZoneChange(value: string) {
+  function handleOkadaDestinationChange(value: string) {
     setOkadaZone(value)
-
-    const zone = okadaZones.find((item) => item.label === value)
-
-    if (zone) {
-      setDestinationTown("Nsawam")
-      setDestinationArea(zone.label)
-    }
+    setDestinationArea(value)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -231,7 +199,7 @@ export function BookingForm() {
     setError("")
 
     if (isOkada && !okadaZone) {
-      setError("Please select an Okada destination zone.")
+      setError("Please select an Okada destination area.")
       return
     }
 
@@ -247,7 +215,9 @@ export function BookingForm() {
       pickup_town: String(formData.get("pickup") || ""),
       pickup_area: String(formData.get("pickupArea") || ""),
       destination_town: String(formData.get("destination") || ""),
-      destination_area: String(formData.get("destinationArea") || ""),
+      destination_area: String(
+        formData.get("destinationArea") || "",
+      ),
       when_option: String(formData.get("when") || ""),
       notes: String(formData.get("notes") || ""),
       fare_estimate: isOkada ? displayedOkadaFare : null,
@@ -297,8 +267,8 @@ export function BookingForm() {
           </h2>
 
           <p className="mt-4 text-pretty text-muted-foreground">
-            Choose Okada for approved local Nsawam-area trips or Car for
-            local, regional and longer-distance journeys.
+            Choose Okada for approved local Nsawam-area trips or Car
+            for local, regional and longer-distance journeys.
           </p>
 
           <ul className="mt-8 space-y-4">
@@ -338,8 +308,8 @@ export function BookingForm() {
               )}
 
               <p className="mt-4 max-w-sm text-sm text-muted-foreground">
-                Keep your booking number. KFM can use it to identify and
-                manage your ride request.
+                Keep your booking number. KFM can use it to identify
+                and manage your ride request.
               </p>
 
               <Button
@@ -356,7 +326,6 @@ export function BookingForm() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* VEHICLE */}
               <div>
                 <span className="mb-2 block text-sm font-medium">
                   Vehicle type
@@ -365,11 +334,7 @@ export function BookingForm() {
                 <div className="grid grid-cols-2 gap-3">
                   {(
                     [
-                      {
-                        key: "car",
-                        label: "Car",
-                        icon: Car,
-                      },
+                      { key: "car", label: "Car", icon: Car },
                       {
                         key: "motorbike",
                         label: "Okada",
@@ -396,53 +361,12 @@ export function BookingForm() {
                 </div>
               </div>
 
-              {/* OKADA DESTINATION ZONE */}
-              {isOkada && (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="okadaZone"
-                    className="text-sm font-medium"
-                  >
-                    Okada destination zone
-                  </label>
-
-                  <select
-                    id="okadaZone"
-                    name="okadaZone"
-                    required
-                    className={fieldClass}
-                    value={okadaZone}
-                    onChange={(e) =>
-                      handleOkadaZoneChange(e.target.value)
-                    }
-                  >
-                    <option value="">Select your destination zone</option>
-
-                    {okadaZones.map((zone) => (
-                      <option key={zone.label} value={zone.label}>
-                        {zone.label} — GH₵{zone.fare}
-                      </option>
-                    ))}
-                  </select>
-
-                  {displayedOkadaFare !== null && (
-                    <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        Estimated fare
-                      </p>
-
-                      <p className="mt-1 text-2xl font-bold">
-                        GH₵{displayedOkadaFare}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* PICKUP */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label htmlFor="pickup" className="text-sm font-medium">
+                  <label
+                    htmlFor="pickup"
+                    className="text-sm font-medium"
+                  >
                     Pickup town
                   </label>
 
@@ -456,11 +380,13 @@ export function BookingForm() {
                       handlePickupTownChange(e.target.value)
                     }
                   >
-                    {(isOkada ? ["Nsawam"] : carTowns).map((town) => (
-                      <option key={town} value={town}>
-                        {town}
-                      </option>
-                    ))}
+                    {(isOkada ? ["Nsawam"] : carTowns).map(
+                      (town) => (
+                        <option key={town} value={town}>
+                          {town}
+                        </option>
+                      ),
+                    )}
                   </select>
                 </div>
 
@@ -478,7 +404,9 @@ export function BookingForm() {
                     required
                     className={fieldClass}
                     value={pickupArea}
-                    onChange={(e) => setPickupArea(e.target.value)}
+                    onChange={(e) =>
+                      setPickupArea(e.target.value)
+                    }
                   >
                     {(townAreas[pickupTown] || []).map((area) => (
                       <option key={area} value={area}>
@@ -489,7 +417,6 @@ export function BookingForm() {
                 </div>
               </div>
 
-              {/* DESTINATION */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label
@@ -531,15 +458,31 @@ export function BookingForm() {
                   </label>
 
                   {isOkada ? (
-                    <input
+                    <select
                       id="destinationArea"
                       name="destinationArea"
                       required
-                      readOnly
                       className={fieldClass}
                       value={okadaZone}
-                      placeholder="Select an Okada zone above"
-                    />
+                      onChange={(e) =>
+                        handleOkadaDestinationChange(
+                          e.target.value,
+                        )
+                      }
+                    >
+                      <option value="">
+                        Select destination area
+                      </option>
+
+                      {okadaZones.map((zone) => (
+                        <option
+                          key={zone.label}
+                          value={zone.label}
+                        >
+                          {zone.label} — GH₵{zone.fare}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
                     <select
                       id="destinationArea"
@@ -551,20 +494,36 @@ export function BookingForm() {
                         setDestinationArea(e.target.value)
                       }
                     >
-                      {(townAreas[destinationTown] || []).map((area) => (
-                        <option key={area} value={area}>
-                          {area}
-                        </option>
-                      ))}
+                      {(townAreas[destinationTown] || []).map(
+                        (area) => (
+                          <option key={area} value={area}>
+                            {area}
+                          </option>
+                        ),
+                      )}
                     </select>
                   )}
                 </div>
               </div>
 
-              {/* CUSTOMER */}
+              {isOkada && displayedOkadaFare !== null && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Estimated fare
+                  </p>
+
+                  <p className="mt-1 text-2xl font-bold">
+                    GH₵{displayedOkadaFare}
+                  </p>
+                </div>
+              )}
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium">
+                  <label
+                    htmlFor="name"
+                    className="text-sm font-medium"
+                  >
                     Full name
                   </label>
 
@@ -578,7 +537,10 @@ export function BookingForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="phone" className="text-sm font-medium">
+                  <label
+                    htmlFor="phone"
+                    className="text-sm font-medium"
+                  >
                     Phone
                   </label>
 
@@ -593,9 +555,11 @@ export function BookingForm() {
                 </div>
               </div>
 
-              {/* WHEN */}
               <div className="space-y-2">
-                <label htmlFor="when" className="text-sm font-medium">
+                <label
+                  htmlFor="when"
+                  className="text-sm font-medium"
+                >
                   When
                 </label>
 
@@ -608,13 +572,17 @@ export function BookingForm() {
                   <option value="now">Pick me up now</option>
                   <option value="15">In 15 minutes</option>
                   <option value="30">In 30 minutes</option>
-                  <option value="schedule">Schedule for later</option>
+                  <option value="schedule">
+                    Schedule for later
+                  </option>
                 </select>
               </div>
 
-              {/* NOTES */}
               <div className="space-y-2">
-                <label htmlFor="notes" className="text-sm font-medium">
+                <label
+                  htmlFor="notes"
+                  className="text-sm font-medium"
+                >
                   Notes for driver{" "}
                   <span className="text-muted-foreground">
                     (optional)
