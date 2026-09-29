@@ -426,27 +426,41 @@ export function BookingForm() {
                     Destination town
                   </label>
 
-                  <select
-                    id="destination"
-                    name="destination"
-                    required
-                    disabled={isOkada}
-                    className={fieldClass}
-                    value={destinationTown}
-                    onChange={(e) =>
-                      handleDestinationTownChange(e.target.value)
-                    }
-                  >
-                    {isOkada ? (
-                      <option value="Nsawam">Nsawam</option>
-                    ) : (
-                      carTowns.map((town) => (
-                        <option key={town} value={town}>
-                          {town}
-                        </option>
-                      ))
-                    )}
-                  </select>
+  <select
+  id="destination"
+  required
+  disabled={isOkada}
+  className={fieldClass}
+  value={destinationTown}
+  onChange={(e) =>
+    handleDestinationTownChange(e.target.value)
+  }
+>
+  {isOkada ? (
+    <option value="Nsawam">Nsawam</option>
+  ) : (
+    carTowns.map((town) => (
+      <option key={town} value={town}>
+        {town}
+      </option>
+  ))
+    )}
+</select>
+ {isOkada && (
+  <input
+    type="hidden"
+    name="destination"
+    value="Nsawam"
+  />
+)}                 
+
+{isOkada && (
+  <input
+    type="hidden"
+    name="destination"
+    value="Nsawam"
+  />
+)}
                 </div>
 
                 <div className="space-y-2">
