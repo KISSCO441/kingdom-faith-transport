@@ -17,15 +17,19 @@ export default function DriverRegistrationPage() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    async function checkVerifiedUser() {
+    let mounted = true
+
+    async function checkSession() {
       if (!supabase) {
-        setCheckingSession(false)
+        if (mounted) setCheckingSession(false)
         return
       }
 
       const {
         data: { session },
       } = await supabase.auth.getSession()
+
+      if (!mounted) return
 
       const user = session?.user
 
@@ -38,7 +42,7 @@ export default function DriverRegistrationPage() {
       setCheckingSession(false)
     }
 
-    checkVerifiedUser()
+    checkSession()
 
     if (!supabase) {
       return
@@ -57,6 +61,7 @@ export default function DriverRegistrationPage() {
     })
 
     return () => {
+      mounted = false
       subscription.unsubscribe()
     }
   }, [])
@@ -66,6 +71,11 @@ export default function DriverRegistrationPage() {
 
     setError("")
     setMessage("")
+
+    if (!email || !password || !confirmPassword) {
+      setError("Please complete all account fields.")
+      return
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.")
@@ -77,17 +87,16 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    setLoading(true)
-
     if (!supabase) {
-      setLoading(false)
       setError(
         "KFM registration is temporarily unavailable. Please try again later.",
       )
       return
     }
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    setLoading(true)
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -103,6 +112,13 @@ export default function DriverRegistrationPage() {
       return
     }
 
+    if (data.session?.user?.email_confirmed_at) {
+      setVerified(true)
+      setStarted(true)
+      setMessage("Your email has been verified.")
+      return
+    }
+
     setMessage(
       "Your account has been created. Please check your email and click the verification link before continuing your KFM driver registration.",
     )
@@ -110,12 +126,140 @@ export default function DriverRegistrationPage() {
 
   if (checkingSession) {
     return (
-      <main className="min-h-screen bg-background">
-        <section className="mx-auto flex min-h-screen max-w-4xl items-center justify-center px-4 py-16">
-          <div className="text-center">
-            <p className="text-muted-foreground">
-              Checking your KFM registration status...
+      <main className="min-h-screen bg-background text-foreground">
+        <section className="mx-auto max-w-3xl px-6 py-20">
+          <h1 className="text-3xl font-bold">KFM Driver Registration</h1>
+          <p className="mt-4 text-muted-foreground">
+            Checking your registration status...
+          </p>
+        </section>
+      </main>
+    )
+  }
+
+  if (!started) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <section className="mx-auto max-w-4xl px-6 py-16">
+          <h1 className="text-4xl font-bold">
+            Become a KFM Driver Partner
+          </h1>
+
+          <p className="mt-4 text-lg text-muted-foreground">
+            Earn with KFM Transport. Register your vehicle, submit your
+            documents, and join our growing driver network.
+          </p>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="rounded-xl border p-6">
+              <h2 className="font-semibold">Flexible Driving</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Choose when you want to be available.
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-6">
+              <h2 className="font-semibold">KFM Support</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Get connected with customers through KFM Transport.
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-6">
+              <h2 className="font-semibold">Driver Verification</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Your information and documents are reviewed by KFM.
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-6">
+              <h2 className="font-semibold">Ride Opportunities</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Approved drivers can receive suitable ride requests.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setStarted(true)}
+            className="mt-10 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground"
+          >
+            Start Driver Registration
+          </button>
+        </section>
+      </main>
+    )
+  }
+
+  if (verified) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <section className="mx-auto max-w-4xl px-6 py-16">
+          <h1 className="text-4xl font-bold">KFM Driver Registration</h1>
+
+          <div className="mt-8 rounded-xl border p-6">
+            <h2 className="text-2xl font-bold text-green-600">
+              ✓ Email Verified
+            </h2>
+
+            <p className="mt-3">
+              Your KFM driver account has been verified successfully.
             </p>
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              Account: {email}
+            </p>
+          </div>
+
+          <div className="mt-8 rounded-xl border p-6">
+            <h2 className="text-2xl font-bold">
+              Step 2 — Personal Information
+            </h2>
+
+            <p className="mt-3 text-muted-foreground">
+              Your email account is verified. Your personal information form
+              will be completed next.
+            </p>
+
+            <div className="mt-6 rounded-lg bg-muted p-5">
+              <p className="font-medium">
+                ✓ Step 1 — Account completed
+              </p>
+              <p className="mt-2 font-medium">
+                → Step 2 — Personal Information
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <h2 className="text-xl font-bold">Registration Journey</h2>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border p-4">
+                ✓ Step 1 — Account
+              </div>
+
+              <div className="rounded-lg border-2 border-primary p-4">
+                → Step 2 — Personal Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                Step 3 — Vehicle Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                Step 4 — Driver Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                Step 5 — Payment Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                Step 6 — Documents
+              </div>
+            </div>
           </div>
         </section>
       </main>
@@ -123,231 +267,80 @@ export default function DriverRegistrationPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
-      <section className="mx-auto flex min-h-screen max-w-4xl items-center justify-center px-4 py-16">
-        <div className="w-full max-w-2xl rounded-2xl border border-border bg-card p-8 shadow-sm md:p-12">
-          {!started ? (
-            <div className="text-center">
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground">
-                🚗
-              </div>
+    <main className="min-h-screen bg-background text-foreground">
+      <section className="mx-auto max-w-3xl px-6 py-16">
+        <h1 className="text-4xl font-bold">KFM Driver Registration</h1>
 
-              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                Become a KFM Driver Partner
-              </h1>
+        <div className="mt-8 rounded-xl border p-6">
+          <h2 className="text-2xl font-bold">
+            Step 1 — Create your KFM driver account
+          </h2>
 
-              <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-                Earn with KFM Transport. Register your vehicle, submit your
-                documents, and join our growing driver network.
-              </p>
-
-              <div className="mt-8 grid gap-4 text-left sm:grid-cols-2">
-                <div className="rounded-xl border border-border p-4">
-                  <h2 className="font-semibold">Flexible Driving</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Choose when you want to be available.
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-border p-4">
-                  <h2 className="font-semibold">KFM Support</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Get connected with customers through KFM Transport.
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-border p-4">
-                  <h2 className="font-semibold">Driver Verification</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Your information and documents are reviewed by KFM.
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-border p-4">
-                  <h2 className="font-semibold">Ride Opportunities</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Approved drivers can receive suitable ride requests.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setStarted(true)}
-                className="mt-8 rounded-lg bg-primary px-8 py-3 font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                Start Driver Registration
-              </button>
-            </div>
-          ) : verified ? (
+          <form onSubmit={handleCreateAccount} className="mt-6 space-y-5">
             <div>
-              <div className="rounded-xl border border-border bg-muted p-5">
-                <p className="font-semibold">✓ Email Verified</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Your KFM driver account has been verified successfully.
-                </p>
-                <p className="mt-2 text-sm font-medium">{email}</p>
-              </div>
+              <label className="block text-sm font-medium">
+                Email Address
+              </label>
 
-              <h1 className="mt-8 text-2xl font-bold">
-                Step 2 — Personal Information
-              </h1>
-
-              <p className="mt-2 text-muted-foreground">
-                Your account is verified. Continue with your personal
-                information to complete your KFM driver registration.
-              </p>
-
-              <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
-                <p className="font-semibold">Personal Information</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  The personal information form will be completed in the next
-                  registration step.
-                </p>
-              </div>
-
-              <div className="mt-8 border-t border-border pt-6">
-                <h2 className="font-semibold">Your registration journey</h2>
-
-                <div className="mt-4 space-y-3 text-sm">
-                  <div className="rounded-lg border border-border bg-muted p-3">
-                    <strong>✓ Step 1 — Account</strong>
-                    <p className="text-muted-foreground">
-                      Account created and email verified.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-                    <strong>Step 2 — Personal Information</strong>
-                    <p className="text-muted-foreground">
-                      Name, phone, Ghana Card and date of birth.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-border p-3 opacity-60">
-                    <strong>Step 3 — Vehicle Information</strong>
-                    <p className="text-muted-foreground">
-                      Register your Okada or car.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-border p-3 opacity-60">
-                    <strong>Step 4 — Driver Information</strong>
-                    <p className="text-muted-foreground">
-                      Licence, operating area and emergency contact.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-border p-3 opacity-60">
-                    <strong>Step 5 — Payment Information</strong>
-                    <p className="text-muted-foreground">
-                      MoMo number and network.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-border p-3 opacity-60">
-                    <strong>Step 6 — Documents</strong>
-                    <p className="text-muted-foreground">
-                      Upload the documents required by KFM.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="mt-2 w-full rounded-lg border px-4 py-3"
+                required
+              />
             </div>
-          ) : (
+
             <div>
-              <h1 className="text-2xl font-bold">KFM Driver Registration</h1>
+              <label className="block text-sm font-medium">Password</label>
 
-              <p className="mt-2 text-muted-foreground">
-                Step 1 — Create your KFM driver account.
-              </p>
-
-              <form onSubmit={handleCreateAccount} className="mt-8 space-y-5">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-2 block text-sm font-medium"
-                  >
-                    Email Address
-                  </label>
-
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-2 block text-sm font-medium"
-                  >
-                    Password
-                  </label>
-
-                  <input
-                    id="password"
-                    type="password"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Create a password"
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="confirm-password"
-                    className="mb-2 block text-sm font-medium"
-                  >
-                    Confirm Password
-                  </label>
-
-                  <input
-                    id="confirm-password"
-                    type="password"
-                    required
-                    minLength={6}
-                    value={confirmPassword}
-                    onChange={(event) =>
-                      setConfirmPassword(event.target.value)
-                    }
-                    placeholder="Enter your password again"
-                    className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-
-                {error && (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-                    {error}
-                  </div>
-                )}
-
-                {message && (
-                  <div className="rounded-lg border border-border bg-muted p-4 text-sm">
-                    {message}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading
-                    ? "Creating Account..."
-                    : "Create KFM Driver Account"}
-                </button>
-              </form>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="mt-2 w-full rounded-lg border px-4 py-3"
+                required
+              />
             </div>
-          )}
+
+            <div>
+              <label className="block text-sm font-medium">
+                Confirm Password
+              </label>
+
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(event) =>
+                  setConfirmPassword(event.target.value)
+                }
+                className="mt-2 w-full rounded-lg border px-4 py-3"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            {message && (
+              <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-700">
+                {message}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {loading
+                ? "Creating Account..."
+                : "Create KFM Driver Account"}
+            </button>
+          </form>
         </div>
       </section>
     </main>
