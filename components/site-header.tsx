@@ -42,11 +42,24 @@ export function SiteHeader() {
               {link.label}
             </a>
           ))}
+
+          <a
+            href="/driver-registration"
+            className="text-sm font-semibold text-primary transition-colors hover:text-foreground"
+          >
+            Drive with KFM
+          </a>
         </nav>
 
-        <Button asChild size="sm">
-          <a href="#book">Order a Ride</a>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild size="sm" variant="outline">
+            <a href="/driver-registration">Drive with KFM</a>
+          </Button>
+
+          <Button asChild size="sm">
+            <a href="#book">Order a Ride</a>
+          </Button>
+        </div>
       </div>
     </header>
   )
