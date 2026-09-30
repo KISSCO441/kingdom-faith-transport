@@ -227,7 +227,7 @@ export default function DriverRegistrationPage() {
   nationalid_number: nationalId,
   date_of_birth: dateOfBirth,
   status: "Pending Verification",
-  availability: "Offline",
+  availability: "OFFLINE",
 }
 
 const { data: existingDriver, error: lookupError } = await supabase
