@@ -269,14 +269,3 @@ export default function DriverRegistrationPage() {
     </main>
   )
 }
-```
-
-### Commit
-
-Use this commit message:
-
-**`Fix driver registration Supabase null check`**
-
-Commit it directly to **`main`**.
-
-Then wait for Vercel to build automatically. **Don't manually redeploy yet.** Tell me whether the new Vercel deployment says **Ready** or **Error**.
