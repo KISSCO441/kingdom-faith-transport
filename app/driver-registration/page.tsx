@@ -1,6 +1,4 @@
-```tsx
 "use client"
-
 import { FormEvent, useState } from "react"
 import { supabase } from "@/lib/supabase"
 
