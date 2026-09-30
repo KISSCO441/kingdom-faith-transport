@@ -1,9 +1,55 @@
 "use client"
 
-import { useState } from "react"
+import { FormEvent, useState } from "react"
+import { supabase } from "@/lib/supabase"
 
 export default function DriverRegistrationPage() {
   const [started, setStarted] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState("")
+  const [error, setError] = useState("")
+
+  async function handleCreateAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    setError("")
+    setMessage("")
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.")
+      return
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.")
+      return
+    }
+
+    setLoading(true)
+
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo:
+          "https://kingdom-faith-transport.vercel.app/driver-registration",
+      },
+    })
+
+    setLoading(false)
+
+    if (signUpError) {
+      setError(signUpError.message)
+      return
+    }
+
+    setMessage(
+      "Your account has been created. Please check your email and click the verification link before continuing your KFM driver registration.",
+    )
+  }
 
   return (
     <main className="min-h-screen bg-background">
@@ -69,55 +115,142 @@ export default function DriverRegistrationPage() {
             </div>
           ) : (
             <div>
-              <h1 className="text-2xl font-bold">
-                KFM Driver Registration
-              </h1>
+              <h1 className="text-2xl font-bold">KFM Driver Registration</h1>
 
               <p className="mt-2 text-muted-foreground">
-                Your registration will be completed in several steps.
+                Step 1 — Create your KFM driver account.
               </p>
 
-              <div className="mt-8 space-y-4">
-                <div className="rounded-xl border border-border p-5">
-                  <h2 className="font-semibold">Step 1 — Account</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Create your KFM driver account.
-                  </p>
+              <form onSubmit={handleCreateAccount} className="mt-8 space-y-5">
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="mb-2 block text-sm font-medium"
+                  >
+                    Email Address
+                  </label>
+
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
 
-                <div className="rounded-xl border border-border p-5 opacity-60">
-                  <h2 className="font-semibold">Step 2 — Personal Information</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Your name, phone, Ghana Card and date of birth.
-                  </p>
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="mb-2 block text-sm font-medium"
+                  >
+                    Password
+                  </label>
+
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Create a password"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
 
-                <div className="rounded-xl border border-border p-5 opacity-60">
-                  <h2 className="font-semibold">Step 3 — Vehicle Information</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Register your Okada or car.
-                  </p>
+                <div>
+                  <label
+                    htmlFor="confirm-password"
+                    className="mb-2 block text-sm font-medium"
+                  >
+                    Confirm Password
+                  </label>
+
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(event) =>
+                      setConfirmPassword(event.target.value)
+                    }
+                    placeholder="Enter your password again"
+                    className="w-full rounded-lg border border-border bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
 
-                <div className="rounded-xl border border-border p-5 opacity-60">
-                  <h2 className="font-semibold">Step 4 — Driver Information</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Licence, operating area and emergency contact.
-                  </p>
-                </div>
+                {error && (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                    {error}
+                  </div>
+                )}
 
-                <div className="rounded-xl border border-border p-5 opacity-60">
-                  <h2 className="font-semibold">Step 5 — Payment Information</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Your MoMo number and network.
-                  </p>
-                </div>
+                {message && (
+                  <div className="rounded-lg border border-border bg-muted p-4 text-sm">
+                    {message}
+                  </div>
+                )}
 
-                <div className="rounded-xl border border-border p-5 opacity-60">
-                  <h2 className="font-semibold">Step 6 — Documents</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Upload the documents required by KFM.
-                  </p>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading
+                    ? "Creating Account..."
+                    : "Create KFM Driver Account"}
+                </button>
+              </form>
+
+              <div className="mt-8 border-t border-border pt-6">
+                <h2 className="font-semibold">Your registration journey</h2>
+
+                <div className="mt-4 space-y-3 text-sm">
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                    <strong>Step 1 — Account</strong>
+                    <p className="text-muted-foreground">
+                      Create and verify your KFM account.
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-border p-3 opacity-60">
+                    <strong>Step 2 — Personal Information</strong>
+                    <p className="text-muted-foreground">
+                      Name, phone, Ghana Card and date of birth.
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-border p-3 opacity-60">
+                    <strong>Step 3 — Vehicle Information</strong>
+                    <p className="text-muted-foreground">
+                      Register your Okada or car.
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-border p-3 opacity-60">
+                    <strong>Step 4 — Driver Information</strong>
+                    <p className="text-muted-foreground">
+                      Licence, operating area and emergency contact.
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-border p-3 opacity-60">
+                    <strong>Step 5 — Payment Information</strong>
+                    <p className="text-muted-foreground">
+                      MoMo number and network.
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-border p-3 opacity-60">
+                    <strong>Step 6 — Documents</strong>
+                    <p className="text-muted-foreground">
+                      Upload the documents required by KFM.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
