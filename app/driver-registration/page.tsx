@@ -7,6 +7,7 @@ export default function DriverRegistrationPage() {
   const [started, setStarted] = useState(false)
   const [verified, setVerified] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
+  const [signInMode, setSignInMode] = useState(false)
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -124,6 +125,53 @@ export default function DriverRegistrationPage() {
     )
   }
 
+  async function handleSignIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    setError("")
+    setMessage("")
+
+    if (!email || !password) {
+      setError("Please enter your email and password.")
+      return
+    }
+
+    if (!supabase) {
+      setError(
+        "KFM registration is temporarily unavailable. Please try again later.",
+      )
+      return
+    }
+
+    setLoading(true)
+
+    const { data, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+    setLoading(false)
+
+    if (signInError) {
+      setError(signInError.message)
+      return
+    }
+
+    const user = data.user
+
+    if (!user?.email_confirmed_at) {
+      setError(
+        "Your email has not been verified yet. Please check your email and confirm your account.",
+      )
+      return
+    }
+
+    setVerified(true)
+    setStarted(true)
+    setMessage("Welcome back. Your KFM driver account is verified.")
+  }
+
   if (checkingSession) {
     return (
       <main className="min-h-screen bg-background text-foreground">
@@ -180,13 +228,31 @@ export default function DriverRegistrationPage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setStarted(true)}
-            className="mt-10 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground"
-          >
-            Start Driver Registration
-          </button>
+          <div className="mt-10 flex flex-wrap gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setStarted(true)
+                setSignInMode(false)
+              }}
+              className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground"
+            >
+              Start Driver Registration
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setStarted(true)
+                setSignInMode(true)
+                setError("")
+                setMessage("")
+              }}
+              className="rounded-lg border px-6 py-3 font-semibold"
+            >
+              Already have an account? Sign in
+            </button>
+          </div>
         </section>
       </main>
     )
@@ -273,10 +339,17 @@ export default function DriverRegistrationPage() {
 
         <div className="mt-8 rounded-xl border p-6">
           <h2 className="text-2xl font-bold">
-            Step 1 — Create your KFM driver account
+            {signInMode
+              ? "Sign in to your KFM driver account"
+              : "Step 1 — Create your KFM driver account"}
           </h2>
 
-          <form onSubmit={handleCreateAccount} className="mt-6 space-y-5">
+          <form
+            onSubmit={
+              signInMode ? handleSignIn : handleCreateAccount
+            }
+            className="mt-6 space-y-5"
+          >
             <div>
               <label className="block text-sm font-medium">
                 Email Address
@@ -292,7 +365,9 @@ export default function DriverRegistrationPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium">Password</label>
+              <label className="block text-sm font-medium">
+                Password
+              </label>
 
               <input
                 type="password"
@@ -303,21 +378,23 @@ export default function DriverRegistrationPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium">
-                Confirm Password
-              </label>
+            {!signInMode && (
+              <div>
+                <label className="block text-sm font-medium">
+                  Confirm Password
+                </label>
 
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(event) =>
-                  setConfirmPassword(event.target.value)
-                }
-                className="mt-2 w-full rounded-lg border px-4 py-3"
-                required
-              />
-            </div>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) =>
+                    setConfirmPassword(event.target.value)
+                  }
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
+            )}
 
             {error && (
               <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
@@ -337,10 +414,29 @@ export default function DriverRegistrationPage() {
               className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
             >
               {loading
-                ? "Creating Account..."
-                : "Create KFM Driver Account"}
+                ? "Please wait..."
+                : signInMode
+                  ? "Sign In"
+                  : "Create KFM Driver Account"}
             </button>
           </form>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSignInMode(!signInMode)
+              setError("")
+              setMessage("")
+              setPassword("")
+              setConfirmPassword("")
+              setStarted(true)
+            }}
+            className="mt-5 text-sm font-medium underline"
+          >
+            {signInMode
+              ? "Need to create a new account?"
+              : "Already have a verified account? Sign in"}
+          </button>
         </div>
       </section>
     </main>
