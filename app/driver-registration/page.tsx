@@ -226,7 +226,7 @@ export default function DriverRegistrationPage() {
           email: user.email,
           full_name: fullName,
           phone,
-          "National ID Number": nationalId,
+          nationalid_number: nationalId,
           date_of_birth: dateOfBirth,
           status: "Pending Verification",
           availability: "Offline",
