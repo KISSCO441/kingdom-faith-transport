@@ -226,7 +226,7 @@ export default function DriverRegistrationPage() {
   phone,
   nationalid_number: nationalId,
   date_of_birth: dateOfBirth,
-  status: "Pending Verification",
+  status: "Pending",
   availability: "OFFLINE",
 }
 
