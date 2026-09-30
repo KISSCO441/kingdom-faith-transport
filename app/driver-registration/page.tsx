@@ -1,4 +1,3 @@
-```tsx
 "use client"
 
 import { FormEvent, useEffect, useState } from "react"
@@ -715,4 +714,3 @@ export default function DriverRegistrationPage() {
     </main>
   )
 }
-```
