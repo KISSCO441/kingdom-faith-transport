@@ -222,6 +222,7 @@ export default function DriverRegistrationPage() {
   user_id: user.id,
   email: user.email,
   full_name: fullName,
+  name: fullName,
   phone,
   nationalid_number: nationalId,
   date_of_birth: dateOfBirth,
