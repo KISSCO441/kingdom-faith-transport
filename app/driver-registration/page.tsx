@@ -8,10 +8,16 @@ export default function DriverRegistrationPage() {
   const [verified, setVerified] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
   const [signInMode, setSignInMode] = useState(false)
+  const [step, setStep] = useState(1)
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+
+  const [fullName, setFullName] = useState("")
+  const [phone, setPhone] = useState("")
+  const [nationalId, setNationalId] = useState("")
+  const [dateOfBirth, setDateOfBirth] = useState("")
 
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
@@ -116,6 +122,7 @@ export default function DriverRegistrationPage() {
     if (data.session?.user?.email_confirmed_at) {
       setVerified(true)
       setStarted(true)
+      setStep(2)
       setMessage("Your email has been verified.")
       return
     }
@@ -169,7 +176,69 @@ export default function DriverRegistrationPage() {
 
     setVerified(true)
     setStarted(true)
+    setStep(2)
     setMessage("Welcome back. Your KFM driver account is verified.")
+  }
+
+  async function handlePersonalInformation(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
+    setError("")
+    setMessage("")
+
+    if (!fullName || !phone || !nationalId || !dateOfBirth) {
+      setError("Please complete all personal information fields.")
+      return
+    }
+
+    if (!supabase) {
+      setError(
+        "KFM registration is temporarily unavailable. Please try again later.",
+      )
+      return
+    }
+
+    setLoading(true)
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setLoading(false)
+      setError("Your session has expired. Please sign in again.")
+      return
+    }
+
+    const { error: saveError } = await supabase
+      .from("drivers")
+      .upsert(
+        {
+          user_id: user.id,
+          email: user.email,
+          full_name: fullName,
+          phone,
+          nationalid_number: nationalId,
+          date_of_birth: dateOfBirth,
+          status: "Pending Verification",
+          availability: "Offline",
+        },
+        {
+          onConflict: "user_id",
+        },
+      )
+
+    setLoading(false)
+
+    if (saveError) {
+      setError(saveError.message)
+      return
+    }
+
+    setMessage("Personal information saved successfully.")
+    setStep(3)
   }
 
   if (checkingSession) {
@@ -258,48 +327,14 @@ export default function DriverRegistrationPage() {
     )
   }
 
-  if (verified) {
+  if (verified && step >= 2) {
     return (
       <main className="min-h-screen bg-background text-foreground">
         <section className="mx-auto max-w-4xl px-6 py-16">
           <h1 className="text-4xl font-bold">KFM Driver Registration</h1>
 
-          <div className="mt-8 rounded-xl border p-6">
-            <h2 className="text-2xl font-bold text-green-600">
-              ✓ Email Verified
-            </h2>
-
-            <p className="mt-3">
-              Your KFM driver account has been verified successfully.
-            </p>
-
-            <p className="mt-2 text-sm text-muted-foreground">
-              Account: {email}
-            </p>
-          </div>
-
-          <div className="mt-8 rounded-xl border p-6">
-            <h2 className="text-2xl font-bold">
-              Step 2 — Personal Information
-            </h2>
-
-            <p className="mt-3 text-muted-foreground">
-              Your email account is verified. Your personal information form
-              will be completed next.
-            </p>
-
-            <div className="mt-6 rounded-lg bg-muted p-5">
-              <p className="font-medium">
-                ✓ Step 1 — Account completed
-              </p>
-              <p className="mt-2 font-medium">
-                → Step 2 — Personal Information
-              </p>
-            </div>
-          </div>
-
           <div className="mt-8">
-            <h2 className="text-xl font-bold">Registration Journey</h2>
+            <h2 className="text-2xl font-bold">Registration Journey</h2>
 
             <div className="mt-4 space-y-3">
               <div className="rounded-lg border p-4">
@@ -310,22 +345,118 @@ export default function DriverRegistrationPage() {
                 → Step 2 — Personal Information
               </div>
 
-              <div className="rounded-lg border p-4">
+              <div className="rounded-lg border p-4 text-muted-foreground">
                 Step 3 — Vehicle Information
               </div>
 
-              <div className="rounded-lg border p-4">
+              <div className="rounded-lg border p-4 text-muted-foreground">
                 Step 4 — Driver Information
               </div>
 
-              <div className="rounded-lg border p-4">
+              <div className="rounded-lg border p-4 text-muted-foreground">
                 Step 5 — Payment Information
               </div>
 
-              <div className="rounded-lg border p-4">
+              <div className="rounded-lg border p-4 text-muted-foreground">
                 Step 6 — Documents
               </div>
             </div>
+          </div>
+
+          <div className="mt-10 rounded-xl border p-6">
+            <h2 className="text-2xl font-bold">
+              Step 2 — Personal Information
+            </h2>
+
+            <p className="mt-2 text-muted-foreground">
+              Please provide your personal information.
+            </p>
+
+            <form
+              onSubmit={handlePersonalInformation}
+              className="mt-6 space-y-5"
+            >
+              <div>
+                <label className="block text-sm font-medium">
+                  Full Name
+                </label>
+
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  placeholder="Enter your full name"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">
+                  Phone Number
+                </label>
+
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="e.g. 0241234567"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">
+                  Ghana Card Number
+                </label>
+
+                <input
+                  type="text"
+                  value={nationalId}
+                  onChange={(event) => setNationalId(event.target.value)}
+                  placeholder="GHA-XXXXXXXXX-X"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">
+                  Date of Birth
+                </label>
+
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(event) => setDateOfBirth(event.target.value)}
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              {message && (
+                <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-700">
+                  {message}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {loading
+                  ? "Saving..."
+                  : "Save & Continue"}
+              </button>
+            </form>
           </div>
         </section>
       </main>
