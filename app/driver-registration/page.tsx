@@ -218,23 +218,45 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    const { error: saveError } = await supabase
-      .from("drivers")
-      .upsert(
-        {
-          user_id: user.id,
-          email: user.email,
-          full_name: fullName,
-          phone,
-          nationalid_number: nationalId,
-          date_of_birth: dateOfBirth,
-          status: "Pending Verification",
-          availability: "Offline",
-        },
-        {
-          onConflict: "user_id",
-        },
-      )
+  const driverData = {
+  user_id: user.id,
+  email: user.email,
+  full_name: fullName,
+  phone,
+  nationalid_number: nationalId,
+  date_of_birth: dateOfBirth,
+  status: "Pending Verification",
+  availability: "Offline",
+}
+
+const { data: existingDriver, error: lookupError } = await supabase
+  .from("drivers")
+  .select("id")
+  .eq("user_id", user.id)
+  .maybeSingle()
+
+if (lookupError) {
+  setLoading(false)
+  setError(lookupError.message)
+  return
+}
+
+let saveError = null
+
+if (existingDriver) {
+  const { error } = await supabase
+    .from("drivers")
+    .update(driverData)
+    .eq("id", existingDriver.id)
+
+  saveError = error
+} else {
+  const { error } = await supabase
+    .from("drivers")
+    .insert(driverData)
+
+  saveError = error
+}
 
     setLoading(false)
 
