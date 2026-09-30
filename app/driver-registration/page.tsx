@@ -1,6 +1,8 @@
+```tsx
 "use client"
 
 import { FormEvent, useEffect, useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 export default function DriverRegistrationPage() {
@@ -13,6 +15,9 @@ export default function DriverRegistrationPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const [fullName, setFullName] = useState("")
   const [phone, setPhone] = useState("")
@@ -44,6 +49,7 @@ export default function DriverRegistrationPage() {
         setVerified(true)
         setStarted(true)
         setEmail(user.email ?? "")
+        setStep(2)
       }
 
       setCheckingSession(false)
@@ -64,6 +70,7 @@ export default function DriverRegistrationPage() {
         setVerified(true)
         setStarted(true)
         setEmail(user.email ?? "")
+        setStep(2)
       }
     })
 
@@ -245,7 +252,10 @@ export default function DriverRegistrationPage() {
     return (
       <main className="min-h-screen bg-background text-foreground">
         <section className="mx-auto max-w-3xl px-6 py-20">
-          <h1 className="text-3xl font-bold">KFM Driver Registration</h1>
+          <h1 className="text-3xl font-bold">
+            KFM Driver Registration
+          </h1>
+
           <p className="mt-4 text-muted-foreground">
             Checking your registration status...
           </p>
@@ -327,14 +337,18 @@ export default function DriverRegistrationPage() {
     )
   }
 
-  if (verified && step >= 2) {
+  if (verified && step === 2) {
     return (
       <main className="min-h-screen bg-background text-foreground">
         <section className="mx-auto max-w-4xl px-6 py-16">
-          <h1 className="text-4xl font-bold">KFM Driver Registration</h1>
+          <h1 className="text-4xl font-bold">
+            KFM Driver Registration
+          </h1>
 
           <div className="mt-8">
-            <h2 className="text-2xl font-bold">Registration Journey</h2>
+            <h2 className="text-2xl font-bold">
+              Registration Journey
+            </h2>
 
             <div className="mt-4 space-y-3">
               <div className="rounded-lg border p-4">
@@ -384,7 +398,9 @@ export default function DriverRegistrationPage() {
                 <input
                   type="text"
                   value={fullName}
-                  onChange={(event) => setFullName(event.target.value)}
+                  onChange={(event) =>
+                    setFullName(event.target.value)
+                  }
                   placeholder="Enter your full name"
                   className="mt-2 w-full rounded-lg border px-4 py-3"
                   required
@@ -399,7 +415,9 @@ export default function DriverRegistrationPage() {
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
+                  onChange={(event) =>
+                    setPhone(event.target.value)
+                  }
                   placeholder="e.g. 0241234567"
                   className="mt-2 w-full rounded-lg border px-4 py-3"
                   required
@@ -414,7 +432,9 @@ export default function DriverRegistrationPage() {
                 <input
                   type="text"
                   value={nationalId}
-                  onChange={(event) => setNationalId(event.target.value)}
+                  onChange={(event) =>
+                    setNationalId(event.target.value)
+                  }
                   placeholder="GHA-XXXXXXXXX-X"
                   className="mt-2 w-full rounded-lg border px-4 py-3"
                   required
@@ -429,7 +449,9 @@ export default function DriverRegistrationPage() {
                 <input
                   type="date"
                   value={dateOfBirth}
-                  onChange={(event) => setDateOfBirth(event.target.value)}
+                  onChange={(event) =>
+                    setDateOfBirth(event.target.value)
+                  }
                   className="mt-2 w-full rounded-lg border px-4 py-3"
                   required
                 />
@@ -452,11 +474,75 @@ export default function DriverRegistrationPage() {
                 disabled={loading}
                 className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
               >
-                {loading
-                  ? "Saving..."
-                  : "Save & Continue"}
+                {loading ? "Saving..." : "Save & Continue"}
               </button>
             </form>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  if (verified && step === 3) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <section className="mx-auto max-w-4xl px-6 py-16">
+          <h1 className="text-4xl font-bold">
+            KFM Driver Registration
+          </h1>
+
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold">
+              Registration Journey
+            </h2>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border p-4">
+                ✓ Step 1 — Account
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 2 — Personal Information
+              </div>
+
+              <div className="rounded-lg border-2 border-primary p-4">
+                → Step 3 — Vehicle Information
+              </div>
+
+              <div className="rounded-lg border p-4 text-muted-foreground">
+                Step 4 — Driver Information
+              </div>
+
+              <div className="rounded-lg border p-4 text-muted-foreground">
+                Step 5 — Payment Information
+              </div>
+
+              <div className="rounded-lg border p-4 text-muted-foreground">
+                Step 6 — Documents
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 rounded-xl border p-6">
+            <h2 className="text-2xl font-bold">
+              Step 3 — Vehicle Information
+            </h2>
+
+            <p className="mt-2 text-muted-foreground">
+              Vehicle registration will be completed in the next
+              stage.
+            </p>
+
+            <div className="mt-6 rounded-lg border p-4">
+              <p className="font-medium">
+                Your personal information has been saved.
+              </p>
+
+              <p className="mt-2 text-sm text-muted-foreground">
+                The KFM vehicle information form will be added here
+                next.
+              </p>
+            </div>
           </div>
         </section>
       </main>
@@ -466,7 +552,9 @@ export default function DriverRegistrationPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto max-w-3xl px-6 py-16">
-        <h1 className="text-4xl font-bold">KFM Driver Registration</h1>
+        <h1 className="text-4xl font-bold">
+          KFM Driver Registration
+        </h1>
 
         <div className="mt-8 rounded-xl border p-6">
           <h2 className="text-2xl font-bold">
@@ -489,7 +577,9 @@ export default function DriverRegistrationPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
                 className="mt-2 w-full rounded-lg border px-4 py-3"
                 required
               />
@@ -500,13 +590,36 @@ export default function DriverRegistrationPage() {
                 Password
               </label>
 
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="mt-2 w-full rounded-lg border px-4 py-3"
-                required
-              />
+              <div className="relative mt-2">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(event) =>
+                    setPassword(event.target.value)
+                  }
+                  className="w-full rounded-lg border px-4 py-3 pr-12"
+                  required
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPassword(!showPassword)
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                  aria-label={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
             </div>
 
             {!signInMode && (
@@ -515,15 +628,42 @@ export default function DriverRegistrationPage() {
                   Confirm Password
                 </label>
 
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(event) =>
-                    setConfirmPassword(event.target.value)
-                  }
-                  className="mt-2 w-full rounded-lg border px-4 py-3"
-                  required
-                />
+                <div className="relative mt-2">
+                  <input
+                    type={
+                      showConfirmPassword
+                        ? "text"
+                        : "password"
+                    }
+                    value={confirmPassword}
+                    onChange={(event) =>
+                      setConfirmPassword(event.target.value)
+                    }
+                    className="w-full rounded-lg border px-4 py-3 pr-12"
+                    required
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowConfirmPassword(
+                        !showConfirmPassword,
+                      )
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                    aria-label={
+                      showConfirmPassword
+                        ? "Hide confirm password"
+                        : "Show confirm password"
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff size={20} />
+                    ) : (
+                      <Eye size={20} />
+                    )}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -560,6 +700,8 @@ export default function DriverRegistrationPage() {
               setMessage("")
               setPassword("")
               setConfirmPassword("")
+              setShowPassword(false)
+              setShowConfirmPassword(false)
               setStarted(true)
             }}
             className="mt-5 text-sm font-medium underline"
@@ -573,3 +715,4 @@ export default function DriverRegistrationPage() {
     </main>
   )
 }
+```
