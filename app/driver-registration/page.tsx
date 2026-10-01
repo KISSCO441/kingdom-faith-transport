@@ -547,26 +547,143 @@ if (existingDriver) {
           </div>
 
           <div className="mt-10 rounded-xl border p-6">
-            <h2 className="text-2xl font-bold">
-              Step 3 — Vehicle Information
-            </h2>
+  <h2 className="text-2xl font-bold">
+    Step 3 — Vehicle Information
+  </h2>
 
-            <p className="mt-2 text-muted-foreground">
-              Vehicle registration will be completed in the next
-              stage.
-            </p>
+  <p className="mt-2 text-muted-foreground">
+    Please provide the vehicle information you will use for KFM Transport.
+  </p>
 
-            <div className="mt-6 rounded-lg border p-4">
-              <p className="font-medium">
-                Your personal information has been saved.
-              </p>
+  <form
+    onSubmit={handleVehicleInformation}
+    className="mt-6 space-y-5"
+  >
+    <div>
+      <label className="block text-sm font-medium">
+        Vehicle Type
+      </label>
 
-              <p className="mt-2 text-sm text-muted-foreground">
-                The KFM vehicle information form will be added here
-                next.
-              </p>
-            </div>
-          </div>
+      <select
+        value={vehicleType}
+        onChange={(event) =>
+          setVehicleType(event.target.value)
+        }
+        className="mt-2 w-full rounded-lg border px-4 py-3"
+        required
+      >
+        <option value="">Select vehicle type</option>
+        <option value="Okada">Okada</option>
+        <option value="Car">Car</option>
+      </select>
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium">
+        Vehicle Name / Model
+      </label>
+
+      <input
+        type="text"
+        value={vehicleName}
+        onChange={(event) =>
+          setVehicleName(event.target.value)
+        }
+        placeholder="e.g. Toyota Corolla or Yamaha Motorbike"
+        className="mt-2 w-full rounded-lg border px-4 py-3"
+        required
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium">
+        Vehicle Registration Number
+      </label>
+
+      <input
+        type="text"
+        value={vehicleRegistration}
+        onChange={(event) =>
+          setVehicleRegistration(event.target.value)
+        }
+        placeholder="Enter vehicle registration number"
+        className="mt-2 w-full rounded-lg border px-4 py-3"
+        required
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium">
+        Vehicle Colour
+      </label>
+
+      <input
+        type="text"
+        value={vehicleColor}
+        onChange={(event) =>
+          setVehicleColor(event.target.value)
+        }
+        placeholder="e.g. Black, White, Silver"
+        className="mt-2 w-full rounded-lg border px-4 py-3"
+        required
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium">
+        Operating Town
+      </label>
+
+      <input
+        type="text"
+        value={operatingTown}
+        onChange={(event) =>
+          setOperatingTown(event.target.value)
+        }
+        placeholder="e.g. Nsawam"
+        className="mt-2 w-full rounded-lg border px-4 py-3"
+        required
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium">
+        Operating Area
+      </label>
+
+      <input
+        type="text"
+        value={operatingArea}
+        onChange={(event) =>
+          setOperatingArea(event.target.value)
+        }
+        placeholder="e.g. Nsawam and nearby towns"
+        className="mt-2 w-full rounded-lg border px-4 py-3"
+        required
+      />
+    </div>
+
+    {error && (
+      <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+        {error}
+      </div>
+    )}
+
+    {message && (
+      <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-700">
+        {message}
+      </div>
+    )}
+
+    <button
+      type="submit"
+      disabled={loading}
+      className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
+    >
+      {loading ? "Saving..." : "Save & Continue"}
+    </button>
+  </form>
+</div>
         </section>
       </main>
     )
