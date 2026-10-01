@@ -146,7 +146,8 @@ export function BookingForm() {
   const [pickupTown, setPickupTown] = useState("Nsawam")
   const [pickupArea, setPickupArea] = useState("Nsawam Station")
 
-  const [destinationTown, setDestinationTown] = useState("Koforidua")
+  const [destinationTown, setDestinationTown] =
+    useState("Koforidua")
   const [destinationArea, setDestinationArea] =
     useState("Central Market")
 
@@ -194,9 +195,33 @@ export function BookingForm() {
     setDestinationArea(value)
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault()
     setError("")
+
+    const formData = new FormData(event.currentTarget)
+
+    const customerName = String(formData.get("name") || "").trim()
+    const customerPhone = String(formData.get("phone") || "").trim()
+    const whenOption = String(formData.get("when") || "").trim()
+    const notes = String(formData.get("notes") || "").trim()
+
+    if (!customerName || !customerPhone || !whenOption) {
+      setError("Please provide your full name, phone number, and pickup time.")
+      return
+    }
+
+    if (!pickupTown || !pickupArea) {
+      setError("Please select your pickup town and area.")
+      return
+    }
+
+    if (!destinationTown || !destinationArea) {
+      setError("Please select your destination town and area.")
+      return
+    }
 
     if (isOkada && !okadaZone) {
       setError("Please select an Okada destination area.")
@@ -205,24 +230,22 @@ export function BookingForm() {
 
     setIsSubmitting(true)
 
-    const formData = new FormData(event.currentTarget)
-
     const bookingData = {
-      customer_name: String(formData.get("name") || ""),
-      customer_phone: String(formData.get("phone") || ""),
+      customer_name: customerName,
+      customer_phone: customerPhone,
       vehicle_type: vehicle,
       ride_option: isOkada ? "KFM Okada" : "KFM Car",
-      pickup_town: String(formData.get("pickup") || ""),
-      pickup_area: String(formData.get("pickupArea") || ""),
-      destination_town: String(formData.get("destination") || ""),
-      destination_area: String(
-        formData.get("destinationArea") || "",
-      ),
-      when_option: String(formData.get("when") || ""),
-      notes: String(formData.get("notes") || ""),
+      pickup_town: pickupTown,
+      pickup_area: pickupArea,
+      destination_town: isOkada ? "Nsawam" : destinationTown,
+      destination_area: destinationArea,
+      when_option: whenOption,
+      notes: notes || null,
       fare_estimate: isOkada ? displayedOkadaFare : null,
       okada_zone: isOkada ? okadaZone : null,
     }
+
+    console.log("KFM booking request:", bookingData)
 
     try {
       const response = await fetch("/api/rides", {
@@ -426,41 +449,27 @@ export function BookingForm() {
                     Destination town
                   </label>
 
-  <select
-  id="destination"
-  required
-  disabled={isOkada}
-  className={fieldClass}
-  value={destinationTown}
-  onChange={(e) =>
-    handleDestinationTownChange(e.target.value)
-  }
->
-  {isOkada ? (
-    <option value="Nsawam">Nsawam</option>
-  ) : (
-    carTowns.map((town) => (
-      <option key={town} value={town}>
-        {town}
-      </option>
-  ))
-    )}
-</select>
- {isOkada && (
-  <input
-    type="hidden"
-    name="destination"
-    value="Nsawam"
-  />
-)}                 
-
-{isOkada && (
-  <input
-    type="hidden"
-    name="destination"
-    value="Nsawam"
-  />
-)}
+                  <select
+                    id="destination"
+                    name="destination"
+                    required
+                    disabled={isOkada}
+                    className={fieldClass}
+                    value={destinationTown}
+                    onChange={(e) =>
+                      handleDestinationTownChange(e.target.value)
+                    }
+                  >
+                    {isOkada ? (
+                      <option value="Nsawam">Nsawam</option>
+                    ) : (
+                      carTowns.map((town) => (
+                        <option key={town} value={town}>
+                          {town}
+                        </option>
+                      ))
+                    )}
+                  </select>
                 </div>
 
                 <div className="space-y-2">
@@ -635,3 +644,4 @@ export function BookingForm() {
     </section>
   )
 }
+
