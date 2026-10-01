@@ -485,9 +485,8 @@ export default function DriverRegistrationPage() {
       setError(saveError.message)
       return
     }
-
+   await loadDriverProgress(user.id)
     setMessage("Vehicle information saved successfully.")
-    setStep(4)
   }
 
   async function handleDriverInformation(
