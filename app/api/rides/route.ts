@@ -234,6 +234,9 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
+        debug_driver: matchedDriver,
+        debug_vehicle_type: vehicle_type,
+        debug_pickup_town: pickup_town,
         booking: data[0],
         driver_matched: Boolean(matchedDriver),
         driver: matchedDriver
