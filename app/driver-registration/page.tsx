@@ -208,18 +208,20 @@ export default function DriverRegistrationPage() {
     }
 
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const user = session?.user
+  data: { subscription },
+} = supabase.auth.onAuthStateChange((_event, session) => {
+  const user = session?.user
 
-      if (user?.email_confirmed_at) {
-        setVerified(true)
-        setStarted(true)
-        setEmail(user.email ?? "")
+  if (user?.email_confirmed_at) {
+    setVerified(true)
+    setStarted(true)
+    setEmail(user.email ?? "")
 
-        await loadDriverProgress(user.id)
-      }
-    })
+    setTimeout(() => {
+      loadDriverProgress(user.id)
+    }, 0)
+  }
+})
 
     return () => {
       mounted = false
