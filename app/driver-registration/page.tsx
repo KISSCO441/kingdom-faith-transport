@@ -38,6 +38,10 @@ export default function DriverRegistrationPage() {
   const [emergencyContactName, setEmergencyContactName] = useState("")
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("")
 
+  // Step 5 — Payment Information
+  const [momoNumber, setMomoNumber] = useState("")
+  const [momoNetwork, setMomoNetwork] = useState("")
+
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
@@ -66,7 +70,9 @@ export default function DriverRegistrationPage() {
         driver_license_number,
         license_expiry_date,
         emergency_contact_name,
-        emergency_contact_phone
+        emergency_contact_phone,
+        momo_number,
+        momo_network
       `)
       .eq("user_id", userId)
       .maybeSingle()
@@ -102,6 +108,10 @@ export default function DriverRegistrationPage() {
     setEmergencyContactName(driver.emergency_contact_name ?? "")
     setEmergencyContactPhone(driver.emergency_contact_phone ?? "")
 
+    // Restore saved payment information.
+    setMomoNumber(driver.momo_number ?? "")
+    setMomoNetwork(driver.momo_network ?? "")
+
     const personalInformationComplete =
       Boolean(
         (driver.full_name ?? driver.name) &&
@@ -128,6 +138,12 @@ export default function DriverRegistrationPage() {
         driver.emergency_contact_phone,
       )
 
+    const paymentInformationComplete =
+      Boolean(
+        driver.momo_number &&
+        driver.momo_network,
+      )
+
     if (!personalInformationComplete) {
       setStep(2)
       return
@@ -143,9 +159,14 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    // Steps 2, 3 and 4 are complete.
-    // Step 5 will be the next registration stage.
-    setStep(5)
+    if (!paymentInformationComplete) {
+      setStep(5)
+      return
+    }
+
+    // Steps 2, 3, 4 and 5 are complete.
+    // Step 6 will be the next registration stage.
+    setStep(6)
   }
 
   useEffect(() => {
@@ -521,6 +542,57 @@ export default function DriverRegistrationPage() {
 
     setMessage("Driver information saved successfully.")
     setStep(5)
+  }
+
+  async function handlePaymentInformation(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
+    setError("")
+    setMessage("")
+
+    if (!momoNumber || !momoNetwork) {
+      setError("Please enter your MoMo number and select your network.")
+      return
+    }
+
+    if (!supabase) {
+      setError(
+        "KFM registration is temporarily unavailable. Please try again later.",
+      )
+      return
+    }
+
+    setLoading(true)
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setLoading(false)
+      setError("Your session has expired. Please sign in again.")
+      return
+    }
+
+    const { error: saveError } = await supabase
+      .from("drivers")
+      .update({
+        momo_number: momoNumber,
+        momo_network: momoNetwork,
+      })
+      .eq("user_id", user.id)
+
+    setLoading(false)
+
+    if (saveError) {
+      setError(saveError.message)
+      return
+    }
+
+    setMessage("Payment information saved successfully.")
+    setStep(6)
   }
 
   if (checkingSession) {
@@ -1135,16 +1207,140 @@ export default function DriverRegistrationPage() {
             </h2>
 
             <p className="mt-2 text-muted-foreground">
-              Your driver information has been saved successfully.
+              Please provide the Mobile Money details KFM will use for
+              driver payments.
+            </p>
+
+            <form
+              onSubmit={handlePaymentInformation}
+              className="mt-6 space-y-5"
+            >
+              <div>
+                <label className="block text-sm font-medium">
+                  Mobile Money Number
+                </label>
+
+                <input
+                  type="tel"
+                  value={momoNumber}
+                  onChange={(event) =>
+                    setMomoNumber(event.target.value)
+                  }
+                  placeholder="e.g. 0241234567"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Enter the MoMo number where you want KFM driver payments
+                  to be sent.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">
+                  Mobile Money Network
+                </label>
+
+                <select
+                  value={momoNetwork}
+                  onChange={(event) =>
+                    setMomoNetwork(event.target.value)
+                  }
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                >
+                  <option value="">
+                    Select Mobile Money network
+                  </option>
+                  <option value="MTN">MTN</option>
+                  <option value="Telecel">Telecel</option>
+                  <option value="AirtelTigo">AirtelTigo</option>
+                </select>
+              </div>
+
+              {error && (
+                <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              {message && (
+                <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-700">
+                  {message}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {loading ? "Saving..." : "Save & Continue"}
+              </button>
+            </form>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  if (verified && step === 6) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <section className="mx-auto max-w-4xl px-6 py-16">
+          <h1 className="text-4xl font-bold">
+            KFM Driver Registration
+          </h1>
+
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold">
+              Registration Journey
+            </h2>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border p-4">
+                ✓ Step 1 — Account
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 2 — Personal Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 3 — Vehicle Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 4 — Driver Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 5 — Payment Information
+              </div>
+
+              <div className="rounded-lg border-2 border-primary p-4">
+                → Step 6 — Documents
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 rounded-xl border p-6">
+            <h2 className="text-2xl font-bold">
+              Step 6 — Documents
+            </h2>
+
+            <p className="mt-2 text-muted-foreground">
+              Your payment information has been saved successfully.
             </p>
 
             <div className="mt-6 rounded-lg border p-5">
               <p className="font-medium">
-                Your KFM registration can continue from Step 5.
+                Your KFM registration has reached Step 6.
               </p>
 
               <p className="mt-2 text-sm text-muted-foreground">
-                Payment information will be added next.
+                Document submission will be added next.
               </p>
             </div>
           </div>
