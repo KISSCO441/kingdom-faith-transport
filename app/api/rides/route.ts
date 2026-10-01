@@ -30,25 +30,21 @@ async function findAvailableDriver(
   vehicleType: string,
   pickupTown: string,
 ) {
-  const requiredVehicleType =
-    vehicleType === "motorbike" ? "Okada" : "Car"
-
-  const baseUrl =
+  const response = await fetch(
     `${supabaseUrl}/rest/v1/drivers` +
-    `?select=id,full_name,phone,vehicle_type,operating_town,operating_area,status,availability` +
-    `&status=eq.VERIFIED` +
-    `&availability=eq.ONLINE` +
-    `&vehicle_type=eq.${encodeURIComponent(requiredVehicleType)}`
-
-  const response = await fetch(baseUrl, {
-    method: "GET",
-    headers: {
-      apikey: supabaseServiceRoleKey,
-      Authorization: `Bearer ${supabaseServiceRoleKey}`,
-      "Content-Type": "application/json",
+      `?select=id,full_name,phone,vehicle_type,operating_town,operating_area,status,availability` +
+      `&status=eq.VERIFIED` +
+      `&availability=eq.ONLINE`,
+    {
+      method: "GET",
+      headers: {
+        apikey: supabaseServiceRoleKey,
+        Authorization: `Bearer ${supabaseServiceRoleKey}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
     },
-    cache: "no-store",
-  })
+  )
 
   if (!response.ok) {
     const errorData = await response.text()
@@ -63,13 +59,25 @@ async function findAvailableDriver(
 
   const drivers = (await response.json()) as Driver[]
 
-  if (!drivers.length) {
+  const requiredVehicleType =
+    vehicleType === "motorbike" ? "Okada" : "Car"
+
+  const eligibleDrivers = drivers.filter(
+    (driver) =>
+      driver.vehicle_type?.trim().toLowerCase() ===
+      requiredVehicleType.toLowerCase(),
+  )
+
+  if (!eligibleDrivers.length) {
+    console.log(
+      "No eligible KFM driver found for vehicle type:",
+      requiredVehicleType,
+    )
+
     return null
   }
 
-  // First preference:
-  // VERIFIED + ONLINE driver operating in the pickup town.
-  const sameTownDriver = drivers.find(
+  const sameTownDriver = eligibleDrivers.find(
     (driver) =>
       driver.operating_town?.trim().toLowerCase() ===
       pickupTown.trim().toLowerCase(),
@@ -79,9 +87,7 @@ async function findAvailableDriver(
     return sameTownDriver
   }
 
-  // Second preference:
-  // Any VERIFIED + ONLINE driver with the correct vehicle type.
-  return drivers[0]
+  return eligibleDrivers[0]
 }
 
 export async function POST(request: Request) {
@@ -168,14 +174,6 @@ export async function POST(request: Request) {
 
     const bookingCode = createBookingCode()
 
-    /*
-     * STEP 1
-     * Find a VERIFIED + ONLINE KFM driver.
-     *
-     * We prefer a driver operating in the pickup town.
-     * If there is no driver in that town, we use another
-     * eligible driver of the correct vehicle type.
-     */
     const matchedDriver = await findAvailableDriver(
       supabaseUrl,
       supabaseServiceRoleKey,
@@ -185,10 +183,6 @@ export async function POST(request: Request) {
 
     const matchedDriverId = matchedDriver?.id || null
 
-    /*
-     * STEP 2
-     * Create the customer ride request.
-     */
     const response = await fetch(
       `${supabaseUrl}/rest/v1/ride_requests`,
       {
@@ -233,13 +227,6 @@ export async function POST(request: Request) {
       )
     }
 
-    /*
-     * STEP 3
-     * Return the booking and matching information.
-     *
-     * Driver information is returned only when a driver
-     * was successfully matched.
-     */
     return NextResponse.json(
       {
         success: true,
@@ -273,3 +260,4 @@ export async function POST(request: Request) {
     )
   }
 }
+
