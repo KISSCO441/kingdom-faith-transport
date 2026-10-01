@@ -23,6 +23,14 @@ export default function DriverRegistrationPage() {
   const [nationalId, setNationalId] = useState("")
   const [dateOfBirth, setDateOfBirth] = useState("")
 
+  // Step 3 — Vehicle Information
+  const [vehicleType, setVehicleType] = useState("")
+  const [vehicleName, setVehicleName] = useState("")
+  const [vehicleRegistration, setVehicleRegistration] = useState("")
+  const [vehicleColor, setVehicleColor] = useState("")
+  const [operatingTown, setOperatingTown] = useState("")
+  const [operatingArea, setOperatingArea] = useState("")
+
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
@@ -218,47 +226,47 @@ export default function DriverRegistrationPage() {
       return
     }
 
-  const driverData = {
-  user_id: user.id,
-  id: user.id, 
-  email: user.email,
-  full_name: fullName,
-  name: fullName,
-  phone,
-  nationalid_number: nationalId,
-  date_of_birth: dateOfBirth,
-  status: "PENDING",
-  availability: "OFFLINE",
-}
+    const driverData = {
+      user_id: user.id,
+      id: user.id,
+      email: user.email,
+      full_name: fullName,
+      name: fullName,
+      phone,
+      nationalid_number: nationalId,
+      date_of_birth: dateOfBirth,
+      status: "PENDING",
+      availability: "OFFLINE",
+    }
 
-const { data: existingDriver, error: lookupError } = await supabase
-  .from("drivers")
-  .select("id")
-  .eq("user_id", user.id)
-  .maybeSingle()
+    const { data: existingDriver, error: lookupError } = await supabase
+      .from("drivers")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
 
-if (lookupError) {
-  setLoading(false)
-  setError(lookupError.message)
-  return
-}
+    if (lookupError) {
+      setLoading(false)
+      setError(lookupError.message)
+      return
+    }
 
-let saveError = null
+    let saveError = null
 
-if (existingDriver) {
-  const { error } = await supabase
-    .from("drivers")
-    .update(driverData)
-    .eq("id", existingDriver.id)
+    if (existingDriver) {
+      const { error } = await supabase
+        .from("drivers")
+        .update(driverData)
+        .eq("id", existingDriver.id)
 
-  saveError = error
-} else {
-  const { error } = await supabase
-    .from("drivers")
-    .insert(driverData)
+      saveError = error
+    } else {
+      const { error } = await supabase
+        .from("drivers")
+        .insert(driverData)
 
-  saveError = error
-}
+      saveError = error
+    }
 
     setLoading(false)
 
@@ -269,6 +277,69 @@ if (existingDriver) {
 
     setMessage("Personal information saved successfully.")
     setStep(3)
+  }
+
+  // Step 3 — Vehicle Information
+  async function handleVehicleInformation(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
+    setError("")
+    setMessage("")
+
+    if (
+      !vehicleType ||
+      !vehicleName ||
+      !vehicleRegistration ||
+      !vehicleColor ||
+      !operatingTown ||
+      !operatingArea
+    ) {
+      setError("Please complete all vehicle information fields.")
+      return
+    }
+
+    if (!supabase) {
+      setError(
+        "KFM registration is temporarily unavailable. Please try again later.",
+      )
+      return
+    }
+
+    setLoading(true)
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setLoading(false)
+      setError("Your session has expired. Please sign in again.")
+      return
+    }
+
+    const { error: saveError } = await supabase
+      .from("drivers")
+      .update({
+        vehicle_type: vehicleType,
+        vehicle_name: vehicleName,
+        vehicle_registration: vehicleRegistration,
+        vehicle_color: vehicleColor,
+        operating_town: operatingTown,
+        operating_area: operatingArea,
+      })
+      .eq("user_id", user.id)
+
+    setLoading(false)
+
+    if (saveError) {
+      setError(saveError.message)
+      return
+    }
+
+    setMessage("Vehicle information saved successfully.")
+    setStep(4)
   }
 
   if (checkingSession) {
@@ -547,143 +618,143 @@ if (existingDriver) {
           </div>
 
           <div className="mt-10 rounded-xl border p-6">
-  <h2 className="text-2xl font-bold">
-    Step 3 — Vehicle Information
-  </h2>
+            <h2 className="text-2xl font-bold">
+              Step 3 — Vehicle Information
+            </h2>
 
-  <p className="mt-2 text-muted-foreground">
-    Please provide the vehicle information you will use for KFM Transport.
-  </p>
+            <p className="mt-2 text-muted-foreground">
+              Please provide the vehicle information you will use for KFM Transport.
+            </p>
 
-  <form
-    onSubmit={handleVehicleInformation}
-    className="mt-6 space-y-5"
-  >
-    <div>
-      <label className="block text-sm font-medium">
-        Vehicle Type
-      </label>
+            <form
+              onSubmit={handleVehicleInformation}
+              className="mt-6 space-y-5"
+            >
+              <div>
+                <label className="block text-sm font-medium">
+                  Vehicle Type
+                </label>
 
-      <select
-        value={vehicleType}
-        onChange={(event) =>
-          setVehicleType(event.target.value)
-        }
-        className="mt-2 w-full rounded-lg border px-4 py-3"
-        required
-      >
-        <option value="">Select vehicle type</option>
-        <option value="Okada">Okada</option>
-        <option value="Car">Car</option>
-      </select>
-    </div>
+                <select
+                  value={vehicleType}
+                  onChange={(event) =>
+                    setVehicleType(event.target.value)
+                  }
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                >
+                  <option value="">Select vehicle type</option>
+                  <option value="Okada">Okada</option>
+                  <option value="Car">Car</option>
+                </select>
+              </div>
 
-    <div>
-      <label className="block text-sm font-medium">
-        Vehicle Name / Model
-      </label>
+              <div>
+                <label className="block text-sm font-medium">
+                  Vehicle Name / Model
+                </label>
 
-      <input
-        type="text"
-        value={vehicleName}
-        onChange={(event) =>
-          setVehicleName(event.target.value)
-        }
-        placeholder="e.g. Toyota Corolla or Yamaha Motorbike"
-        className="mt-2 w-full rounded-lg border px-4 py-3"
-        required
-      />
-    </div>
+                <input
+                  type="text"
+                  value={vehicleName}
+                  onChange={(event) =>
+                    setVehicleName(event.target.value)
+                  }
+                  placeholder="e.g. Toyota Corolla or Yamaha Motorbike"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
 
-    <div>
-      <label className="block text-sm font-medium">
-        Vehicle Registration Number
-      </label>
+              <div>
+                <label className="block text-sm font-medium">
+                  Vehicle Registration Number
+                </label>
 
-      <input
-        type="text"
-        value={vehicleRegistration}
-        onChange={(event) =>
-          setVehicleRegistration(event.target.value)
-        }
-        placeholder="Enter vehicle registration number"
-        className="mt-2 w-full rounded-lg border px-4 py-3"
-        required
-      />
-    </div>
+                <input
+                  type="text"
+                  value={vehicleRegistration}
+                  onChange={(event) =>
+                    setVehicleRegistration(event.target.value)
+                  }
+                  placeholder="Enter vehicle registration number"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
 
-    <div>
-      <label className="block text-sm font-medium">
-        Vehicle Colour
-      </label>
+              <div>
+                <label className="block text-sm font-medium">
+                  Vehicle Colour
+                </label>
 
-      <input
-        type="text"
-        value={vehicleColor}
-        onChange={(event) =>
-          setVehicleColor(event.target.value)
-        }
-        placeholder="e.g. Black, White, Silver"
-        className="mt-2 w-full rounded-lg border px-4 py-3"
-        required
-      />
-    </div>
+                <input
+                  type="text"
+                  value={vehicleColor}
+                  onChange={(event) =>
+                    setVehicleColor(event.target.value)
+                  }
+                  placeholder="e.g. Black, White, Silver"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
 
-    <div>
-      <label className="block text-sm font-medium">
-        Operating Town
-      </label>
+              <div>
+                <label className="block text-sm font-medium">
+                  Operating Town
+                </label>
 
-      <input
-        type="text"
-        value={operatingTown}
-        onChange={(event) =>
-          setOperatingTown(event.target.value)
-        }
-        placeholder="e.g. Nsawam"
-        className="mt-2 w-full rounded-lg border px-4 py-3"
-        required
-      />
-    </div>
+                <input
+                  type="text"
+                  value={operatingTown}
+                  onChange={(event) =>
+                    setOperatingTown(event.target.value)
+                  }
+                  placeholder="e.g. Nsawam"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
 
-    <div>
-      <label className="block text-sm font-medium">
-        Operating Area
-      </label>
+              <div>
+                <label className="block text-sm font-medium">
+                  Operating Area
+                </label>
 
-      <input
-        type="text"
-        value={operatingArea}
-        onChange={(event) =>
-          setOperatingArea(event.target.value)
-        }
-        placeholder="e.g. Nsawam and nearby towns"
-        className="mt-2 w-full rounded-lg border px-4 py-3"
-        required
-      />
-    </div>
+                <input
+                  type="text"
+                  value={operatingArea}
+                  onChange={(event) =>
+                    setOperatingArea(event.target.value)
+                  }
+                  placeholder="e.g. Nsawam and nearby towns"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
 
-    {error && (
-      <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
-        {error}
-      </div>
-    )}
+              {error && (
+                <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
 
-    {message && (
-      <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-700">
-        {message}
-      </div>
-    )}
+              {message && (
+                <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-700">
+                  {message}
+                </div>
+              )}
 
-    <button
-      type="submit"
-      disabled={loading}
-      className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
-    >
-      {loading ? "Saving..." : "Save & Continue"}
-    </button>
-  </form>
-</div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {loading ? "Saving..." : "Save & Continue"}
+              </button>
+            </form>
+          </div>
         </section>
       </main>
     )
