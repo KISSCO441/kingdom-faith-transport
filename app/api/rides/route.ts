@@ -13,6 +13,77 @@ function createBookingCode() {
   return `KFM-${random}`
 }
 
+type Driver = {
+  id: string
+  full_name: string | null
+  phone: string | null
+  vehicle_type: string | null
+  operating_town: string | null
+  operating_area: string | null
+  status: string | null
+  availability: string | null
+}
+
+async function findAvailableDriver(
+  supabaseUrl: string,
+  supabaseServiceRoleKey: string,
+  vehicleType: string,
+  pickupTown: string,
+) {
+  const requiredVehicleType =
+    vehicleType === "motorbike" ? "Okada" : "Car"
+
+  const baseUrl =
+    `${supabaseUrl}/rest/v1/drivers` +
+    `?select=id,full_name,phone,vehicle_type,operating_town,operating_area,status,availability` +
+    `&status=eq.VERIFIED` +
+    `&availability=eq.ONLINE` +
+    `&vehicle_type=eq.${encodeURIComponent(requiredVehicleType)}`
+
+  const response = await fetch(baseUrl, {
+    method: "GET",
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  })
+
+  if (!response.ok) {
+    const errorData = await response.text()
+
+    console.error(
+      "Unable to find available KFM drivers:",
+      errorData,
+    )
+
+    return null
+  }
+
+  const drivers = (await response.json()) as Driver[]
+
+  if (!drivers.length) {
+    return null
+  }
+
+  // First preference:
+  // VERIFIED + ONLINE driver operating in the pickup town.
+  const sameTownDriver = drivers.find(
+    (driver) =>
+      driver.operating_town?.trim().toLowerCase() ===
+      pickupTown.trim().toLowerCase(),
+  )
+
+  if (sameTownDriver) {
+    return sameTownDriver
+  }
+
+  // Second preference:
+  // Any VERIFIED + ONLINE driver with the correct vehicle type.
+  return drivers[0]
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -43,7 +114,10 @@ export async function POST(request: Request) {
       !when_option
     ) {
       return NextResponse.json(
-        { error: "Please provide all required booking details." },
+        {
+          error:
+            "Please provide all required booking details.",
+        },
         { status: 400 },
       )
     }
@@ -64,7 +138,8 @@ export async function POST(request: Request) {
       if (!okada_zone || !okadaFares[okada_zone]) {
         return NextResponse.json(
           {
-            error: "Please select a valid KFM Okada destination zone.",
+            error:
+              "Please select a valid KFM Okada destination zone.",
           },
           { status: 400 },
         )
@@ -93,6 +168,27 @@ export async function POST(request: Request) {
 
     const bookingCode = createBookingCode()
 
+    /*
+     * STEP 1
+     * Find a VERIFIED + ONLINE KFM driver.
+     *
+     * We prefer a driver operating in the pickup town.
+     * If there is no driver in that town, we use another
+     * eligible driver of the correct vehicle type.
+     */
+    const matchedDriver = await findAvailableDriver(
+      supabaseUrl,
+      supabaseServiceRoleKey,
+      vehicle_type,
+      pickup_town,
+    )
+
+    const matchedDriverId = matchedDriver?.id || null
+
+    /*
+     * STEP 2
+     * Create the customer ride request.
+     */
     const response = await fetch(
       `${supabaseUrl}/rest/v1/ride_requests`,
       {
@@ -117,7 +213,7 @@ export async function POST(request: Request) {
           notes: notes || null,
           ride_status: "requested",
           payment_status: "unpaid",
-          driver_id: null,
+          driver_id: matchedDriverId,
           fare_estimate: fareEstimate,
         }),
       },
@@ -137,11 +233,31 @@ export async function POST(request: Request) {
       )
     }
 
+    /*
+     * STEP 3
+     * Return the booking and matching information.
+     *
+     * Driver information is returned only when a driver
+     * was successfully matched.
+     */
     return NextResponse.json(
       {
         success: true,
         booking: data[0],
-        message: "Ride request received successfully.",
+        driver_matched: Boolean(matchedDriver),
+        driver: matchedDriver
+          ? {
+              id: matchedDriver.id,
+              name: matchedDriver.full_name,
+              phone: matchedDriver.phone,
+              vehicle_type: matchedDriver.vehicle_type,
+              operating_town: matchedDriver.operating_town,
+              operating_area: matchedDriver.operating_area,
+            }
+          : null,
+        message: matchedDriver
+          ? "Ride request received and a KFM driver has been matched."
+          : "Ride request received. KFM is looking for an available driver.",
       },
       { status: 201 },
     )
