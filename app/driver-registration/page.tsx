@@ -32,6 +32,12 @@ export default function DriverRegistrationPage() {
   const [operatingTown, setOperatingTown] = useState("")
   const [operatingArea, setOperatingArea] = useState("")
 
+  // Step 4 — Driver Information
+  const [driverLicenseNumber, setDriverLicenseNumber] = useState("")
+  const [licenseExpiryDate, setLicenseExpiryDate] = useState("")
+  const [emergencyContactName, setEmergencyContactName] = useState("")
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("")
+
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
@@ -56,7 +62,11 @@ export default function DriverRegistrationPage() {
         vehicle_registration,
         vehicle_color,
         operating_town,
-        operating_area
+        operating_area,
+        driver_license_number,
+        license_expiry_date,
+        emergency_contact_name,
+        emergency_contact_phone
       `)
       .eq("user_id", userId)
       .maybeSingle()
@@ -86,6 +96,12 @@ export default function DriverRegistrationPage() {
     setOperatingTown(driver.operating_town ?? "")
     setOperatingArea(driver.operating_area ?? "")
 
+    // Restore saved driver information.
+    setDriverLicenseNumber(driver.driver_license_number ?? "")
+    setLicenseExpiryDate(driver.license_expiry_date ?? "")
+    setEmergencyContactName(driver.emergency_contact_name ?? "")
+    setEmergencyContactPhone(driver.emergency_contact_phone ?? "")
+
     const personalInformationComplete =
       Boolean(
         (driver.full_name ?? driver.name) &&
@@ -104,6 +120,14 @@ export default function DriverRegistrationPage() {
         driver.operating_area,
       )
 
+    const driverInformationComplete =
+      Boolean(
+        driver.driver_license_number &&
+        driver.license_expiry_date &&
+        driver.emergency_contact_name &&
+        driver.emergency_contact_phone,
+      )
+
     if (!personalInformationComplete) {
       setStep(2)
       return
@@ -114,9 +138,14 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    // Steps 2 and 3 are complete.
-    // Step 4 will be the next registration stage.
-    setStep(4)
+    if (!driverInformationComplete) {
+      setStep(4)
+      return
+    }
+
+    // Steps 2, 3 and 4 are complete.
+    // Step 5 will be the next registration stage.
+    setStep(5)
   }
 
   useEffect(() => {
@@ -284,7 +313,9 @@ export default function DriverRegistrationPage() {
 
     await loadDriverProgress(user.id)
 
-    setMessage("Welcome back. Your saved KFM registration details have been loaded.")
+    setMessage(
+      "Welcome back. Your saved KFM registration details have been loaded.",
+    )
   }
 
   async function handlePersonalInformation(
@@ -432,6 +463,64 @@ export default function DriverRegistrationPage() {
 
     setMessage("Vehicle information saved successfully.")
     setStep(4)
+  }
+
+  async function handleDriverInformation(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
+    setError("")
+    setMessage("")
+
+    if (
+      !driverLicenseNumber ||
+      !licenseExpiryDate ||
+      !emergencyContactName ||
+      !emergencyContactPhone
+    ) {
+      setError("Please complete all driver information fields.")
+      return
+    }
+
+    if (!supabase) {
+      setError(
+        "KFM registration is temporarily unavailable. Please try again later.",
+      )
+      return
+    }
+
+    setLoading(true)
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setLoading(false)
+      setError("Your session has expired. Please sign in again.")
+      return
+    }
+
+    const { error: saveError } = await supabase
+      .from("drivers")
+      .update({
+        driver_license_number: driverLicenseNumber,
+        license_expiry_date: licenseExpiryDate,
+        emergency_contact_name: emergencyContactName,
+        emergency_contact_phone: emergencyContactPhone,
+      })
+      .eq("user_id", user.id)
+
+    setLoading(false)
+
+    if (saveError) {
+      setError(saveError.message)
+      return
+    }
+
+    setMessage("Driver information saved successfully.")
+    setStep(5)
   }
 
   if (checkingSession) {
@@ -715,7 +804,8 @@ export default function DriverRegistrationPage() {
             </h2>
 
             <p className="mt-2 text-muted-foreground">
-              Please provide the vehicle information you will use for KFM Transport.
+              Please provide the vehicle information you will use for KFM
+              Transport.
             </p>
 
             <form
@@ -898,16 +988,163 @@ export default function DriverRegistrationPage() {
             </h2>
 
             <p className="mt-2 text-muted-foreground">
-              Your personal and vehicle information has been saved.
+              Please provide your driver license and emergency contact
+              information.
+            </p>
+
+            <form
+              onSubmit={handleDriverInformation}
+              className="mt-6 space-y-5"
+            >
+              <div>
+                <label className="block text-sm font-medium">
+                  Driver&apos;s License Number
+                </label>
+
+                <input
+                  type="text"
+                  value={driverLicenseNumber}
+                  onChange={(event) =>
+                    setDriverLicenseNumber(event.target.value)
+                  }
+                  placeholder="Enter your driver license number"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">
+                  Driver&apos;s License Expiry Date
+                </label>
+
+                <input
+                  type="date"
+                  value={licenseExpiryDate}
+                  onChange={(event) =>
+                    setLicenseExpiryDate(event.target.value)
+                  }
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">
+                  Emergency Contact Name
+                </label>
+
+                <input
+                  type="text"
+                  value={emergencyContactName}
+                  onChange={(event) =>
+                    setEmergencyContactName(event.target.value)
+                  }
+                  placeholder="Enter emergency contact full name"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">
+                  Emergency Contact Phone Number
+                </label>
+
+                <input
+                  type="tel"
+                  value={emergencyContactPhone}
+                  onChange={(event) =>
+                    setEmergencyContactPhone(event.target.value)
+                  }
+                  placeholder="e.g. 0241234567"
+                  className="mt-2 w-full rounded-lg border px-4 py-3"
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              {message && (
+                <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-700">
+                  {message}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {loading ? "Saving..." : "Save & Continue"}
+              </button>
+            </form>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  if (verified && step === 5) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <section className="mx-auto max-w-4xl px-6 py-16">
+          <h1 className="text-4xl font-bold">
+            KFM Driver Registration
+          </h1>
+
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold">
+              Registration Journey
+            </h2>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border p-4">
+                ✓ Step 1 — Account
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 2 — Personal Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 3 — Vehicle Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 4 — Driver Information
+              </div>
+
+              <div className="rounded-lg border-2 border-primary p-4">
+                → Step 5 — Payment Information
+              </div>
+
+              <div className="rounded-lg border p-4 text-muted-foreground">
+                Step 6 — Documents
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 rounded-xl border p-6">
+            <h2 className="text-2xl font-bold">
+              Step 5 — Payment Information
+            </h2>
+
+            <p className="mt-2 text-muted-foreground">
+              Your driver information has been saved successfully.
             </p>
 
             <div className="mt-6 rounded-lg border p-5">
               <p className="font-medium">
-                Your KFM registration can continue from Step 4.
+                Your KFM registration can continue from Step 5.
               </p>
 
               <p className="mt-2 text-sm text-muted-foreground">
-                The Driver Information form will be added next.
+                Payment information will be added next.
               </p>
             </div>
           </div>
