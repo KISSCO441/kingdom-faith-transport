@@ -27,16 +27,6 @@ type DocumentDefinition = {
 
 const documentDefinitions: DocumentDefinition[] = [
   {
-    type: "ghana_card",
-    label: "Ghana Card / National ID",
-    description: "Upload the front of your Ghana Card or National ID.",
-    accept: "image/jpeg,image/png,application/pdf",
-    required: true,
-    needsNumber: true,
-    needsIssueDate: true,
-    needsExpiry: true,
-  },
-  {
     type: "driver_license",
     label: "Driver's Licence",
     description: "Upload a clear copy of your driver's licence.",
@@ -54,7 +44,7 @@ const documentDefinitions: DocumentDefinition[] = [
     required: true,
     needsNumber: true,
     needsIssueDate: true,
-    needsExpiry: true,
+    needsExpiry: false,
   },
   {
     type: "insurance_certificate",
@@ -89,6 +79,16 @@ const documentDefinitions: DocumentDefinition[] = [
 ]
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
+
+const requiredDocumentTypes = [
+  "ghana_card_front",
+  "ghana_card_back",
+  "driver_license",
+  "vehicle_registration",
+  "insurance_certificate",
+  "roadworthiness",
+  "profile_photo",
+]
 
 export default function DriverRegistrationPage() {
   const [started, setStarted] = useState(false)
@@ -132,6 +132,7 @@ export default function DriverRegistrationPage() {
   const [driverDocuments, setDriverDocuments] = useState<
     DriverDocument[]
   >([])
+
   const [uploadingDocument, setUploadingDocument] = useState("")
   const [viewingDocument, setViewingDocument] = useState("")
 
@@ -157,9 +158,11 @@ export default function DriverRegistrationPage() {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
-  async function loadDriverDocuments(userId: string) {
+  async function loadDriverDocuments(
+    userId: string,
+  ): Promise<DriverDocument[]> {
     if (!supabase) {
-      return
+      return []
     }
 
     const { data, error: documentsError } = await supabase
@@ -183,35 +186,14 @@ export default function DriverRegistrationPage() {
         "Unable to load driver documents:",
         documentsError.message,
       )
-      return
+      return []
     }
 
-    setDriverDocuments(data ?? [])
+    const documents = data ?? []
 
-    const savedNumbers: Record<string, string> = {}
-    const savedIssueDates: Record<string, string> = {}
-    const savedExpiryDates: Record<string, string> = {}
+    setDriverDocuments(documents)
 
-    ;(data ?? []).forEach((document) => {
-      if (document.document_number) {
-        savedNumbers[document.document_type] =
-          document.document_number
-      }
-
-      if (document.issue_date) {
-        savedIssueDates[document.document_type] =
-          document.issue_date
-      }
-
-      if (document.expiry_date) {
-        savedExpiryDates[document.document_type] =
-          document.expiry_date
-      }
-    })
-
-    setDocumentNumbers(savedNumbers)
-    setDocumentIssueDates(savedIssueDates)
-    setDocumentExpiryDates(savedExpiryDates)
+    return documents
   }
 
   async function loadDriverProgress(userId: string) {
@@ -250,14 +232,15 @@ export default function DriverRegistrationPage() {
         "Unable to load driver progress:",
         driverError.message,
       )
+
       setError(
         `Unable to load your saved registration: ${driverError.message}`,
       )
+
       setStep(2)
       return
     }
 
-    // No driver record yet — start at Step 2.
     if (!driver) {
       setStep(2)
       return
@@ -288,7 +271,55 @@ export default function DriverRegistrationPage() {
     setMomoNetwork(driver.momo_network ?? "")
 
     // Restore saved document information.
-    await loadDriverDocuments(userId)
+    const savedDocuments = await loadDriverDocuments(userId)
+
+    const savedDocumentNumbers: Record<string, string> = {}
+    const savedDocumentIssueDates: Record<string, string> = {}
+    const savedDocumentExpiryDates: Record<string, string> = {}
+
+    for (const document of savedDocuments) {
+      if (document.document_number) {
+        savedDocumentNumbers[document.document_type] =
+          document.document_number
+      }
+
+      if (document.issue_date) {
+        savedDocumentIssueDates[document.document_type] =
+          document.issue_date
+      }
+
+      if (document.expiry_date) {
+        savedDocumentExpiryDates[document.document_type] =
+          document.expiry_date
+      }
+    }
+
+    // Use the existing drivers table values where available.
+    if (driver.nationalid_number) {
+      savedDocumentNumbers.ghana_card_front =
+        driver.nationalid_number
+      savedDocumentNumbers.ghana_card_back =
+        driver.nationalid_number
+    }
+
+    if (driver.driver_license_number) {
+      savedDocumentNumbers.driver_license =
+        driver.driver_license_number
+    }
+
+    if (driver.vehicle_registration) {
+      savedDocumentNumbers.vehicle_registration =
+        driver.vehicle_registration
+    }
+
+    if (driver.license_expiry_date) {
+      savedDocumentExpiryDates.driver_license =
+        driver.license_expiry_date
+    }
+
+    setDocumentNumbers(savedDocumentNumbers)
+    setDocumentIssueDates(savedDocumentIssueDates)
+    setDocumentExpiryDates(savedDocumentExpiryDates)
 
     const personalInformationComplete =
       Boolean(
@@ -342,8 +373,6 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    // Steps 2, 3, 4 and 5 are complete.
-    // Step 6 will be the next registration stage.
     setStep(6)
   }
 
@@ -355,6 +384,7 @@ export default function DriverRegistrationPage() {
         if (mounted) {
           setCheckingSession(false)
         }
+
         return
       }
 
@@ -469,7 +499,9 @@ export default function DriverRegistrationPage() {
     )
   }
 
-  async function handleSignIn(event: FormEvent<HTMLFormElement>) {
+  async function handleSignIn(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault()
 
     setError("")
@@ -667,6 +699,7 @@ export default function DriverRegistrationPage() {
     }
 
     await loadDriverProgress(user.id)
+
     setMessage("Vehicle information saved successfully.")
   }
 
@@ -795,6 +828,36 @@ export default function DriverRegistrationPage() {
       return
     }
 
+    const documentNumberValue =
+      documentNumbers[documentType.type] ?? ""
+
+    const issueDateValue =
+      documentIssueDates[documentType.type] ?? ""
+
+    const expiryDateValue =
+      documentExpiryDates[documentType.type] ?? ""
+
+    if (documentType.needsNumber && !documentNumberValue) {
+      setError(
+        `Please enter the document number for ${documentType.label} before uploading.`,
+      )
+      return
+    }
+
+    if (documentType.needsIssueDate && !issueDateValue) {
+      setError(
+        `Please enter the date of issue for ${documentType.label} before uploading.`,
+      )
+      return
+    }
+
+    if (documentType.needsExpiry && !expiryDateValue) {
+      setError(
+        `Please enter the date of expiry for ${documentType.label} before uploading.`,
+      )
+      return
+    }
+
     if (file.size > MAX_FILE_SIZE) {
       setError(
         `${documentType.label} is larger than 5 MB. Please choose a smaller file.`,
@@ -811,35 +874,10 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    if (
-      documentType.needsNumber &&
-      !documentNumbers[documentType.type]?.trim()
-    ) {
-      setError(
-        `Please enter the document number for ${documentType.label} before uploading.`,
-      )
-      return
-    }
-
-    if (
-      documentType.needsIssueDate &&
-      !documentIssueDates[documentType.type]
-    ) {
-      setError(
-        `Please enter the date of issue for ${documentType.label} before uploading.`,
-      )
-      return
-    }
-
-    if (
-      documentType.needsExpiry &&
-      !documentExpiryDates[documentType.type]
-    ) {
-      setError(
-        `Please enter the date of expiry for ${documentType.label} before uploading.`,
-      )
-      return
-    }
+    setSelectedFiles((previous) => ({
+      ...previous,
+      [documentType.type]: file,
+    }))
 
     const {
       data: { user },
@@ -852,18 +890,43 @@ export default function DriverRegistrationPage() {
 
     setUploadingDocument(documentType.type)
 
-    const originalName = file.name.replace(/\.[^/.]+$/, "")
+    // Find an existing record before uploading so that
+    // re-uploading replaces the existing database record
+    // instead of creating duplicates.
+    const { data: existingDocuments, error: existingDocumentError } =
+      await supabase
+        .from("driver_documents")
+        .select("id")
+        .eq("driver_id", user.id)
+        .eq("document_type", documentType.type)
+        .order("created_at", { ascending: false })
+        .limit(1)
+
+    if (existingDocumentError) {
+      setUploadingDocument("")
+      setError(
+        `The file was selected, but KFM could not check your existing ${documentType.label} record: ${existingDocumentError.message}`,
+      )
+      return
+    }
+
+    const existingDocument =
+      existingDocuments?.[0] ?? null
+
+    const originalName = file.name.replace(
+      /\.[^/.]+$/,
+      "",
+    )
 
     const safeBaseName = originalName
       .replace(/[^a-zA-Z0-9_-]/g, "-")
       .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "")
 
     const fileExtension =
       file.name.split(".").pop()?.toLowerCase() || "file"
 
     const filePath =
-      `${user.id}/${documentType.type}-${Date.now()}-${safeBaseName || "document"}.${fileExtension}`
+      `${user.id}/${documentType.type}-${Date.now()}-${safeBaseName}.${fileExtension}`
 
     const { error: uploadError } = await supabase.storage
       .from("driver-documents")
@@ -881,66 +944,37 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    const documentNumber =
-      documentType.needsNumber
-        ? documentNumbers[documentType.type]?.trim() || null
-        : null
-
-    const issueDate =
-      documentType.needsIssueDate
-        ? documentIssueDates[documentType.type] || null
-        : null
-
-    const expiryDate =
-      documentType.needsExpiry
-        ? documentExpiryDates[documentType.type] || null
-        : null
-
-    const { data: existingDocument, error: lookupError } =
-      await supabase
-        .from("driver_documents")
-        .select("id")
-        .eq("driver_id", user.id)
-        .eq("document_type", documentType.type)
-        .maybeSingle()
-
-    if (lookupError) {
-      setUploadingDocument("")
-      setError(
-        `The file uploaded, but KFM could not check your existing ${documentType.label} record: ${lookupError.message}`,
-      )
-      return
+    const documentData = {
+      driver_id: user.id,
+      document_type: documentType.type,
+      document_number: documentType.needsNumber
+        ? documentNumberValue || null
+        : null,
+      document_url: filePath,
+      issue_date: documentType.needsIssueDate
+        ? issueDateValue || null
+        : null,
+      expiry_date: documentType.needsExpiry
+        ? expiryDateValue || null
+        : null,
+      verification_status: "Pending Verification",
     }
 
     let recordError = null
 
     if (existingDocument) {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from("driver_documents")
-        .update({
-          document_number: documentNumber,
-          document_url: filePath,
-          issue_date: issueDate,
-          expiry_date: expiryDate,
-          verification_status: "Pending Verification",
-        })
+        .update(documentData)
         .eq("id", existingDocument.id)
 
-      recordError = error
+      recordError = updateError
     } else {
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from("driver_documents")
-        .insert({
-          driver_id: user.id,
-          document_type: documentType.type,
-          document_number: documentNumber,
-          document_url: filePath,
-          issue_date: issueDate,
-          expiry_date: expiryDate,
-          verification_status: "Pending Verification",
-        })
+        .insert(documentData)
 
-      recordError = error
+      recordError = insertError
     }
 
     if (recordError) {
@@ -955,8 +989,8 @@ export default function DriverRegistrationPage() {
 
     setUploadingDocument("")
 
-    setSelectedFiles((current) => ({
-      ...current,
+    setSelectedFiles((previous) => ({
+      ...previous,
       [documentType.type]: null,
     }))
 
@@ -965,7 +999,36 @@ export default function DriverRegistrationPage() {
     )
   }
 
-  async function handleViewDocument(document: DriverDocument) {
+  async function handleGhanaCardUpload(
+    side: "front" | "back",
+    file: File,
+  ) {
+    const documentType: DocumentDefinition = {
+      type:
+        side === "front"
+          ? "ghana_card_front"
+          : "ghana_card_back",
+      label:
+        side === "front"
+          ? "Ghana Card Front"
+          : "Ghana Card Back",
+      description:
+        side === "front"
+          ? "Upload the front of your Ghana Card."
+          : "Upload the back of your Ghana Card.",
+      accept: "image/jpeg,image/png,application/pdf",
+      required: true,
+      needsNumber: true,
+      needsIssueDate: true,
+      needsExpiry: true,
+    }
+
+    await handleDocumentUpload(documentType, file)
+  }
+
+  async function handleViewDocument(
+    document: DriverDocument,
+  ) {
     if (!supabase || !document.document_url) {
       return
     }
@@ -974,9 +1037,10 @@ export default function DriverRegistrationPage() {
     setMessage("")
     setViewingDocument(document.id)
 
-    const { data, error: signedUrlError } = await supabase.storage
-      .from("driver-documents")
-      .createSignedUrl(document.document_url, 300)
+    const { data, error: signedUrlError } =
+      await supabase.storage
+        .from("driver-documents")
+        .createSignedUrl(document.document_url, 300)
 
     setViewingDocument("")
 
@@ -988,7 +1052,11 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer")
+    window.open(
+      data.signedUrl,
+      "_blank",
+      "noopener,noreferrer",
+    )
   }
 
   async function handleSubmitForReview() {
@@ -1011,30 +1079,54 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    const requiredTypes = documentDefinitions
-      .filter((document) => document.required)
-      .map((document) => document.type)
-
-    const uploadedTypes = driverDocuments.map(
-      (document) => document.document_type,
+    const uploadedTypes = new Set(
+      driverDocuments.map(
+        (document) => document.document_type,
+      ),
     )
 
-    const missingDocuments = requiredTypes.filter(
-      (type) => !uploadedTypes.includes(type),
-    )
+    const missingDocuments =
+      requiredDocumentTypes.filter(
+        (type) => !uploadedTypes.has(type),
+      )
 
     if (missingDocuments.length > 0) {
-      const missingLabels = documentDefinitions
-        .filter((document) =>
-          missingDocuments.includes(document.type),
-        )
-        .map((document) => document.label)
+      const missingLabels = missingDocuments.map(
+        (type) => {
+          switch (type) {
+            case "ghana_card_front":
+              return "Ghana Card Front"
+
+            case "ghana_card_back":
+              return "Ghana Card Back"
+
+            case "driver_license":
+              return "Driver's Licence"
+
+            case "vehicle_registration":
+              return "Vehicle Registration"
+
+            case "insurance_certificate":
+              return "Insurance Certificate"
+
+            case "roadworthiness":
+              return "Roadworthiness / DVLA Document"
+
+            case "profile_photo":
+              return "Driver Profile Photo"
+
+            default:
+              return type
+          }
+        },
+      )
 
       setError(
         `Please upload all required documents before submitting your registration. Missing: ${missingLabels.join(
           ", ",
         )}`,
       )
+
       return
     }
 
@@ -1092,28 +1184,40 @@ export default function DriverRegistrationPage() {
 
           <div className="mt-10 grid gap-6 md:grid-cols-2">
             <div className="rounded-xl border p-6">
-              <h2 className="font-semibold">Flexible Driving</h2>
+              <h2 className="font-semibold">
+                Flexible Driving
+              </h2>
+
               <p className="mt-2 text-sm text-muted-foreground">
                 Choose when you want to be available.
               </p>
             </div>
 
             <div className="rounded-xl border p-6">
-              <h2 className="font-semibold">KFM Support</h2>
+              <h2 className="font-semibold">
+                KFM Support
+              </h2>
+
               <p className="mt-2 text-sm text-muted-foreground">
                 Get connected with customers through KFM Transport.
               </p>
             </div>
 
             <div className="rounded-xl border p-6">
-              <h2 className="font-semibold">Driver Verification</h2>
+              <h2 className="font-semibold">
+                Driver Verification
+              </h2>
+
               <p className="mt-2 text-sm text-muted-foreground">
                 Your information and documents are reviewed by KFM.
               </p>
             </div>
 
             <div className="rounded-xl border p-6">
-              <h2 className="font-semibold">Ride Opportunities</h2>
+              <h2 className="font-semibold">
+                Ride Opportunities
+              </h2>
+
               <p className="mt-2 text-sm text-muted-foreground">
                 Approved drivers can receive suitable ride requests.
               </p>
@@ -1363,7 +1467,9 @@ export default function DriverRegistrationPage() {
                   className="mt-2 w-full rounded-lg border px-4 py-3"
                   required
                 >
-                  <option value="">Select vehicle type</option>
+                  <option value="">
+                    Select vehicle type
+                  </option>
                   <option value="Okada">Okada</option>
                   <option value="Car">Car</option>
                 </select>
@@ -1719,9 +1825,12 @@ export default function DriverRegistrationPage() {
                   <option value="">
                     Select Mobile Money network
                   </option>
+
                   <option value="MTN">MTN</option>
                   <option value="Telecel">Telecel</option>
-                  <option value="AirtelTigo">AirtelTigo</option>
+                  <option value="AirtelTigo">
+                    AirtelTigo
+                  </option>
                 </select>
               </div>
 
@@ -1753,15 +1862,25 @@ export default function DriverRegistrationPage() {
 
   if (verified && step === 6) {
     const uploadedDocumentTypes = new Set(
-      driverDocuments.map((document) => document.document_type),
+      driverDocuments.map(
+        (document) => document.document_type,
+      ),
     )
 
     const allRequiredDocumentsUploaded =
-      documentDefinitions
-        .filter((document) => document.required)
-        .every((document) =>
-          uploadedDocumentTypes.has(document.type),
-        )
+      requiredDocumentTypes.every((type) =>
+        uploadedDocumentTypes.has(type),
+      )
+
+    const ghanaCardFront = driverDocuments.find(
+      (document) =>
+        document.document_type === "ghana_card_front",
+    )
+
+    const ghanaCardBack = driverDocuments.find(
+      (document) =>
+        document.document_type === "ghana_card_back",
+    )
 
     return (
       <main className="min-h-screen bg-background text-foreground">
@@ -1818,22 +1937,340 @@ export default function DriverRegistrationPage() {
               </p>
 
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                <li>Maximum file size: 5 MB per document</li>
-                <li>JPG and PNG are accepted for images</li>
-                <li>PDF is accepted for official documents</li>
                 <li>
-                  Government and official documents require their
-                  document number where applicable
+                  Ghana Card is the only national identification accepted
+                  at this time.
                 </li>
+
                 <li>
-                  Government and official documents require date of
-                  issue and date of expiry
+                  Both the front and back of the Ghana Card are required.
                 </li>
-                <li>Profile photo accepts JPG and PNG only</li>
-                <li>Your documents are stored privately</li>
+
+                <li>
+                  Government-issued documents must include their issue
+                  date and expiry date where applicable.
+                </li>
+
+                <li>
+                  Vehicle Registration does not require an expiry date.
+                </li>
+
+                <li>
+                  Maximum file size: 5 MB per document.
+                </li>
+
+                <li>
+                  JPG and PNG are accepted for images.
+                </li>
+
+                <li>
+                  PDF is accepted for official documents.
+                </li>
+
+                <li>
+                  Profile photo accepts JPG and PNG only.
+                </li>
+
+                <li>
+                  Your documents are stored privately.
+                </li>
               </ul>
             </div>
 
+            {/* Ghana Card */}
+            <div className="mt-6 rounded-xl border p-5">
+              <div>
+                <h3 className="text-lg font-semibold">
+                  Ghana Card / National ID
+                </h3>
+
+                <p className="mt-1 text-sm text-muted-foreground">
+                  KFM requires both the front and back of your Ghana
+                  Card.
+                </p>
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium">
+                    Ghana Card Number
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      documentNumbers.ghana_card_front ?? ""
+                    }
+                    onChange={(event) => {
+                      const value = event.target.value
+
+                      setDocumentNumbers((previous) => ({
+                        ...previous,
+                        ghana_card_front: value,
+                        ghana_card_back: value,
+                      }))
+                    }}
+                    placeholder="GHA-XXXXXXXXX-X"
+                    className="mt-2 w-full rounded-lg border px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium">
+                    Date of Issue
+                  </label>
+
+                  <input
+                    type="date"
+                    value={
+                      documentIssueDates.ghana_card_front ?? ""
+                    }
+                    onChange={(event) => {
+                      const value = event.target.value
+
+                      setDocumentIssueDates((previous) => ({
+                        ...previous,
+                        ghana_card_front: value,
+                        ghana_card_back: value,
+                      }))
+                    }}
+                    className="mt-2 w-full rounded-lg border px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium">
+                    Date of Expiry
+                  </label>
+
+                  <input
+                    type="date"
+                    value={
+                      documentExpiryDates.ghana_card_front ?? ""
+                    }
+                    onChange={(event) => {
+                      const value = event.target.value
+
+                      setDocumentExpiryDates((previous) => ({
+                        ...previous,
+                        ghana_card_front: value,
+                        ghana_card_back: value,
+                      }))
+                    }}
+                    className="mt-2 w-full rounded-lg border px-4 py-3"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-5 md:grid-cols-2">
+                {/* Ghana Card Front */}
+                <div className="rounded-lg border p-4">
+                  <h4 className="font-semibold">
+                    Ghana Card Front — Image 1
+                  </h4>
+
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Upload the front of your Ghana Card.
+                  </p>
+
+                  {ghanaCardFront ? (
+                    <div className="mt-4 space-y-3">
+                      <span className="inline-block rounded-full border px-3 py-1 text-xs font-medium">
+                        {ghanaCardFront.verification_status ||
+                          "Pending Verification"}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleViewDocument(ghanaCardFront)
+                        }
+                        disabled={
+                          viewingDocument === ghanaCardFront.id
+                        }
+                        className="block rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                      >
+                        {viewingDocument === ghanaCardFront.id
+                          ? "Opening..."
+                          : "View Front"}
+
+                      </button>
+
+                      <label className="inline-block cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+                        {uploadingDocument ===
+                        "ghana_card_front"
+                          ? "Uploading..."
+                          : "Replace Front"}
+
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,application/pdf"
+                          disabled={
+                            uploadingDocument ===
+                            "ghana_card_front"
+                          }
+                          className="hidden"
+                          onChange={(event) => {
+                            const file =
+                              event.target.files?.[0]
+
+                            if (file) {
+                              handleGhanaCardUpload(
+                                "front",
+                                file,
+                              )
+                            }
+
+                            event.currentTarget.value = ""
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="mt-4 inline-block cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+                      {uploadingDocument ===
+                      "ghana_card_front"
+                        ? "Uploading..."
+                        : "Choose Front Image"}
+
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,application/pdf"
+                        disabled={
+                          uploadingDocument ===
+                          "ghana_card_front"
+                        }
+                        className="hidden"
+                        onChange={(event) => {
+                          const file =
+                            event.target.files?.[0]
+
+                          if (file) {
+                            handleGhanaCardUpload(
+                              "front",
+                              file,
+                            )
+                          }
+
+                          event.currentTarget.value = ""
+                        }}
+                      />
+                    </label>
+                  )}
+
+                  {selectedFiles.ghana_card_front && (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Selected:{" "}
+                      {selectedFiles.ghana_card_front.name}
+                    </p>
+                  )}
+                </div>
+
+                {/* Ghana Card Back */}
+                <div className="rounded-lg border p-4">
+                  <h4 className="font-semibold">
+                    Ghana Card Back — Image 2
+                  </h4>
+
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Upload the back of your Ghana Card.
+                  </p>
+
+                  {ghanaCardBack ? (
+                    <div className="mt-4 space-y-3">
+                      <span className="inline-block rounded-full border px-3 py-1 text-xs font-medium">
+                        {ghanaCardBack.verification_status ||
+                          "Pending Verification"}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleViewDocument(ghanaCardBack)
+                        }
+                        disabled={
+                          viewingDocument === ghanaCardBack.id
+                        }
+                        className="block rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                      >
+                        {viewingDocument === ghanaCardBack.id
+                          ? "Opening..."
+                          : "View Back"}
+                      </button>
+
+                      <label className="inline-block cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+                        {uploadingDocument ===
+                        "ghana_card_back"
+                          ? "Uploading..."
+                          : "Replace Back"}
+
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,application/pdf"
+                          disabled={
+                            uploadingDocument ===
+                            "ghana_card_back"
+                          }
+                          className="hidden"
+                          onChange={(event) => {
+                            const file =
+                              event.target.files?.[0]
+
+                            if (file) {
+                              handleGhanaCardUpload(
+                                "back",
+                                file,
+                              )
+                            }
+
+                            event.currentTarget.value = ""
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="mt-4 inline-block cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+                      {uploadingDocument ===
+                      "ghana_card_back"
+                        ? "Uploading..."
+                        : "Choose Back Image"}
+
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,application/pdf"
+                        disabled={
+                          uploadingDocument ===
+                          "ghana_card_back"
+                        }
+                        className="hidden"
+                        onChange={(event) => {
+                          const file =
+                            event.target.files?.[0]
+
+                          if (file) {
+                            handleGhanaCardUpload(
+                              "back",
+                              file,
+                            )
+                          }
+
+                          event.currentTarget.value = ""
+                        }}
+                      />
+                    </label>
+                  )}
+
+                  {selectedFiles.ghana_card_back && (
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Selected:{" "}
+                      {selectedFiles.ghana_card_back.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Other Documents */}
             <div className="mt-6 space-y-4">
               {documentDefinitions.map((document) => {
                 const uploaded = driverDocuments.find(
@@ -1869,7 +2306,7 @@ export default function DriverRegistrationPage() {
                     {(document.needsNumber ||
                       document.needsIssueDate ||
                       document.needsExpiry) && (
-                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <div className="mt-5 grid gap-4 md:grid-cols-3">
                         {document.needsNumber && (
                           <div>
                             <label className="block text-sm font-medium">
@@ -1884,12 +2321,12 @@ export default function DriverRegistrationPage() {
                               value={
                                 documentNumbers[
                                   document.type
-                                ] || ""
+                                ] ?? ""
                               }
                               onChange={(event) =>
                                 setDocumentNumbers(
-                                  (current) => ({
-                                    ...current,
+                                  (previous) => ({
+                                    ...previous,
                                     [document.type]:
                                       event.target.value,
                                   }),
@@ -1898,8 +2335,8 @@ export default function DriverRegistrationPage() {
                               placeholder={
                                 document.type ===
                                 "vehicle_registration"
-                                  ? "Enter vehicle registration number"
-                                  : `Enter ${document.label} number`
+                                  ? "Enter registration number"
+                                  : "Enter document number"
                               }
                               className="mt-2 w-full rounded-lg border px-4 py-3"
                             />
@@ -1917,12 +2354,12 @@ export default function DriverRegistrationPage() {
                               value={
                                 documentIssueDates[
                                   document.type
-                                ] || ""
+                                ] ?? ""
                               }
                               onChange={(event) =>
                                 setDocumentIssueDates(
-                                  (current) => ({
-                                    ...current,
+                                  (previous) => ({
+                                    ...previous,
                                     [document.type]:
                                       event.target.value,
                                   }),
@@ -1944,12 +2381,12 @@ export default function DriverRegistrationPage() {
                               value={
                                 documentExpiryDates[
                                   document.type
-                                ] || ""
+                                ] ?? ""
                               }
                               onChange={(event) =>
                                 setDocumentExpiryDates(
-                                  (current) => ({
-                                    ...current,
+                                  (previous) => ({
+                                    ...previous,
                                     [document.type]:
                                       event.target.value,
                                   }),
@@ -1962,40 +2399,7 @@ export default function DriverRegistrationPage() {
                       </div>
                     )}
 
-                    {uploaded && (
-                      <div className="mt-4 rounded-lg bg-muted/30 p-4 text-sm">
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {uploaded.document_number && (
-                            <div>
-                              <span className="font-medium">
-                                Document Number:
-                              </span>{" "}
-                              {uploaded.document_number}
-                            </div>
-                          )}
-
-                          {uploaded.issue_date && (
-                            <div>
-                              <span className="font-medium">
-                                Date of Issue:
-                              </span>{" "}
-                              {uploaded.issue_date}
-                            </div>
-                          )}
-
-                          {uploaded.expiry_date && (
-                            <div>
-                              <span className="font-medium">
-                                Date of Expiry:
-                              </span>{" "}
-                              {uploaded.expiry_date}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <div className="mt-5 flex flex-wrap items-center gap-3">
                       {uploaded ? (
                         <>
                           <span className="rounded-full border px-3 py-1 text-xs font-medium">
@@ -2019,7 +2423,7 @@ export default function DriverRegistrationPage() {
                           <label className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
                             {isUploading
                               ? "Uploading..."
-                              : "Replace Document"}
+                              : "Replace File"}
 
                             <input
                               type="file"
@@ -2031,14 +2435,6 @@ export default function DriverRegistrationPage() {
                                   event.target.files?.[0]
 
                                 if (file) {
-                                  setSelectedFiles(
-                                    (current) => ({
-                                      ...current,
-                                      [document.type]:
-                                        file,
-                                    }),
-                                  )
-
                                   handleDocumentUpload(
                                     document,
                                     file,
@@ -2066,13 +2462,6 @@ export default function DriverRegistrationPage() {
                                 event.target.files?.[0]
 
                               if (file) {
-                                setSelectedFiles(
-                                  (current) => ({
-                                    ...current,
-                                    [document.type]: file,
-                                  }),
-                                )
-
                                 handleDocumentUpload(
                                   document,
                                   file,
@@ -2088,7 +2477,7 @@ export default function DriverRegistrationPage() {
 
                     {selectedFiles[document.type] && (
                       <p className="mt-3 text-xs text-muted-foreground">
-                        Selected file:{" "}
+                        Selected:{" "}
                         {selectedFiles[document.type]?.name}
                       </p>
                     )}
@@ -2122,8 +2511,9 @@ export default function DriverRegistrationPage() {
               </h3>
 
               <p className="mt-2 text-sm text-muted-foreground">
-                Once all six required documents have been uploaded,
-                submit your complete registration for KFM review.
+                KFM requires the Ghana Card front and back plus all
+                other required documents before your registration can
+                be submitted for review.
               </p>
 
               <button
@@ -2191,7 +2581,9 @@ export default function DriverRegistrationPage() {
 
               <div className="relative mt-2">
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={
+                    showPassword ? "text" : "password"
+                  }
                   value={password}
                   onChange={(event) =>
                     setPassword(event.target.value)
