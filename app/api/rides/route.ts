@@ -180,7 +180,11 @@ export async function POST(request: Request) {
       vehicle_type,
       pickup_town,
     )
-
+    console.log("KFM DRIVER MATCH DEBUG:", {
+  vehicle_type,
+  pickup_town,
+  matchedDriver,
+})
     const matchedDriverId = matchedDriver?.id || null
 
     const response = await fetch(
