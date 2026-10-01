@@ -15,6 +15,10 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
+if (!supabase) {
+  throw new Error("Supabase client is not configured.")
+}
+
 type Driver = {
   id: string
   full_name: string | null
