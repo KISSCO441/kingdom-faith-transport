@@ -30,11 +30,17 @@ async function findAvailableDriver(
   vehicleType: string,
   pickupTown: string,
 ) {
+  const requiredVehicleType =
+    vehicleType.trim().toLowerCase() === "motorbike"
+      ? "Okada"
+      : "Car"
+
   const response = await fetch(
     `${supabaseUrl}/rest/v1/drivers` +
       `?select=id,full_name,phone,vehicle_type,operating_town,operating_area,status,availability` +
       `&status=eq.VERIFIED` +
-      `&availability=eq.ONLINE`,
+      `&availability=eq.ONLINE` +
+      `&vehicle_type=ilike.${encodeURIComponent(requiredVehicleType)}`,
     {
       method: "GET",
       headers: {
@@ -59,25 +65,18 @@ async function findAvailableDriver(
 
   const drivers = (await response.json()) as Driver[]
 
-  const requiredVehicleType =
-    vehicleType === "motorbike" ? "Okada" : "Car"
+  console.log("KFM AVAILABLE DRIVERS:", drivers)
 
-  const eligibleDrivers = drivers.filter(
-    (driver) =>
-      driver.vehicle_type?.trim().toLowerCase() ===
-      requiredVehicleType.toLowerCase(),
-  )
-
-  if (!eligibleDrivers.length) {
+  if (!drivers.length) {
     console.log(
-      "No eligible KFM driver found for vehicle type:",
+      "No VERIFIED + ONLINE KFM driver found for vehicle:",
       requiredVehicleType,
     )
 
     return null
   }
 
-  const sameTownDriver = eligibleDrivers.find(
+  const sameTownDriver = drivers.find(
     (driver) =>
       driver.operating_town?.trim().toLowerCase() ===
       pickupTown.trim().toLowerCase(),
@@ -87,7 +86,7 @@ async function findAvailableDriver(
     return sameTownDriver
   }
 
-  return eligibleDrivers[0]
+  return drivers[0]
 }
 
 export async function POST(request: Request) {
@@ -130,7 +129,7 @@ export async function POST(request: Request) {
 
     let fareEstimate: number | null = null
 
-    if (vehicle_type === "motorbike") {
+    if (vehicle_type.trim().toLowerCase() === "motorbike") {
       if (pickup_town !== "Nsawam") {
         return NextResponse.json(
           {
@@ -152,10 +151,6 @@ export async function POST(request: Request) {
       }
 
       fareEstimate = okadaFares[okada_zone]
-    }
-
-    if (vehicle_type === "car") {
-      fareEstimate = null
     }
 
     const supabaseUrl = process.env.SUPABASE_URL
@@ -180,12 +175,15 @@ export async function POST(request: Request) {
       vehicle_type,
       pickup_town,
     )
-    console.log("KFM DRIVER MATCH DEBUG:", {
-  vehicle_type,
-  pickup_town,
-  matchedDriver,
-})
+
     const matchedDriverId = matchedDriver?.id || null
+
+    console.log("KFM DRIVER MATCH RESULT:", {
+      vehicle_type,
+      pickup_town,
+      matchedDriverId,
+      matchedDriver,
+    })
 
     const response = await fetch(
       `${supabaseUrl}/rest/v1/ride_requests`,
@@ -234,9 +232,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
-        debug_driver: matchedDriver,
-        debug_vehicle_type: vehicle_type,
-        debug_pickup_town: pickup_town,
         booking: data[0],
         driver_matched: Boolean(matchedDriver),
         driver: matchedDriver
@@ -267,4 +262,3 @@ export async function POST(request: Request) {
     )
   }
 }
-
