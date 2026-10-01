@@ -220,6 +220,7 @@ export default function DriverRegistrationPage() {
 
   const driverData = {
   user_id: user.id,
+  id: user.id, 
   email: user.email,
   full_name: fullName,
   name: fullName,
