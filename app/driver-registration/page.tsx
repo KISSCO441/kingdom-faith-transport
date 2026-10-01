@@ -4,6 +4,70 @@ import { FormEvent, useEffect, useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
+type DriverDocument = {
+  id: string
+  document_type: string
+  document_number: string | null
+  document_url: string | null
+  expiry_date: string | null
+  verification_status: string | null
+}
+
+type DocumentDefinition = {
+  type: string
+  label: string
+  description: string
+  accept: string
+  required: boolean
+}
+
+const documentDefinitions: DocumentDefinition[] = [
+  {
+    type: "ghana_card",
+    label: "Ghana Card / National ID",
+    description: "Upload the front of your Ghana Card or National ID.",
+    accept: "image/jpeg,image/png,application/pdf",
+    required: true,
+  },
+  {
+    type: "driver_license",
+    label: "Driver's Licence",
+    description: "Upload a clear copy of your driver's licence.",
+    accept: "image/jpeg,image/png,application/pdf",
+    required: true,
+  },
+  {
+    type: "vehicle_registration",
+    label: "Vehicle Registration",
+    description: "Upload your vehicle registration document.",
+    accept: "image/jpeg,image/png,application/pdf",
+    required: true,
+  },
+  {
+    type: "insurance_certificate",
+    label: "Insurance Certificate",
+    description: "Upload your current vehicle insurance certificate.",
+    accept: "image/jpeg,image/png,application/pdf",
+    required: true,
+  },
+  {
+    type: "roadworthiness",
+    label: "Roadworthiness / DVLA Document",
+    description: "Upload your current roadworthiness or DVLA document.",
+    accept: "image/jpeg,image/png,application/pdf",
+    required: true,
+  },
+  {
+    type: "profile_photo",
+    label: "Driver Profile Photo",
+    description: "Upload a clear recent photo of yourself.",
+    accept: "image/jpeg,image/png",
+    required: true,
+  },
+]
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024
+
 export default function DriverRegistrationPage() {
   const [started, setStarted] = useState(false)
   const [verified, setVerified] = useState(false)
@@ -42,9 +106,50 @@ export default function DriverRegistrationPage() {
   const [momoNumber, setMomoNumber] = useState("")
   const [momoNetwork, setMomoNetwork] = useState("")
 
+  // Step 6 — Documents
+  const [driverDocuments, setDriverDocuments] = useState<
+    DriverDocument[]
+  >([])
+  const [uploadingDocument, setUploadingDocument] = useState("")
+  const [viewingDocument, setViewingDocument] = useState("")
+  const [documentNumber, setDocumentNumber] = useState("")
+  const [documentExpiryDate, setDocumentExpiryDate] = useState("")
+  const [submittingReview, setSubmittingReview] = useState(false)
+
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+
+  async function loadDriverDocuments(userId: string) {
+    if (!supabase) {
+      return
+    }
+
+    const { data, error: documentsError } = await supabase
+      .from("driver_documents")
+      .select(
+        `
+          id,
+          document_type,
+          document_number,
+          document_url,
+          expiry_date,
+          verification_status
+        `,
+      )
+      .eq("driver_id", userId)
+      .order("created_at", { ascending: true })
+
+    if (documentsError) {
+      console.error(
+        "Unable to load driver documents:",
+        documentsError.message,
+      )
+      return
+    }
+
+    setDriverDocuments(data ?? [])
+  }
 
   async function loadDriverProgress(userId: string) {
     if (!supabase) {
@@ -78,11 +183,16 @@ export default function DriverRegistrationPage() {
       .maybeSingle()
 
     if (driverError) {
-  console.error("Unable to load driver progress:", driverError.message)
-  setError(`Unable to load your saved registration: ${driverError.message}`)
-  setStep(2)
-  return
-}
+      console.error(
+        "Unable to load driver progress:",
+        driverError.message,
+      )
+      setError(
+        `Unable to load your saved registration: ${driverError.message}`,
+      )
+      setStep(2)
+      return
+    }
 
     // No driver record yet — start at Step 2.
     if (!driver) {
@@ -113,6 +223,9 @@ export default function DriverRegistrationPage() {
     // Restore saved payment information.
     setMomoNumber(driver.momo_number ?? "")
     setMomoNetwork(driver.momo_network ?? "")
+
+    // Restore saved document information.
+    await loadDriverDocuments(userId)
 
     const personalInformationComplete =
       Boolean(
@@ -210,20 +323,20 @@ export default function DriverRegistrationPage() {
     }
 
     const {
-  data: { subscription },
-} = supabase.auth.onAuthStateChange((_event, session) => {
-  const user = session?.user
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user
 
-  if (user?.email_confirmed_at) {
-    setVerified(true)
-    setStarted(true)
-    setEmail(user.email ?? "")
+      if (user?.email_confirmed_at) {
+        setVerified(true)
+        setStarted(true)
+        setEmail(user.email ?? "")
 
-    setTimeout(() => {
-      loadDriverProgress(user.id)
-    }, 0)
-  }
-})
+        setTimeout(() => {
+          loadDriverProgress(user.id)
+        }, 0)
+      }
+    })
 
     return () => {
       mounted = false
@@ -231,7 +344,9 @@ export default function DriverRegistrationPage() {
     }
   }, [])
 
-  async function handleCreateAccount(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateAccount(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault()
 
     setError("")
@@ -261,14 +376,15 @@ export default function DriverRegistrationPage() {
 
     setLoading(true)
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo:
-          "https://kingdom-faith-transport.vercel.app/driver-registration",
-      },
-    })
+    const { data, error: signUpError } =
+      await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo:
+            "https://kingdom-faith-transport.vercel.app/driver-registration",
+        },
+      })
 
     setLoading(false)
 
@@ -388,11 +504,12 @@ export default function DriverRegistrationPage() {
       availability: "OFFLINE",
     }
 
-    const { data: existingDriver, error: lookupError } = await supabase
-      .from("drivers")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle()
+    const { data: existingDriver, error: lookupError } =
+      await supabase
+        .from("drivers")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle()
 
     if (lookupError) {
       setLoading(false)
@@ -485,7 +602,8 @@ export default function DriverRegistrationPage() {
       setError(saveError.message)
       return
     }
-   await loadDriverProgress(user.id)
+
+    await loadDriverProgress(user.id)
     setMessage("Vehicle information saved successfully.")
   }
 
@@ -556,7 +674,9 @@ export default function DriverRegistrationPage() {
     setMessage("")
 
     if (!momoNumber || !momoNetwork) {
-      setError("Please enter your MoMo number and select your network.")
+      setError(
+        "Please enter your MoMo number and select your network.",
+      )
       return
     }
 
@@ -596,6 +716,211 @@ export default function DriverRegistrationPage() {
 
     setMessage("Payment information saved successfully.")
     setStep(6)
+  }
+
+  async function handleDocumentUpload(
+    documentType: DocumentDefinition,
+    file: File,
+  ) {
+    setError("")
+    setMessage("")
+
+    if (!supabase) {
+      setError(
+        "KFM registration is temporarily unavailable. Please try again later.",
+      )
+      return
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setError(
+        `${documentType.label} is larger than 5 MB. Please choose a smaller file.`,
+      )
+      return
+    }
+
+    const allowedTypes = documentType.accept.split(",")
+
+    if (!allowedTypes.includes(file.type)) {
+      setError(
+        `${documentType.label} must be a JPG, PNG, or PDF file as permitted for this document.`,
+      )
+      return
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setError("Your session has expired. Please sign in again.")
+      return
+    }
+
+    setUploadingDocument(documentType.type)
+
+    const fileExtension =
+      file.name.split(".").pop()?.toLowerCase() || "file"
+
+    const safeFileName = file.name
+      .replace(/[^a-zA-Z0-9._-]/g, "-")
+      .replace(/-+/g, "-")
+
+    const filePath = `${user.id}/${documentType.type}-${Date.now()}-${safeFileName}.${fileExtension}`
+
+    const { error: uploadError } = await supabase.storage
+      .from("driver-documents")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      })
+
+    if (uploadError) {
+      setUploadingDocument("")
+      setError(
+        `Unable to upload ${documentType.label}: ${uploadError.message}`,
+      )
+      return
+    }
+
+    const { error: recordError } = await supabase
+      .from("driver_documents")
+      .insert({
+        driver_id: user.id,
+        document_type: documentType.type,
+        document_number:
+          documentType.type === "ghana_card" ||
+          documentType.type === "driver_license" ||
+          documentType.type === "vehicle_registration"
+            ? documentNumber || null
+            : null,
+        document_url: filePath,
+        expiry_date:
+          documentType.type === "driver_license" ||
+          documentType.type === "insurance_certificate" ||
+          documentType.type === "roadworthiness"
+            ? documentExpiryDate || null
+            : null,
+        verification_status: "Pending Verification",
+      })
+
+    if (recordError) {
+      await supabase.storage
+        .from("driver-documents")
+        .remove([filePath])
+
+      setUploadingDocument("")
+      setError(
+        `The file uploaded, but its document record could not be saved: ${recordError.message}`,
+      )
+      return
+    }
+
+    await loadDriverDocuments(user.id)
+
+    setUploadingDocument("")
+    setDocumentNumber("")
+    setDocumentExpiryDate("")
+
+    setMessage(
+      `${documentType.label} uploaded successfully and is awaiting KFM verification.`,
+    )
+  }
+
+  async function handleViewDocument(document: DriverDocument) {
+    if (!supabase || !document.document_url) {
+      return
+    }
+
+    setError("")
+    setMessage("")
+    setViewingDocument(document.id)
+
+    const { data, error: signedUrlError } = await supabase.storage
+      .from("driver-documents")
+      .createSignedUrl(document.document_url, 300)
+
+    setViewingDocument("")
+
+    if (signedUrlError || !data?.signedUrl) {
+      setError(
+        signedUrlError?.message ||
+          "Unable to open this document.",
+      )
+      return
+    }
+
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer")
+  }
+
+  async function handleSubmitForReview() {
+    setError("")
+    setMessage("")
+
+    if (!supabase) {
+      setError(
+        "KFM registration is temporarily unavailable. Please try again later.",
+      )
+      return
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setError("Your session has expired. Please sign in again.")
+      return
+    }
+
+    const requiredTypes = documentDefinitions
+      .filter((document) => document.required)
+      .map((document) => document.type)
+
+    const uploadedTypes = driverDocuments.map(
+      (document) => document.document_type,
+    )
+
+    const missingDocuments = requiredTypes.filter(
+      (type) => !uploadedTypes.includes(type),
+    )
+
+    if (missingDocuments.length > 0) {
+      const missingLabels = documentDefinitions
+        .filter((document) =>
+          missingDocuments.includes(document.type),
+        )
+        .map((document) => document.label)
+
+      setError(
+        `Please upload all required documents before submitting your registration. Missing: ${missingLabels.join(
+          ", ",
+        )}`,
+      )
+      return
+    }
+
+    setSubmittingReview(true)
+
+    const { error: statusError } = await supabase
+      .from("drivers")
+      .update({
+        status: "PENDING",
+      })
+      .eq("user_id", user.id)
+
+    setSubmittingReview(false)
+
+    if (statusError) {
+      setError(
+        `Your documents are uploaded, but your registration status could not be updated: ${statusError.message}`,
+      )
+      return
+    }
+
+    setMessage(
+      "Your KFM driver registration has been submitted for review. KFM will review your information and documents before approval.",
+    )
   }
 
   if (checkingSession) {
@@ -1289,6 +1614,17 @@ export default function DriverRegistrationPage() {
   }
 
   if (verified && step === 6) {
+    const uploadedDocumentTypes = new Set(
+      driverDocuments.map((document) => document.document_type),
+    )
+
+    const allRequiredDocumentsUploaded =
+      documentDefinitions
+        .filter((document) => document.required)
+        .every((document) =>
+          uploadedDocumentTypes.has(document.type),
+        )
+
     return (
       <main className="min-h-screen bg-background text-foreground">
         <section className="mx-auto max-w-4xl px-6 py-16">
@@ -1334,17 +1670,202 @@ export default function DriverRegistrationPage() {
             </h2>
 
             <p className="mt-2 text-muted-foreground">
-              Your payment information has been saved successfully.
+              Upload the documents KFM needs to verify your driver
+              application.
             </p>
 
-            <div className="mt-6 rounded-lg border p-5">
+            <div className="mt-5 rounded-lg border bg-muted/30 p-4">
               <p className="font-medium">
-                Your KFM registration has reached Step 6.
+                Document requirements
               </p>
 
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                <li>Maximum file size: 5 MB per document</li>
+                <li>JPG and PNG are accepted for images</li>
+                <li>PDF is accepted for official documents</li>
+                <li>Profile photo accepts JPG and PNG only</li>
+                <li>Your documents are stored privately</li>
+              </ul>
+            </div>
+
+            {(documentNumber || documentExpiryDate) && (
+              <div className="mt-6 rounded-lg border p-5">
+                <h3 className="font-semibold">
+                  Document information
+                </h3>
+
+                <p className="mt-2 text-sm text-muted-foreground">
+                  The document number and expiry date you enter below
+                  will apply to the next official document you upload.
+                </p>
+
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium">
+                      Document Number
+                    </label>
+
+                    <input
+                      type="text"
+                      value={documentNumber}
+                      onChange={(event) =>
+                        setDocumentNumber(event.target.value)
+                      }
+                      placeholder="Optional document number"
+                      className="mt-2 w-full rounded-lg border px-4 py-3"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium">
+                      Expiry Date
+                    </label>
+
+                    <input
+                      type="date"
+                      value={documentExpiryDate}
+                      onChange={(event) =>
+                        setDocumentExpiryDate(event.target.value)
+                      }
+                      className="mt-2 w-full rounded-lg border px-4 py-3"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 space-y-4">
+              {documentDefinitions.map((document) => {
+                const uploaded = driverDocuments.find(
+                  (item) =>
+                    item.document_type === document.type,
+                )
+
+                const isUploading =
+                  uploadingDocument === document.type
+
+                const isViewing =
+                  viewingDocument === uploaded?.id
+
+                return (
+                  <div
+                    key={document.type}
+                    className="rounded-xl border p-5"
+                  >
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h3 className="font-semibold">
+                          {document.label}
+                        </h3>
+
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {document.description}
+                        </p>
+
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Maximum 5 MB
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        {uploaded ? (
+                          <>
+                            <span className="rounded-full border px-3 py-1 text-xs font-medium">
+                              {uploaded.verification_status ||
+                                "Pending Verification"}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleViewDocument(uploaded)
+                              }
+                              disabled={isViewing}
+                              className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                            >
+                              {isViewing
+                                ? "Opening..."
+                                : "View Document"}
+                            </button>
+                          </>
+                        ) : (
+                          <label className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+                            {isUploading
+                              ? "Uploading..."
+                              : "Choose File"}
+
+                            <input
+                              type="file"
+                              accept={document.accept}
+                              disabled={isUploading}
+                              className="hidden"
+                              onChange={(event) => {
+                                const file =
+                                  event.target.files?.[0]
+
+                                if (file) {
+                                  handleDocumentUpload(
+                                    document,
+                                    file,
+                                  )
+                                }
+
+                                event.currentTarget.value = ""
+                              }}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+
+                    {uploaded && (
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        Document uploaded. KFM will review it before
+                        approval.
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {error && (
+              <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            {message && (
+              <div className="mt-6 rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-700">
+                {message}
+              </div>
+            )}
+
+            <div className="mt-8 rounded-xl border-2 border-primary/30 p-6">
+              <h3 className="text-xl font-bold">
+                KFM Registration Review
+              </h3>
+
               <p className="mt-2 text-sm text-muted-foreground">
-                Document submission will be added next.
+                Once all six required documents have been uploaded,
+                submit your complete registration for KFM review.
               </p>
+
+              <button
+                type="button"
+                onClick={handleSubmitForReview}
+                disabled={
+                  submittingReview ||
+                  !allRequiredDocumentsUploaded
+                }
+                className="mt-5 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submittingReview
+                  ? "Submitting..."
+                  : allRequiredDocumentsUploaded
+                    ? "Submit Registration for KFM Review"
+                    : "Upload All Required Documents First"}
+              </button>
             </div>
           </div>
         </section>
