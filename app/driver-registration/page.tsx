@@ -9,6 +9,7 @@ type DriverDocument = {
   document_type: string
   document_number: string | null
   document_url: string | null
+  issue_date: string | null
   expiry_date: string | null
   verification_status: string | null
 }
@@ -19,6 +20,9 @@ type DocumentDefinition = {
   description: string
   accept: string
   required: boolean
+  needsNumber: boolean
+  needsIssueDate: boolean
+  needsExpiry: boolean
 }
 
 const documentDefinitions: DocumentDefinition[] = [
@@ -28,6 +32,9 @@ const documentDefinitions: DocumentDefinition[] = [
     description: "Upload the front of your Ghana Card or National ID.",
     accept: "image/jpeg,image/png,application/pdf",
     required: true,
+    needsNumber: true,
+    needsIssueDate: true,
+    needsExpiry: true,
   },
   {
     type: "driver_license",
@@ -35,6 +42,9 @@ const documentDefinitions: DocumentDefinition[] = [
     description: "Upload a clear copy of your driver's licence.",
     accept: "image/jpeg,image/png,application/pdf",
     required: true,
+    needsNumber: true,
+    needsIssueDate: true,
+    needsExpiry: true,
   },
   {
     type: "vehicle_registration",
@@ -42,6 +52,9 @@ const documentDefinitions: DocumentDefinition[] = [
     description: "Upload your vehicle registration document.",
     accept: "image/jpeg,image/png,application/pdf",
     required: true,
+    needsNumber: true,
+    needsIssueDate: true,
+    needsExpiry: true,
   },
   {
     type: "insurance_certificate",
@@ -49,6 +62,9 @@ const documentDefinitions: DocumentDefinition[] = [
     description: "Upload your current vehicle insurance certificate.",
     accept: "image/jpeg,image/png,application/pdf",
     required: true,
+    needsNumber: false,
+    needsIssueDate: true,
+    needsExpiry: true,
   },
   {
     type: "roadworthiness",
@@ -56,6 +72,9 @@ const documentDefinitions: DocumentDefinition[] = [
     description: "Upload your current roadworthiness or DVLA document.",
     accept: "image/jpeg,image/png,application/pdf",
     required: true,
+    needsNumber: false,
+    needsIssueDate: true,
+    needsExpiry: true,
   },
   {
     type: "profile_photo",
@@ -63,6 +82,9 @@ const documentDefinitions: DocumentDefinition[] = [
     description: "Upload a clear recent photo of yourself.",
     accept: "image/jpeg,image/png",
     required: true,
+    needsNumber: false,
+    needsIssueDate: false,
+    needsExpiry: false,
   },
 ]
 
@@ -112,8 +134,23 @@ export default function DriverRegistrationPage() {
   >([])
   const [uploadingDocument, setUploadingDocument] = useState("")
   const [viewingDocument, setViewingDocument] = useState("")
-  const [documentNumber, setDocumentNumber] = useState("")
-  const [documentExpiryDate, setDocumentExpiryDate] = useState("")
+
+  const [documentNumbers, setDocumentNumbers] = useState<
+    Record<string, string>
+  >({})
+
+  const [documentIssueDates, setDocumentIssueDates] = useState<
+    Record<string, string>
+  >({})
+
+  const [documentExpiryDates, setDocumentExpiryDates] = useState<
+    Record<string, string>
+  >({})
+
+  const [selectedFiles, setSelectedFiles] = useState<
+    Record<string, File | null>
+  >({})
+
   const [submittingReview, setSubmittingReview] = useState(false)
 
   const [loading, setLoading] = useState(false)
@@ -133,6 +170,7 @@ export default function DriverRegistrationPage() {
           document_type,
           document_number,
           document_url,
+          issue_date,
           expiry_date,
           verification_status
         `,
@@ -149,6 +187,31 @@ export default function DriverRegistrationPage() {
     }
 
     setDriverDocuments(data ?? [])
+
+    const savedNumbers: Record<string, string> = {}
+    const savedIssueDates: Record<string, string> = {}
+    const savedExpiryDates: Record<string, string> = {}
+
+    ;(data ?? []).forEach((document) => {
+      if (document.document_number) {
+        savedNumbers[document.document_type] =
+          document.document_number
+      }
+
+      if (document.issue_date) {
+        savedIssueDates[document.document_type] =
+          document.issue_date
+      }
+
+      if (document.expiry_date) {
+        savedExpiryDates[document.document_type] =
+          document.expiry_date
+      }
+    })
+
+    setDocumentNumbers(savedNumbers)
+    setDocumentIssueDates(savedIssueDates)
+    setDocumentExpiryDates(savedExpiryDates)
   }
 
   async function loadDriverProgress(userId: string) {
@@ -748,6 +811,36 @@ export default function DriverRegistrationPage() {
       return
     }
 
+    if (
+      documentType.needsNumber &&
+      !documentNumbers[documentType.type]?.trim()
+    ) {
+      setError(
+        `Please enter the document number for ${documentType.label} before uploading.`,
+      )
+      return
+    }
+
+    if (
+      documentType.needsIssueDate &&
+      !documentIssueDates[documentType.type]
+    ) {
+      setError(
+        `Please enter the date of issue for ${documentType.label} before uploading.`,
+      )
+      return
+    }
+
+    if (
+      documentType.needsExpiry &&
+      !documentExpiryDates[documentType.type]
+    ) {
+      setError(
+        `Please enter the date of expiry for ${documentType.label} before uploading.`,
+      )
+      return
+    }
+
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -759,20 +852,25 @@ export default function DriverRegistrationPage() {
 
     setUploadingDocument(documentType.type)
 
+    const originalName = file.name.replace(/\.[^/.]+$/, "")
+
+    const safeBaseName = originalName
+      .replace(/[^a-zA-Z0-9_-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+
     const fileExtension =
       file.name.split(".").pop()?.toLowerCase() || "file"
 
-    const safeFileName = file.name
-      .replace(/[^a-zA-Z0-9._-]/g, "-")
-      .replace(/-+/g, "-")
-
-    const filePath = `${user.id}/${documentType.type}-${Date.now()}-${safeFileName}.${fileExtension}`
+    const filePath =
+      `${user.id}/${documentType.type}-${Date.now()}-${safeBaseName || "document"}.${fileExtension}`
 
     const { error: uploadError } = await supabase.storage
       .from("driver-documents")
       .upload(filePath, file, {
         cacheControl: "3600",
         upsert: false,
+        contentType: file.type,
       })
 
     if (uploadError) {
@@ -783,32 +881,69 @@ export default function DriverRegistrationPage() {
       return
     }
 
-    const { error: recordError } = await supabase
-      .from("driver_documents")
-      .insert({
-        driver_id: user.id,
-        document_type: documentType.type,
-        document_number:
-          documentType.type === "ghana_card" ||
-          documentType.type === "driver_license" ||
-          documentType.type === "vehicle_registration"
-            ? documentNumber || null
-            : null,
-        document_url: filePath,
-        expiry_date:
-          documentType.type === "driver_license" ||
-          documentType.type === "insurance_certificate" ||
-          documentType.type === "roadworthiness"
-            ? documentExpiryDate || null
-            : null,
-        verification_status: "Pending Verification",
-      })
+    const documentNumber =
+      documentType.needsNumber
+        ? documentNumbers[documentType.type]?.trim() || null
+        : null
+
+    const issueDate =
+      documentType.needsIssueDate
+        ? documentIssueDates[documentType.type] || null
+        : null
+
+    const expiryDate =
+      documentType.needsExpiry
+        ? documentExpiryDates[documentType.type] || null
+        : null
+
+    const { data: existingDocument, error: lookupError } =
+      await supabase
+        .from("driver_documents")
+        .select("id")
+        .eq("driver_id", user.id)
+        .eq("document_type", documentType.type)
+        .maybeSingle()
+
+    if (lookupError) {
+      setUploadingDocument("")
+      setError(
+        `The file uploaded, but KFM could not check your existing ${documentType.label} record: ${lookupError.message}`,
+      )
+      return
+    }
+
+    let recordError = null
+
+    if (existingDocument) {
+      const { error } = await supabase
+        .from("driver_documents")
+        .update({
+          document_number: documentNumber,
+          document_url: filePath,
+          issue_date: issueDate,
+          expiry_date: expiryDate,
+          verification_status: "Pending Verification",
+        })
+        .eq("id", existingDocument.id)
+
+      recordError = error
+    } else {
+      const { error } = await supabase
+        .from("driver_documents")
+        .insert({
+          driver_id: user.id,
+          document_type: documentType.type,
+          document_number: documentNumber,
+          document_url: filePath,
+          issue_date: issueDate,
+          expiry_date: expiryDate,
+          verification_status: "Pending Verification",
+        })
+
+      recordError = error
+    }
 
     if (recordError) {
-      await supabase.storage
-        .from("driver-documents")
-        .remove([filePath])
-
       setUploadingDocument("")
       setError(
         `The file uploaded, but its document record could not be saved: ${recordError.message}`,
@@ -819,8 +954,11 @@ export default function DriverRegistrationPage() {
     await loadDriverDocuments(user.id)
 
     setUploadingDocument("")
-    setDocumentNumber("")
-    setDocumentExpiryDate("")
+
+    setSelectedFiles((current) => ({
+      ...current,
+      [documentType.type]: null,
+    }))
 
     setMessage(
       `${documentType.label} uploaded successfully and is awaiting KFM verification.`,
@@ -1683,56 +1821,18 @@ export default function DriverRegistrationPage() {
                 <li>Maximum file size: 5 MB per document</li>
                 <li>JPG and PNG are accepted for images</li>
                 <li>PDF is accepted for official documents</li>
+                <li>
+                  Government and official documents require their
+                  document number where applicable
+                </li>
+                <li>
+                  Government and official documents require date of
+                  issue and date of expiry
+                </li>
                 <li>Profile photo accepts JPG and PNG only</li>
                 <li>Your documents are stored privately</li>
               </ul>
             </div>
-
-            {(documentNumber || documentExpiryDate) && (
-              <div className="mt-6 rounded-lg border p-5">
-                <h3 className="font-semibold">
-                  Document information
-                </h3>
-
-                <p className="mt-2 text-sm text-muted-foreground">
-                  The document number and expiry date you enter below
-                  will apply to the next official document you upload.
-                </p>
-
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="block text-sm font-medium">
-                      Document Number
-                    </label>
-
-                    <input
-                      type="text"
-                      value={documentNumber}
-                      onChange={(event) =>
-                        setDocumentNumber(event.target.value)
-                      }
-                      placeholder="Optional document number"
-                      className="mt-2 w-full rounded-lg border px-4 py-3"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium">
-                      Expiry Date
-                    </label>
-
-                    <input
-                      type="date"
-                      value={documentExpiryDate}
-                      onChange={(event) =>
-                        setDocumentExpiryDate(event.target.value)
-                      }
-                      className="mt-2 w-full rounded-lg border px-4 py-3"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div className="mt-6 space-y-4">
               {documentDefinitions.map((document) => {
@@ -1752,47 +1852,174 @@ export default function DriverRegistrationPage() {
                     key={document.type}
                     className="rounded-xl border p-5"
                   >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <h3 className="font-semibold">
-                          {document.label}
-                        </h3>
+                    <div>
+                      <h3 className="font-semibold">
+                        {document.label}
+                      </h3>
 
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {document.description}
-                        </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {document.description}
+                      </p>
 
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Maximum 5 MB
-                        </p>
-                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Maximum 5 MB
+                      </p>
+                    </div>
 
-                      <div className="flex flex-wrap items-center gap-3">
-                        {uploaded ? (
-                          <>
-                            <span className="rounded-full border px-3 py-1 text-xs font-medium">
-                              {uploaded.verification_status ||
-                                "Pending Verification"}
-                            </span>
+                    {(document.needsNumber ||
+                      document.needsIssueDate ||
+                      document.needsExpiry) && (
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        {document.needsNumber && (
+                          <div>
+                            <label className="block text-sm font-medium">
+                              {document.type ===
+                              "vehicle_registration"
+                                ? "Vehicle Registration Number"
+                                : "Document Number"}
+                            </label>
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleViewDocument(uploaded)
+                            <input
+                              type="text"
+                              value={
+                                documentNumbers[
+                                  document.type
+                                ] || ""
                               }
-                              disabled={isViewing}
-                              className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50"
-                            >
-                              {isViewing
-                                ? "Opening..."
-                                : "View Document"}
-                            </button>
-                          </>
-                        ) : (
+                              onChange={(event) =>
+                                setDocumentNumbers(
+                                  (current) => ({
+                                    ...current,
+                                    [document.type]:
+                                      event.target.value,
+                                  }),
+                                )
+                              }
+                              placeholder={
+                                document.type ===
+                                "vehicle_registration"
+                                  ? "Enter vehicle registration number"
+                                  : `Enter ${document.label} number`
+                              }
+                              className="mt-2 w-full rounded-lg border px-4 py-3"
+                            />
+                          </div>
+                        )}
+
+                        {document.needsIssueDate && (
+                          <div>
+                            <label className="block text-sm font-medium">
+                              Date of Issue
+                            </label>
+
+                            <input
+                              type="date"
+                              value={
+                                documentIssueDates[
+                                  document.type
+                                ] || ""
+                              }
+                              onChange={(event) =>
+                                setDocumentIssueDates(
+                                  (current) => ({
+                                    ...current,
+                                    [document.type]:
+                                      event.target.value,
+                                  }),
+                                )
+                              }
+                              className="mt-2 w-full rounded-lg border px-4 py-3"
+                            />
+                          </div>
+                        )}
+
+                        {document.needsExpiry && (
+                          <div>
+                            <label className="block text-sm font-medium">
+                              Date of Expiry
+                            </label>
+
+                            <input
+                              type="date"
+                              value={
+                                documentExpiryDates[
+                                  document.type
+                                ] || ""
+                              }
+                              onChange={(event) =>
+                                setDocumentExpiryDates(
+                                  (current) => ({
+                                    ...current,
+                                    [document.type]:
+                                      event.target.value,
+                                  }),
+                                )
+                              }
+                              className="mt-2 w-full rounded-lg border px-4 py-3"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {uploaded && (
+                      <div className="mt-4 rounded-lg bg-muted/30 p-4 text-sm">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {uploaded.document_number && (
+                            <div>
+                              <span className="font-medium">
+                                Document Number:
+                              </span>{" "}
+                              {uploaded.document_number}
+                            </div>
+                          )}
+
+                          {uploaded.issue_date && (
+                            <div>
+                              <span className="font-medium">
+                                Date of Issue:
+                              </span>{" "}
+                              {uploaded.issue_date}
+                            </div>
+                          )}
+
+                          {uploaded.expiry_date && (
+                            <div>
+                              <span className="font-medium">
+                                Date of Expiry:
+                              </span>{" "}
+                              {uploaded.expiry_date}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      {uploaded ? (
+                        <>
+                          <span className="rounded-full border px-3 py-1 text-xs font-medium">
+                            {uploaded.verification_status ||
+                              "Pending Verification"}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleViewDocument(uploaded)
+                            }
+                            disabled={isViewing}
+                            className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                          >
+                            {isViewing
+                              ? "Opening..."
+                              : "View Document"}
+                          </button>
+
                           <label className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
                             {isUploading
                               ? "Uploading..."
-                              : "Choose File"}
+                              : "Replace Document"}
 
                             <input
                               type="file"
@@ -1804,6 +2031,14 @@ export default function DriverRegistrationPage() {
                                   event.target.files?.[0]
 
                                 if (file) {
+                                  setSelectedFiles(
+                                    (current) => ({
+                                      ...current,
+                                      [document.type]:
+                                        file,
+                                    }),
+                                  )
+
                                   handleDocumentUpload(
                                     document,
                                     file,
@@ -1814,9 +2049,49 @@ export default function DriverRegistrationPage() {
                               }}
                             />
                           </label>
-                        )}
-                      </div>
+                        </>
+                      ) : (
+                        <label className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+                          {isUploading
+                            ? "Uploading..."
+                            : "Choose File"}
+
+                          <input
+                            type="file"
+                            accept={document.accept}
+                            disabled={isUploading}
+                            className="hidden"
+                            onChange={(event) => {
+                              const file =
+                                event.target.files?.[0]
+
+                              if (file) {
+                                setSelectedFiles(
+                                  (current) => ({
+                                    ...current,
+                                    [document.type]: file,
+                                  }),
+                                )
+
+                                handleDocumentUpload(
+                                  document,
+                                  file,
+                                )
+                              }
+
+                              event.currentTarget.value = ""
+                            }}
+                          />
+                        </label>
+                      )}
                     </div>
+
+                    {selectedFiles[document.type] && (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Selected file:{" "}
+                        {selectedFiles[document.type]?.name}
+                      </p>
+                    )}
 
                     {uploaded && (
                       <p className="mt-3 text-sm text-muted-foreground">
