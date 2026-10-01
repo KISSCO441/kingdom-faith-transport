@@ -1,3 +1,4 @@
+```tsx
 "use client"
 
 import { Car } from "lucide-react"
@@ -11,6 +12,7 @@ const navLinks = [
   { label: "How It Works", href: "#how-it-works" },
   { label: "Order", href: "#book" },
   { label: "Drive with KFM", href: "/driver-registration" },
+  { label: "Driver Portal", href: "/driver-dashboard" },
 ]
 
 export function SiteHeader() {
@@ -54,3 +56,4 @@ export function SiteHeader() {
     </header>
   )
 }
+```
