@@ -18,6 +18,7 @@ export default function DriverRegistrationPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
+  // Step 2 — Personal Information
   const [fullName, setFullName] = useState("")
   const [phone, setPhone] = useState("")
   const [nationalId, setNationalId] = useState("")
@@ -35,12 +36,97 @@ export default function DriverRegistrationPage() {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
+  async function loadDriverProgress(userId: string) {
+    if (!supabase) {
+      return
+    }
+
+    const { data: driver, error: driverError } = await supabase
+      .from("drivers")
+      .select(`
+        id,
+        email,
+        full_name,
+        name,
+        phone,
+        nationalid_number,
+        date_of_birth,
+        vehicle_type,
+        vehicle_name,
+        vehicle_registration,
+        vehicle_color,
+        operating_town,
+        operating_area
+      `)
+      .eq("user_id", userId)
+      .maybeSingle()
+
+    if (driverError) {
+      console.error("Unable to load driver progress:", driverError.message)
+      return
+    }
+
+    // No driver record yet — start at Step 2.
+    if (!driver) {
+      setStep(2)
+      return
+    }
+
+    // Restore saved personal information.
+    setFullName(driver.full_name ?? driver.name ?? "")
+    setPhone(driver.phone ?? "")
+    setNationalId(driver.nationalid_number ?? "")
+    setDateOfBirth(driver.date_of_birth ?? "")
+
+    // Restore saved vehicle information.
+    setVehicleType(driver.vehicle_type ?? "")
+    setVehicleName(driver.vehicle_name ?? "")
+    setVehicleRegistration(driver.vehicle_registration ?? "")
+    setVehicleColor(driver.vehicle_color ?? "")
+    setOperatingTown(driver.operating_town ?? "")
+    setOperatingArea(driver.operating_area ?? "")
+
+    const personalInformationComplete =
+      Boolean(
+        (driver.full_name ?? driver.name) &&
+        driver.phone &&
+        driver.nationalid_number &&
+        driver.date_of_birth,
+      )
+
+    const vehicleInformationComplete =
+      Boolean(
+        driver.vehicle_type &&
+        driver.vehicle_name &&
+        driver.vehicle_registration &&
+        driver.vehicle_color &&
+        driver.operating_town &&
+        driver.operating_area,
+      )
+
+    if (!personalInformationComplete) {
+      setStep(2)
+      return
+    }
+
+    if (!vehicleInformationComplete) {
+      setStep(3)
+      return
+    }
+
+    // Steps 2 and 3 are complete.
+    // Step 4 will be the next registration stage.
+    setStep(4)
+  }
+
   useEffect(() => {
     let mounted = true
 
     async function checkSession() {
       if (!supabase) {
-        if (mounted) setCheckingSession(false)
+        if (mounted) {
+          setCheckingSession(false)
+        }
         return
       }
 
@@ -48,7 +134,9 @@ export default function DriverRegistrationPage() {
         data: { session },
       } = await supabase.auth.getSession()
 
-      if (!mounted) return
+      if (!mounted) {
+        return
+      }
 
       const user = session?.user
 
@@ -56,7 +144,8 @@ export default function DriverRegistrationPage() {
         setVerified(true)
         setStarted(true)
         setEmail(user.email ?? "")
-        setStep(2)
+
+        await loadDriverProgress(user.id)
       }
 
       setCheckingSession(false)
@@ -70,14 +159,15 @@ export default function DriverRegistrationPage() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const user = session?.user
 
       if (user?.email_confirmed_at) {
         setVerified(true)
         setStarted(true)
         setEmail(user.email ?? "")
-        setStep(2)
+
+        await loadDriverProgress(user.id)
       }
     })
 
@@ -190,8 +280,11 @@ export default function DriverRegistrationPage() {
 
     setVerified(true)
     setStarted(true)
-    setStep(2)
-    setMessage("Welcome back. Your KFM driver account is verified.")
+    setEmail(user.email ?? "")
+
+    await loadDriverProgress(user.id)
+
+    setMessage("Welcome back. Your saved KFM registration details have been loaded.")
   }
 
   async function handlePersonalInformation(
@@ -279,7 +372,6 @@ export default function DriverRegistrationPage() {
     setStep(3)
   }
 
-  // Step 3 — Vehicle Information
   async function handleVehicleInformation(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -754,6 +846,70 @@ export default function DriverRegistrationPage() {
                 {loading ? "Saving..." : "Save & Continue"}
               </button>
             </form>
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  if (verified && step === 4) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <section className="mx-auto max-w-4xl px-6 py-16">
+          <h1 className="text-4xl font-bold">
+            KFM Driver Registration
+          </h1>
+
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold">
+              Registration Journey
+            </h2>
+
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border p-4">
+                ✓ Step 1 — Account
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 2 — Personal Information
+              </div>
+
+              <div className="rounded-lg border p-4">
+                ✓ Step 3 — Vehicle Information
+              </div>
+
+              <div className="rounded-lg border-2 border-primary p-4">
+                → Step 4 — Driver Information
+              </div>
+
+              <div className="rounded-lg border p-4 text-muted-foreground">
+                Step 5 — Payment Information
+              </div>
+
+              <div className="rounded-lg border p-4 text-muted-foreground">
+                Step 6 — Documents
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 rounded-xl border p-6">
+            <h2 className="text-2xl font-bold">
+              Step 4 — Driver Information
+            </h2>
+
+            <p className="mt-2 text-muted-foreground">
+              Your personal and vehicle information has been saved.
+            </p>
+
+            <div className="mt-6 rounded-lg border p-5">
+              <p className="font-medium">
+                Your KFM registration can continue from Step 4.
+              </p>
+
+              <p className="mt-2 text-sm text-muted-foreground">
+                The Driver Information form will be added next.
+              </p>
+            </div>
           </div>
         </section>
       </main>
