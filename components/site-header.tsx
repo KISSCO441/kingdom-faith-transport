@@ -1,4 +1,3 @@
-```tsx
 "use client"
 
 import { Car } from "lucide-react"
@@ -56,4 +55,3 @@ export function SiteHeader() {
     </header>
   )
 }
-```
