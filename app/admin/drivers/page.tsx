@@ -13,12 +13,13 @@ import {
   ShieldCheck,
   AlertCircle,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase as supabaseClient } from "@/lib/supabase"
 
-if (!supabase) {
+if (!supabaseClient) {
   throw new Error("Supabase client is not configured.")
 }
 
+const supabase = supabaseClient
 type Driver = {
   id: string
   full_name: string | null
