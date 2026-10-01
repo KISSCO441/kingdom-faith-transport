@@ -78,9 +78,11 @@ export default function DriverRegistrationPage() {
       .maybeSingle()
 
     if (driverError) {
-      console.error("Unable to load driver progress:", driverError.message)
-      return
-    }
+  console.error("Unable to load driver progress:", driverError.message)
+  setError(`Unable to load your saved registration: ${driverError.message}`)
+  setStep(2)
+  return
+}
 
     // No driver record yet — start at Step 2.
     if (!driver) {
