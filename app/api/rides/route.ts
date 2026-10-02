@@ -65,6 +65,12 @@ async function findAvailableDriver(
 
   const drivers = (await response.json()) as Driver[]
 
+  console.log("KFM DRIVER MATCH QUERY RESULT:", {
+    requiredVehicleType,
+    pickupTown,
+    drivers,
+  })
+
   console.log("KFM AVAILABLE DRIVERS:", drivers)
 
   if (!drivers.length) {
