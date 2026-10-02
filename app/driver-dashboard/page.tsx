@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect, useState } from "react"
 import {
 Bike,
@@ -69,7 +68,6 @@ loadDriver()
 useEffect(() => {
 if (!driver) return
 
-```
 loadAssignedRideRequests()
 
 const interval = window.setInterval(() => {
@@ -77,7 +75,6 @@ const interval = window.setInterval(() => {
 }, 10000)
 
 return () => window.clearInterval(interval)
-```
 
 }, [driver])
 
@@ -86,7 +83,6 @@ try {
 setLoading(true)
 setError("")
 
-```
   const {
     data: { user },
     error: userError,
@@ -134,14 +130,12 @@ setError("")
 } finally {
   setLoading(false)
 }
-```
 
 }
 
 async function loadAssignedRideRequests() {
 if (!driver) return
 
-```
 try {
   setLoadingRides(true)
 
@@ -175,7 +169,6 @@ try {
 } finally {
   setLoadingRides(false)
 }
-```
 
 }
 
@@ -184,7 +177,6 @@ newAvailability: "ONLINE" | "OFFLINE"
 ) {
 if (!driver) return
 
-```
 if (driver.status !== "VERIFIED") {
   setError("Your driver account must be verified before going online.")
   return
@@ -214,7 +206,6 @@ try {
 } finally {
   setUpdatingAvailability(false)
 }
-```
 
 }
 
@@ -232,7 +223,6 @@ Loading your driver dashboard... </p> </div> </div> </main>
 if (!driver) {
 return ( <main className="min-h-screen bg-gray-50 px-4 py-10"> <div className="mx-auto max-w-5xl"> <div className="rounded-2xl border bg-white p-8 text-center shadow-sm"> <User className="mx-auto h-12 w-12 text-gray-400" />
 
-```
         <h1 className="mt-4 text-2xl font-bold">
           Driver Profile Not Found
         </h1>
@@ -253,7 +243,6 @@ return ( <main className="min-h-screen bg-gray-50 px-4 py-10"> <div className="m
     </div>
   </main>
 )
-```
 
 }
 
@@ -262,7 +251,6 @@ const isVerified = driver.status === "VERIFIED"
 
 return ( <main className="min-h-screen bg-gray-50 px-4 py-8"> <div className="mx-auto max-w-6xl space-y-6">
 
-```
     {/* Header */}
     <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
       <div>
