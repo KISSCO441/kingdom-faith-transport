@@ -1,681 +1,675 @@
+"use client"
+
 import { useEffect, useState } from "react"
 import {
-Bike,
-Car,
-CheckCircle2,
-Clock,
-LogOut,
-ShieldCheck,
-User,
-Wifi,
-WifiOff,
+  Bike,
+  Car,
+  CheckCircle2,
+  Clock,
+  LogOut,
+  ShieldCheck,
+  User,
+  Wifi,
+  WifiOff,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { supabase as supabaseClient } from "@/lib/supabase"
 
 if (!supabaseClient) {
-throw new Error("Supabase client is not configured.")
+  throw new Error("Supabase client is not configured.")
 }
 
 const supabase = supabaseClient
 
 type Driver = {
-id: string
-full_name: string | null
-phone: string | null
-email: string | null
-vehicle_type: string | null
-vehicle_name: string | null
-vehicle_registration: string | null
-vehicle_color: string | null
-operating_town: string | null
-operating_area: string | null
-driver_license_number: string | null
-status: string | null
-availability: string | null
-profile_photo_url: string | null
+  id: string
+  full_name: string | null
+  phone: string | null
+  email: string | null
+  vehicle_type: string | null
+  vehicle_name: string | null
+  vehicle_registration: string | null
+  vehicle_color: string | null
+  operating_town: string | null
+  operating_area: string | null
+  driver_license_number: string | null
+  status: string | null
+  availability: "ONLINE" | "OFFLINE" | null
+  profile_photo_url: string | null
 }
 
 type RideRequest = {
-id: string
-booking_number: string | null
-pickup_location: string | null
-destination: string | null
-vehicle_type: string | null
-status: string | null
-fare: number | null
-created_at: string
+  id: string
+  booking_number: string | null
+  pickup_location: string | null
+  destination: string | null
+  vehicle_type: string | null
+  status: string | null
+  fare: number | null
+  created_at: string
 }
 
 export default function DriverDashboardPage() {
-const [driver, setDriver] = useState<Driver | null>(null)
-const [rideRequests, setRideRequests] = useState<RideRequest[]>([])
-const [loading, setLoading] = useState(true)
-const [loadingRides, setLoadingRides] = useState(false)
-const [updatingAvailability, setUpdatingAvailability] = useState(false)
-const [error, setError] = useState("")
-const [success, setSuccess] = useState("")
+  const [driver, setDriver] = useState<Driver | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [updatingAvailability, setUpdatingAvailability] = useState(false)
 
-useEffect(() => {
-loadDriver()
-}, [])
+  const [rideRequests, setRideRequests] = useState<RideRequest[]>([])
+  const [loadingRides, setLoadingRides] = useState(false)
 
-useEffect(() => {
-if (!driver) return
+  useEffect(() => {
+    loadDriver()
+  }, [])
 
-```
-loadAssignedRideRequests()
+  useEffect(() => {
+    if (!driver) return
 
-const interval = window.setInterval(() => {
-  loadAssignedRideRequests()
-}, 10000)
+    loadAssignedRideRequests()
 
-return () => window.clearInterval(interval)
-```
+    const interval = window.setInterval(() => {
+      loadAssignedRideRequests()
+    }, 10000)
 
-}, [driver])
+    return () => window.clearInterval(interval)
+  }, [driver])
 
-async function loadDriver() {
-setLoading(true)
-setError("")
+  async function loadDriver() {
+    try {
+      setLoading(true)
+      setError("")
 
-```
-try {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
 
-  if (userError) {
-    throw userError
+      if (userError) {
+        throw userError
+      }
+
+      if (!user) {
+        setError("You are not logged in.")
+        setLoading(false)
+        return
+      }
+
+      const { data, error: driverError } = await supabase
+        .from("drivers")
+        .select(`
+          id,
+          full_name,
+          phone,
+          email,
+          vehicle_type,
+          vehicle_name,
+          vehicle_registration,
+          vehicle_color,
+          operating_town,
+          operating_area,
+          driver_license_number,
+          status,
+          availability,
+          profile_photo_url
+        `)
+        .eq("id", user.id)
+        .single()
+
+      if (driverError) {
+        throw driverError
+      }
+
+      setDriver(data as Driver)
+    } catch (err) {
+      console.error("Driver loading error:", err)
+      setError("Unable to load your driver profile.")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  if (!user) {
-    setError(
-      "You must be signed in to access the KFM Driver Dashboard.",
-    )
-    return
+  async function loadAssignedRideRequests() {
+    if (!driver) return
+
+    try {
+      setLoadingRides(true)
+
+      const { data, error: ridesError } = await supabase
+        .from("ride_requests")
+        .select(`
+          id,
+          booking_number,
+          pickup_location,
+          destination,
+          vehicle_type,
+          status,
+          fare,
+          created_at
+        `)
+        .eq("driver_id", driver.id)
+        .order("created_at", { ascending: false })
+
+      if (ridesError) {
+        throw ridesError
+      }
+
+      setRideRequests((data || []) as RideRequest[])
+    } catch (err) {
+      console.error("Assigned ride loading error:", err)
+      setRideRequests([])
+    } finally {
+      setLoadingRides(false)
+    }
   }
 
-  const { data, error: driverError } = await supabase
-    .from("drivers")
-    .select(
-      `
-        id,
-        full_name,
-        phone,
-        email,
-        vehicle_type,
-        vehicle_name,
-        vehicle_registration,
-        vehicle_color,
-        operating_town,
-        operating_area,
-        driver_license_number,
-        status,
-        availability,
-        profile_photo_url
-      `,
-    )
-    .eq("id", user.id)
-    .single()
+  async function updateAvailability(
+    newAvailability: "ONLINE" | "OFFLINE"
+  ) {
+    if (!driver) return
 
-  if (driverError) {
-    throw driverError
+    if (driver.status !== "VERIFIED") {
+      setError("Your driver account must be verified before going online.")
+      return
+    }
+
+    try {
+      setUpdatingAvailability(true)
+      setError("")
+
+      const { data, error: updateError } = await supabase
+        .from("drivers")
+        .update({
+          availability: newAvailability,
+        })
+        .eq("id", driver.id)
+        .select()
+        .single()
+
+      if (updateError) {
+        throw updateError
+      }
+
+      setDriver(data as Driver)
+    } catch (err) {
+      console.error("Availability update error:", err)
+      setError("Unable to update your availability.")
+    } finally {
+      setUpdatingAvailability(false)
+    }
   }
 
-  setDriver(data)
-} catch (err) {
-  console.error("Driver dashboard error:", err)
-
-  setError(
-    err instanceof Error
-      ? err.message
-      : "Unable to load your driver profile.",
-  )
-} finally {
-  setLoading(false)
-}
-```
-
-}
-
-async function loadAssignedRideRequests() {
-if (!driver) return
-
-```
-setLoadingRides(true)
-
-try {
-  const { data, error: rideError } = await supabase
-    .from("ride_requests")
-    .select(
-      `
-        id,
-        booking_number,
-        pickup_location,
-        destination,
-        vehicle_type,
-        status,
-        fare,
-        created_at
-      `,
-    )
-    .eq("driver_id", driver.id)
-    .order("created_at", { ascending: false })
-
-  if (rideError) {
-    throw rideError
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    window.location.href = "/"
   }
 
-  setRideRequests(data || [])
-} catch (err) {
-  console.error("Assigned ride requests error:", err)
-
-  setError(
-    err instanceof Error
-      ? err.message
-      : "Unable to load assigned ride requests.",
-  )
-} finally {
-  setLoadingRides(false)
-}
-```
-
-}
-
-async function updateAvailability(
-newAvailability: "ONLINE" | "OFFLINE",
-) {
-if (!driver) return
-
-```
-setUpdatingAvailability(true)
-setError("")
-setSuccess("")
-
-try {
-  if (driver.status !== "VERIFIED") {
-    throw new Error(
-      "Your KFM driver account must be VERIFIED before you can go online.",
-    )
-  }
-
-  const { data, error: updateError } = await supabase
-    .from("drivers")
-    .update({
-      availability: newAvailability,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", driver.id)
-    .select(
-      `
-        id,
-        full_name,
-        phone,
-        email,
-        vehicle_type,
-        vehicle_name,
-        vehicle_registration,
-        vehicle_color,
-        operating_town,
-        operating_area,
-        driver_license_number,
-        status,
-        availability,
-        profile_photo_url
-      `,
-    )
-    .single()
-
-  if (updateError) {
-    throw updateError
-  }
-
-  setDriver(data)
-
-  setSuccess(
-    newAvailability === "ONLINE"
-      ? "You are now ONLINE and available for KFM ride requests."
-      : "You are now OFFLINE and will not receive new KFM ride requests.",
-  )
-} catch (err) {
-  console.error("Availability update error:", err)
-
-  setError(
-    err instanceof Error
-      ? err.message
-      : "Unable to update your availability.",
-  )
-} finally {
-  setUpdatingAvailability(false)
-}
-```
-
-}
-
-async function handleSignOut() {
-await supabase.auth.signOut()
-window.location.href = "/"
-}
-
-if (loading) {
-return ( <main className="min-h-screen bg-muted/40"> <div className="mx-auto max-w-5xl px-4 py-16"> <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm"> <Clock className="mx-auto h-8 w-8 animate-pulse text-primary" />
-
-```
-        <h1 className="mt-4 text-xl font-semibold">
-          Loading KFM Driver Dashboard
-        </h1>
-
-        <p className="mt-2 text-sm text-muted-foreground">
-          Please wait while we load your driver profile.
-        </p>
-      </div>
-    </div>
-  </main>
-)
-```
-
-}
-
-if (error && !driver) {
-return ( <main className="min-h-screen bg-muted/40"> <div className="mx-auto max-w-3xl px-4 py-16"> <div className="rounded-2xl border border-destructive/30 bg-card p-8 text-center shadow-sm"> <ShieldCheck className="mx-auto h-12 w-12 text-destructive" />
-
-```
-        <h1 className="mt-4 text-2xl font-bold">
-          KFM Driver Dashboard
-        </h1>
-
-        <p className="mt-4 text-sm text-destructive">
-          {error}
-        </p>
-
-        <Button
-          className="mt-6"
-          variant="outline"
-          onClick={() => {
-            window.location.href = "/"
-          }}
-        >
-          Return to KFM Transport
-        </Button>
-      </div>
-    </div>
-  </main>
-)
-```
-
-}
-
-if (!driver) {
-return null
-}
-
-const isVerified = driver.status === "VERIFIED"
-const isOnline = driver.availability === "ONLINE"
-const isCar = driver.vehicle_type?.toLowerCase() === "car"
-
-return ( <main className="min-h-screen bg-muted/40"> <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
-{/* Header */} <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between"> <div> <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-KFM Transport </p>
-
-```
-        <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">
-          Driver Dashboard
-        </h1>
-
-        <p className="mt-2 text-sm text-muted-foreground">
-          Manage your driver availability and KFM ride requests.
-        </p>
-      </div>
-
-      <Button
-        variant="outline"
-        onClick={handleSignOut}
-        className="gap-2"
-      >
-        <LogOut className="h-4 w-4" />
-        Sign Out
-      </Button>
-    </div>
-
-    {/* Status messages */}
-    {error && (
-      <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-        {error}
-      </div>
-    )}
-
-    {success && (
-      <div className="mt-6 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
-        <CheckCircle2 className="h-4 w-4 text-primary" />
-        {success}
-      </div>
-    )}
-
-    {/* Verification status */}
-    <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-          </div>
-
-          <div>
-            <p className="text-sm text-muted-foreground">
-              KFM Driver Verification
-            </p>
-
-            <p className="mt-1 text-xl font-bold">
-              {isVerified ? "VERIFIED" : driver.status || "PENDING"}
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50 px-4 py-10">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-2xl border bg-white p-8 text-center shadow-sm">
+            <Clock className="mx-auto h-10 w-10 animate-pulse text-gray-500" />
+            <p className="mt-4 text-gray-600">
+              Loading your driver dashboard...
             </p>
           </div>
         </div>
+      </main>
+    )
+  }
 
-        {isVerified ? (
-          <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium">
-            <CheckCircle2 className="h-4 w-4" />
-            Approved by KFM
+  if (!driver) {
+    return (
+      <main className="min-h-screen bg-gray-50 px-4 py-10">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-2xl border bg-white p-8 text-center shadow-sm">
+            <User className="mx-auto h-12 w-12 text-gray-400" />
+
+            <h1 className="mt-4 text-2xl font-bold">
+              Driver Profile Not Found
+            </h1>
+
+            <p className="mt-2 text-gray-600">
+              {error || "We could not find your driver profile."}
+            </p>
+
+            <Button
+              className="mt-6"
+              onClick={() => {
+                window.location.href = "/driver-registration"
+              }}
+            >
+              Register as a Driver
+            </Button>
           </div>
-        ) : (
-          <div className="rounded-full bg-muted px-4 py-2 text-sm font-medium">
-            Verification required
+        </div>
+      </main>
+    )
+  }
+
+  const isOnline = driver.availability === "ONLINE"
+  const isVerified = driver.status === "VERIFIED"
+
+  return (
+    <main className="min-h-screen bg-gray-50 px-4 py-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+
+        {/* Header */}
+        <div className="flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500">
+              Kingdom Faith Marketplace Transport
+            </p>
+
+            <h1 className="mt-1 text-3xl font-bold text-gray-900">
+              Driver Dashboard
+            </h1>
+
+            <p className="mt-1 text-gray-600">
+              Welcome, {driver.full_name || "Driver"}
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={handleSignOut}
+            className="w-full md:w-auto"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
           </div>
         )}
-      </div>
 
-      {!isVerified && (
-        <p className="mt-5 text-sm text-muted-foreground">
-          Your driver account must be verified by KFM before you
-          can go online or receive customer ride requests.
-        </p>
-      )}
-    </div>
+        {/* Profile + Verification */}
+        <div className="grid gap-6 md:grid-cols-2">
 
-    {/* Availability */}
-    <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Driver Availability
-          </p>
-
-          <h2 className="mt-2 text-2xl font-bold">
-            {isOnline ? "You are ONLINE" : "You are OFFLINE"}
-          </h2>
-
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            {isOnline
-              ? "KFM can now consider you for eligible customer ride requests."
-              : "You will not receive new KFM ride requests while offline."}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            type="button"
-            size="lg"
-            disabled={
-              updatingAvailability ||
-              !isVerified ||
-              isOnline
-            }
-            onClick={() => updateAvailability("ONLINE")}
-            className="gap-2"
-          >
-            <Wifi className="h-4 w-4" />
-            {updatingAvailability && !isOnline
-              ? "Going Online..."
-              : "Go Online"}
-          </Button>
-
-          <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            disabled={
-              updatingAvailability ||
-              !isOnline
-            }
-            onClick={() => updateAvailability("OFFLINE")}
-            className="gap-2"
-          >
-            <WifiOff className="h-4 w-4" />
-            {updatingAvailability && isOnline
-              ? "Going Offline..."
-              : "Go Offline"}
-          </Button>
-        </div>
-      </div>
-    </div>
-
-    {/* Driver profile */}
-    <div className="mt-6 grid gap-6 md:grid-cols-2">
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          <User className="h-5 w-5 text-primary" />
-
-          <h2 className="text-lg font-semibold">
-            Driver Profile
-          </h2>
-        </div>
-
-        <div className="mt-6 space-y-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">Full Name</p>
-            <p className="mt-1 font-medium">
-              {driver.full_name || "Not provided"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-muted-foreground">Phone</p>
-            <p className="mt-1 font-medium">
-              {driver.phone || "Not provided"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-muted-foreground">Email</p>
-            <p className="mt-1 font-medium">
-              {driver.email || "Not provided"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-muted-foreground">
-              Operating Location
-            </p>
-            <p className="mt-1 font-medium">
-              {driver.operating_town || "Not provided"}
-              {driver.operating_area
-                ? ` — ${driver.operating_area}`
-                : ""}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          {isCar ? (
-            <Car className="h-5 w-5 text-primary" />
-          ) : (
-            <Bike className="h-5 w-5 text-primary" />
-          )}
-
-          <h2 className="text-lg font-semibold">
-            Vehicle Information
-          </h2>
-        </div>
-
-        <div className="mt-6 space-y-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">Vehicle Type</p>
-            <p className="mt-1 font-medium">
-              {driver.vehicle_type || "Not provided"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-muted-foreground">Vehicle</p>
-            <p className="mt-1 font-medium">
-              {driver.vehicle_name || "Not provided"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-muted-foreground">
-              Registration Number
-            </p>
-            <p className="mt-1 font-medium">
-              {driver.vehicle_registration || "Not provided"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-muted-foreground">Colour</p>
-            <p className="mt-1 font-medium">
-              {driver.vehicle_color || "Not provided"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-muted-foreground">
-              Driver's Licence
-            </p>
-            <p className="mt-1 font-medium">
-              {driver.driver_license_number || "Not provided"}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* Assigned Ride Requests */}
-    <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            Ride Requests
-          </p>
-
-          <h2 className="mt-2 text-xl font-bold">
-            Assigned Rides
-          </h2>
-
-          <p className="mt-2 text-sm text-muted-foreground">
-            Ride requests assigned to you by the KFM driver matching system
-            will appear here.
-          </p>
-        </div>
-
-        <div className="hidden rounded-full bg-muted p-3 sm:block">
-          <Car className="h-5 w-5 text-muted-foreground" />
-        </div>
-      </div>
-
-      {loadingRides && rideRequests.length === 0 ? (
-        <div className="mt-6 rounded-xl border border-border bg-muted/30 p-6 text-center">
-          <Clock className="mx-auto h-6 w-6 animate-pulse text-primary" />
-
-          <p className="mt-3 text-sm text-muted-foreground">
-            Checking for assigned ride requests...
-          </p>
-        </div>
-      ) : rideRequests.length === 0 ? (
-        <div className="mt-6 rounded-xl border border-dashed border-border bg-muted/20 p-8 text-center">
-          <Car className="mx-auto h-8 w-8 text-muted-foreground" />
-
-          <h3 className="mt-3 font-semibold">
-            No assigned rides yet
-          </h3>
-
-          <p className="mt-2 text-sm text-muted-foreground">
-            When the KFM matching system assigns a ride to you,
-            it will appear here automatically.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-6 space-y-4">
-          {rideRequests.map((ride) => (
-            <div
-              key={ride.id}
-              className="rounded-xl border border-border bg-muted/20 p-5"
-            >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    KFM Booking Number
-                  </p>
-
-                  <p className="mt-1 text-lg font-bold">
-                    {ride.booking_number || "Booking number unavailable"}
-                  </p>
-                </div>
-
-                <div className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium">
-                  {ride.status || "ASSIGNED"}
-                </div>
+          {/* Driver Profile */}
+          <section className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-gray-100 p-3">
+                <User className="h-6 w-6 text-gray-700" />
               </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Pickup
-                  </p>
+              <div>
+                <h2 className="text-xl font-bold">
+                  Driver Profile
+                </h2>
 
-                  <p className="mt-1 font-medium">
-                    {ride.pickup_location || "Not provided"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Destination
-                  </p>
-
-                  <p className="mt-1 font-medium">
-                    {ride.destination || "Not provided"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Vehicle Requested
-                  </p>
-
-                  <p className="mt-1 font-medium">
-                    {ride.vehicle_type || "Not specified"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Fare
-                  </p>
-
-                  <p className="mt-1 font-medium">
-                    {ride.fare !== null
-                      ? `GH₵ ${Number(ride.fare).toFixed(2)}`
-                      : "Fare not available"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 border-t border-border pt-4">
-                <p className="text-xs text-muted-foreground">
-                  Requested{" "}
-                  {new Date(ride.created_at).toLocaleString()}
+                <p className="text-sm text-gray-500">
+                  Your registered driver information
                 </p>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-</main>
 
-)
+            <div className="mt-6 space-y-4">
+
+              <div>
+                <p className="text-xs font-medium uppercase text-gray-500">
+                  Full Name
+                </p>
+                <p className="mt-1 font-medium">
+                  {driver.full_name || "Not provided"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase text-gray-500">
+                  Phone
+                </p>
+                <p className="mt-1 font-medium">
+                  {driver.phone || "Not provided"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase text-gray-500">
+                  Email
+                </p>
+                <p className="mt-1 font-medium">
+                  {driver.email || "Not provided"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase text-gray-500">
+                  Operating Town
+                </p>
+                <p className="mt-1 font-medium">
+                  {driver.operating_town || "Not provided"}
+                  {driver.operating_area
+                    ? ` — ${driver.operating_area}`
+                    : ""}
+                </p>
+              </div>
+
+            </div>
+          </section>
+
+          {/* Verification */}
+          <section className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-gray-100 p-3">
+                <ShieldCheck className="h-6 w-6 text-gray-700" />
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold">
+                  Driver Verification
+                </h2>
+
+                <p className="text-sm text-gray-500">
+                  Your KFM driver account status
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-xl border p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Verification Status
+                  </p>
+
+                  <p className="mt-1 font-semibold">
+                    {driver.status || "PENDING"}
+                  </p>
+                </div>
+
+                {isVerified ? (
+                  <CheckCircle2 className="h-8 w-8 text-green-600" />
+                ) : (
+                  <Clock className="h-8 w-8 text-yellow-600" />
+                )}
+              </div>
+
+              <div className="mt-5">
+                {isVerified ? (
+                  <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+                    Your driver account has been verified by KFM.
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-yellow-50 p-3 text-sm text-yellow-700">
+                    Your driver account is waiting for verification.
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Vehicle */}
+        <section className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-gray-100 p-3">
+              {driver.vehicle_type?.toLowerCase() === "okada" ? (
+                <Bike className="h-6 w-6 text-gray-700" />
+              ) : (
+                <Car className="h-6 w-6 text-gray-700" />
+              )}
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold">
+                Vehicle Information
+              </h2>
+
+              <p className="text-sm text-gray-500">
+                Vehicle registered to your driver account
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
+            <div>
+              <p className="text-xs font-medium uppercase text-gray-500">
+                Vehicle Type
+              </p>
+              <p className="mt-1 font-semibold">
+                {driver.vehicle_type || "Not provided"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-gray-500">
+                Vehicle Name
+              </p>
+              <p className="mt-1 font-semibold">
+                {driver.vehicle_name || "Not provided"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-gray-500">
+                Registration
+              </p>
+              <p className="mt-1 font-semibold">
+                {driver.vehicle_registration || "Not provided"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium uppercase text-gray-500">
+                Color
+              </p>
+              <p className="mt-1 font-semibold">
+                {driver.vehicle_color || "Not provided"}
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Availability */}
+        <section className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+
+            <div className="flex items-center gap-3">
+              <div
+                className={`rounded-full p-3 ${
+                  isOnline
+                    ? "bg-green-100"
+                    : "bg-gray-100"
+                }`}
+              >
+                {isOnline ? (
+                  <Wifi className="h-6 w-6 text-green-600" />
+                ) : (
+                  <WifiOff className="h-6 w-6 text-gray-600" />
+                )}
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold">
+                  Driver Availability
+                </h2>
+
+                <p className="text-sm text-gray-500">
+                  Control whether you are available to receive ride assignments
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                onClick={() => updateAvailability("ONLINE")}
+                disabled={
+                  updatingAvailability ||
+                  isOnline ||
+                  !isVerified
+                }
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Wifi className="mr-2 h-4 w-4" />
+                Go Online
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => updateAvailability("OFFLINE")}
+                disabled={
+                  updatingAvailability ||
+                  !isOnline
+                }
+              >
+                <WifiOff className="mr-2 h-4 w-4" />
+                Go Offline
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-xl border p-4">
+            <p className="text-sm text-gray-500">
+              Current Availability
+            </p>
+
+            <div className="mt-2 flex items-center gap-2">
+              <span
+                className={`h-3 w-3 rounded-full ${
+                  isOnline
+                    ? "bg-green-500"
+                    : "bg-gray-400"
+                }`}
+              />
+
+              <span className="font-semibold">
+                {isOnline ? "ONLINE" : "OFFLINE"}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* Assigned Ride Requests */}
+        <section className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">
+                Assigned Ride Requests
+              </h2>
+
+              <p className="text-sm text-gray-500">
+                Ride requests assigned to you by KFM Transport
+              </p>
+            </div>
+
+            {loadingRides && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Clock className="h-4 w-4 animate-pulse" />
+                Checking for new rides...
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 space-y-4">
+
+            {rideRequests.length === 0 && !loadingRides ? (
+              <div className="rounded-xl border border-dashed p-8 text-center">
+                <Car className="mx-auto h-10 w-10 text-gray-400" />
+
+                <h3 className="mt-3 font-semibold text-gray-800">
+                  No Assigned Ride Requests
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  When a ride is assigned to you, it will appear here.
+                </p>
+              </div>
+            ) : (
+              rideRequests.map((ride) => (
+                <div
+                  key={ride.id}
+                  className="rounded-xl border p-5 transition hover:shadow-sm"
+                >
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Booking Number
+                      </p>
+
+                      <h3 className="mt-1 text-lg font-bold">
+                        {ride.booking_number || ride.id}
+                      </h3>
+                    </div>
+
+                    <div className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                      {ride.status || "ASSIGNED"}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-5 md:grid-cols-2">
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Pickup Location
+                      </p>
+
+                      <p className="mt-1 font-medium">
+                        {ride.pickup_location || "Not provided"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Destination
+                      </p>
+
+                      <p className="mt-1 font-medium">
+                        {ride.destination || "Not provided"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Vehicle Requested
+                      </p>
+
+                      <p className="mt-1 font-medium">
+                        {ride.vehicle_type || "Not specified"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Fare
+                      </p>
+
+                      <p className="mt-1 font-semibold">
+                        {ride.fare !== null &&
+                        ride.fare !== undefined
+                          ? `GH₵ ${Number(ride.fare).toFixed(2)}`
+                          : "Not provided"}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  <div className="mt-5 border-t pt-4">
+                    <p className="text-xs text-gray-500">
+                      Ride requested
+                    </p>
+
+                    <p className="mt-1 text-sm font-medium">
+                      {new Date(
+                        ride.created_at
+                      ).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  )
 }
