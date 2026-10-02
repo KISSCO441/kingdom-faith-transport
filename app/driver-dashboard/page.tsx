@@ -162,7 +162,8 @@ try {
     throw ridesError
   }
 
-  setRideRequests((data || []) as RideRequest[])
+setRideRequests((data || []) as RideRequest[])
+setError(`KFM DEBUG: ${data?.length ?? 0} assigned ride(s) found.`)
 } catch (err) {
   console.error("Assigned ride loading error:", err)
 
