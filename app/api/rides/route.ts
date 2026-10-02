@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { calculateCarFareFromLocations } from "@/lib/kfm-fare"
 
 const okadaFares: Record<string, number> = {
   "Nsawam Central": 15,
@@ -135,6 +136,11 @@ export async function POST(request: Request) {
 
     let fareEstimate: number | null = null
 
+    /*
+     * KFM OKADA FARE
+     *
+     * Okada remains zone-based.
+     */
     if (vehicle_type.trim().toLowerCase() === "motorbike") {
       if (pickup_town !== "Nsawam") {
         return NextResponse.json(
@@ -157,6 +163,53 @@ export async function POST(request: Request) {
       }
 
       fareEstimate = okadaFares[okada_zone]
+    }
+
+    /*
+     * KFM CAR FARE
+     *
+     * Mapbox calculates the actual road distance.
+     * KFM then applies:
+     *
+     * GH₵6 per billed kilometre
+     * Minimum fare: GH₵25
+     */
+    if (vehicle_type.trim().toLowerCase() === "car") {
+      try {
+        const carFare = await calculateCarFareFromLocations({
+          pickupArea: pickup_area,
+          pickupTown: pickup_town,
+          destinationArea: destination_area,
+          destinationTown: destination_town,
+        })
+
+        fareEstimate = carFare.fare
+
+        console.log("KFM CAR FARE CALCULATION:", {
+          pickupTown: pickup_town,
+          pickupArea: pickup_area,
+          destinationTown: destination_town,
+          destinationArea: destination_area,
+          distanceKm: carFare.distanceKm,
+          billedKm: carFare.billedKm,
+          ratePerKm: carFare.ratePerKm,
+          minimumFare: carFare.minimumFare,
+          fare: carFare.fare,
+        })
+      } catch (fareError) {
+        console.error(
+          "KFM car fare calculation failed:",
+          fareError,
+        )
+
+        return NextResponse.json(
+          {
+            error:
+              "Unable to calculate the KFM car fare from the selected locations. Please check the pickup and destination and try again.",
+          },
+          { status: 400 },
+        )
+      }
     }
 
     const supabaseUrl = process.env.SUPABASE_URL
