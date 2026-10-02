@@ -797,29 +797,44 @@ export default function DriverDashboardPage() {
 
                   </div>
 
-                  {/* Accept Ride */}
-                  {ride.ride_status === "requested" && (
-                    <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+       {/* Ride Actions */}
+      {ride.ride_status === "requested" && (
+     <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+     <Button
+      onClick={() =>
+        handleRideAction(
+          ride.id,
+          "accept",
+        )
+      }
+      disabled={updatingRideId === ride.id}
+      className="bg-green-600 hover:bg-green-700"
+    >
+      {updatingRideId === ride.id
+        ? "Accepting..."
+        : "Accept Ride"}
+    </Button>
+  </div>
+)}
 
-                      <Button
-                        onClick={() =>
-                          handleRideAction(
-                            ride.id,
-                            "accept",
-                          )
-                        }
-                        disabled={
-                          updatingRideId === ride.id
-                        }
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        {updatingRideId === ride.id
-                          ? "Accepting..."
-                          : "Accept Ride"}
-                      </Button>
-
-                    </div>
-                  )}
+{ride.ride_status === "accepted" && (
+  <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+    <Button
+      onClick={() =>
+        handleRideAction(
+          ride.id,
+          "arrive",
+        )
+      }
+      disabled={updatingRideId === ride.id}
+      className="bg-blue-600 hover:bg-blue-700"
+    >
+      {updatingRideId === ride.id
+        ? "Updating..."
+        : "Arrived at Pickup"}
+    </Button>
+  </div>
+)}
 
                 </div>
               ))
