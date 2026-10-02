@@ -138,7 +138,7 @@ if (!driver) return
 
 try {
   setLoadingRides(true)
-
+  console.log("KFM DRIVER DASHBOARD DRIVER ID:", driver.id)
   const { data, error: ridesError } = await supabase
     .from("ride_requests")
     .select(`
