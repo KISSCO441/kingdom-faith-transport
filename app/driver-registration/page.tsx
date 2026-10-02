@@ -542,16 +542,12 @@ export default function DriverRegistrationPage() {
       )
       return
     }
+ setVerified(true)
+ setStarted(true)
+ setEmail(user.email ?? "")
 
-    setVerified(true)
-    setStarted(true)
-    setEmail(user.email ?? "")
-
-    await loadDriverProgress(user.id)
-
-    setMessage(
-      "Welcome back. Your saved KFM registration details have been loaded.",
-    )
+window.location.href = "/driver-dashboard"
+return
   }
 
   async function handlePersonalInformation(
