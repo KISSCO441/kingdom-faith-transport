@@ -1,5 +1,3 @@
-"use client"
-
 import { useEffect, useState } from "react"
 import {
 Bike,
@@ -678,7 +676,6 @@ KFM Transport </p>
     </div>
   </div>
 </main>
-```
 
 )
 }
