@@ -835,7 +835,24 @@ export default function DriverDashboardPage() {
     </Button>
   </div>
 )}
-
+{ride.ride_status === "arrived" && (
+  <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+    <Button
+      onClick={() =>
+        handleRideAction(
+          ride.id,
+          "start",
+        )
+      }
+      disabled={updatingRideId === ride.id}
+      className="bg-purple-600 hover:bg-purple-700"
+    >
+      {updatingRideId === ride.id
+        ? "Starting..."
+        : "Start Ride"}
+    </Button>
+  </div>
+)}
                 </div>
               ))
             )}
