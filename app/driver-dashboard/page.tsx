@@ -1,4 +1,3 @@
-```tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -54,18 +53,22 @@ type RideRequest = {
   created_at: string
 }
 
+type RideAction =
+  | "accept"
+  | "arrive"
+  | "start"
+  | "complete"
+  | "cancel"
+
 export default function DriverDashboardPage() {
   const [driver, setDriver] = useState<Driver | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [updatingAvailability, setUpdatingAvailability] =
-    useState(false)
+  const [updatingAvailability, setUpdatingAvailability] = useState(false)
 
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([])
   const [loadingRides, setLoadingRides] = useState(false)
-  const [updatingRideId, setUpdatingRideId] = useState<string | null>(
-    null,
-  )
+  const [updatingRideId, setUpdatingRideId] = useState<string | null>(null)
 
   useEffect(() => {
     loadDriver()
@@ -143,11 +146,6 @@ export default function DriverDashboardPage() {
     try {
       setLoadingRides(true)
 
-      console.log(
-        "KFM DRIVER DASHBOARD DRIVER ID:",
-        driver.id,
-      )
-
       const { data, error: ridesError } = await supabase
         .from("ride_requests")
         .select(`
@@ -172,15 +170,8 @@ export default function DriverDashboardPage() {
       }
 
       setRideRequests((data || []) as RideRequest[])
-
-      setError(
-        `KFM DEBUG: ${data?.length ?? 0} assigned ride(s) found.`,
-      )
     } catch (err) {
-      console.error(
-        "Assigned ride loading error:",
-        err,
-      )
+      console.error("Assigned ride loading error:", err)
 
       const message =
         err instanceof Error
@@ -196,12 +187,7 @@ export default function DriverDashboardPage() {
 
   async function handleRideAction(
     rideId: string,
-    action:
-      | "accept"
-      | "arrive"
-      | "start"
-      | "complete"
-      | "cancel",
+    action: RideAction,
   ) {
     if (!driver) return
 
@@ -277,11 +263,7 @@ export default function DriverDashboardPage() {
 
       setDriver(data as Driver)
     } catch (err) {
-      console.error(
-        "Availability update error:",
-        err,
-      )
-
+      console.error("Availability update error:", err)
       setError("Unable to update your availability.")
     } finally {
       setUpdatingAvailability(false)
@@ -299,6 +281,7 @@ export default function DriverDashboardPage() {
         <div className="mx-auto max-w-5xl">
           <div className="rounded-2xl border bg-white p-8 text-center shadow-sm">
             <Clock className="mx-auto h-10 w-10 animate-pulse text-gray-500" />
+
             <p className="mt-4 text-gray-600">
               Loading your driver dashboard...
             </p>
@@ -320,8 +303,7 @@ export default function DriverDashboardPage() {
             </h1>
 
             <p className="mt-2 text-gray-600">
-              {error ||
-                "We could not find your driver profile."}
+              {error || "We could not find your driver profile."}
             </p>
 
             <Button
@@ -408,8 +390,7 @@ export default function DriverDashboardPage() {
                 </p>
 
                 <p className="mt-1 font-medium">
-                  {driver.full_name ||
-                    "Not provided"}
+                  {driver.full_name || "Not provided"}
                 </p>
               </div>
 
@@ -419,8 +400,7 @@ export default function DriverDashboardPage() {
                 </p>
 
                 <p className="mt-1 font-medium">
-                  {driver.phone ||
-                    "Not provided"}
+                  {driver.phone || "Not provided"}
                 </p>
               </div>
 
@@ -430,8 +410,7 @@ export default function DriverDashboardPage() {
                 </p>
 
                 <p className="mt-1 font-medium">
-                  {driver.email ||
-                    "Not provided"}
+                  {driver.email || "Not provided"}
                 </p>
               </div>
 
@@ -441,8 +420,7 @@ export default function DriverDashboardPage() {
                 </p>
 
                 <p className="mt-1 font-medium">
-                  {driver.operating_town ||
-                    "Not provided"}
+                  {driver.operating_town || "Not provided"}
 
                   {driver.operating_area
                     ? ` — ${driver.operating_area}`
@@ -473,6 +451,7 @@ export default function DriverDashboardPage() {
 
             <div className="mt-6 rounded-xl border p-5">
               <div className="flex items-center justify-between gap-4">
+
                 <div>
                   <p className="text-sm text-gray-500">
                     Verification Status
@@ -508,9 +487,9 @@ export default function DriverDashboardPage() {
         {/* Vehicle */}
         <section className="rounded-2xl bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3">
+
             <div className="rounded-full bg-gray-100 p-3">
-              {driver.vehicle_type?.toLowerCase() ===
-              "okada" ? (
+              {driver.vehicle_type?.toLowerCase() === "okada" ? (
                 <Bike className="h-6 w-6 text-gray-700" />
               ) : (
                 <Car className="h-6 w-6 text-gray-700" />
@@ -536,8 +515,7 @@ export default function DriverDashboardPage() {
               </p>
 
               <p className="mt-1 font-semibold">
-                {driver.vehicle_type ||
-                  "Not provided"}
+                {driver.vehicle_type || "Not provided"}
               </p>
             </div>
 
@@ -547,8 +525,7 @@ export default function DriverDashboardPage() {
               </p>
 
               <p className="mt-1 font-semibold">
-                {driver.vehicle_name ||
-                  "Not provided"}
+                {driver.vehicle_name || "Not provided"}
               </p>
             </div>
 
@@ -558,8 +535,7 @@ export default function DriverDashboardPage() {
               </p>
 
               <p className="mt-1 font-semibold">
-                {driver.vehicle_registration ||
-                  "Not provided"}
+                {driver.vehicle_registration || "Not provided"}
               </p>
             </div>
 
@@ -569,8 +545,7 @@ export default function DriverDashboardPage() {
               </p>
 
               <p className="mt-1 font-semibold">
-                {driver.vehicle_color ||
-                  "Not provided"}
+                {driver.vehicle_color || "Not provided"}
               </p>
             </div>
 
@@ -582,6 +557,7 @@ export default function DriverDashboardPage() {
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
 
             <div className="flex items-center gap-3">
+
               <div
                 className={`rounded-full p-3 ${
                   isOnline
@@ -608,6 +584,7 @@ export default function DriverDashboardPage() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
+
               <Button
                 onClick={() =>
                   updateAvailability("ONLINE")
@@ -636,6 +613,7 @@ export default function DriverDashboardPage() {
                 <WifiOff className="mr-2 h-4 w-4" />
                 Go Offline
               </Button>
+
             </div>
           </div>
 
@@ -645,6 +623,7 @@ export default function DriverDashboardPage() {
             </p>
 
             <div className="mt-2 flex items-center gap-2">
+
               <span
                 className={`h-3 w-3 rounded-full ${
                   isOnline
@@ -654,16 +633,16 @@ export default function DriverDashboardPage() {
               />
 
               <span className="font-semibold">
-                {isOnline
-                  ? "ONLINE"
-                  : "OFFLINE"}
+                {isOnline ? "ONLINE" : "OFFLINE"}
               </span>
+
             </div>
           </div>
         </section>
 
         {/* Assigned Ride Requests */}
         <section className="rounded-2xl bg-white p-6 shadow-sm">
+
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 
             <div>
@@ -682,13 +661,14 @@ export default function DriverDashboardPage() {
                 Checking for new rides...
               </div>
             )}
+
           </div>
 
           <div className="mt-6 space-y-4">
 
-            {rideRequests.length === 0 &&
-            !loadingRides ? (
+            {rideRequests.length === 0 && !loadingRides ? (
               <div className="rounded-xl border border-dashed p-8 text-center">
+
                 <Car className="mx-auto h-10 w-10 text-gray-400" />
 
                 <h3 className="mt-3 font-semibold text-gray-800">
@@ -698,10 +678,157 @@ export default function DriverDashboardPage() {
                 <p className="mt-1 text-sm text-gray-500">
                   When a ride is assigned to you, it will appear here.
                 </p>
+
               </div>
             ) : (
               rideRequests.map((ride) => (
                 <div
                   key={ride.id}
                   className="rounded-xl border p-5 transition hover:shadow-sm"
-```
+                >
+
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Booking Number
+                      </p>
+
+                      <h3 className="mt-1 text-lg font-bold">
+                        {ride.booking_code || ride.id}
+                      </h3>
+                    </div>
+
+                    <div className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+                      {ride.ride_status || "ASSIGNED"}
+                    </div>
+
+                  </div>
+
+                  <div className="mt-5 grid gap-5 md:grid-cols-2">
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Customer
+                      </p>
+
+                      <p className="mt-1 font-medium">
+                        {ride.customer_name || "Not provided"}
+                      </p>
+
+                      {ride.customer_phone && (
+                        <p className="mt-1 text-sm text-gray-500">
+                          {ride.customer_phone}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Pickup Location
+                      </p>
+
+                      <p className="mt-1 font-medium">
+                        {ride.pickup_town || "Not provided"}
+
+                        {ride.pickup_area
+                          ? ` — ${ride.pickup_area}`
+                          : ""}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Destination
+                      </p>
+
+                      <p className="mt-1 font-medium">
+                        {ride.destination_town || "Not provided"}
+
+                        {ride.destination_area
+                          ? ` — ${ride.destination_area}`
+                          : ""}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Vehicle Requested
+                      </p>
+
+                      <p className="mt-1 font-medium">
+                        {ride.vehicle_type || "Not specified"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Fare
+                      </p>
+
+                      <p className="mt-1 font-semibold">
+                        {ride.fare_estimate !== null &&
+                        ride.fare_estimate !== undefined
+                          ? `GH₵ ${Number(
+                              ride.fare_estimate,
+                            ).toFixed(2)}`
+                          : "Not provided"}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  <div className="mt-5 border-t pt-4">
+
+                    <p className="text-xs text-gray-500">
+                      Ride requested
+                    </p>
+
+                    <p className="mt-1 text-sm font-medium">
+                      {ride.created_at
+                        ? new Date(
+                            ride.created_at,
+                          ).toLocaleString("en-GH", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })
+                        : "Date not available"}
+                    </p>
+
+                  </div>
+
+                  {/* Accept Ride */}
+                  {ride.ride_status === "requested" && (
+                    <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+
+                      <Button
+                        onClick={() =>
+                          handleRideAction(
+                            ride.id,
+                            "accept",
+                          )
+                        }
+                        disabled={
+                          updatingRideId === ride.id
+                        }
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {updatingRideId === ride.id
+                          ? "Accepting..."
+                          : "Accept Ride"}
+                      </Button>
+
+                    </div>
+                  )}
+
+                </div>
+              ))
+            )}
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  )
+}
