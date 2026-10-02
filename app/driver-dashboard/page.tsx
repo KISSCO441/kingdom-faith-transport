@@ -165,7 +165,13 @@ try {
   setRideRequests((data || []) as RideRequest[])
 } catch (err) {
   console.error("Assigned ride loading error:", err)
+
+  const message =
+    err instanceof Error ? err.message : "Unable to load assigned rides."
+
+  setError(message)
   setRideRequests([])
+
 } finally {
   setLoadingRides(false)
 }
