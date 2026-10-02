@@ -681,12 +681,14 @@ return ( <main className="min-h-screen bg-gray-50 px-4 py-8"> <div className="mx
                 <p className="text-xs text-gray-500">
                   Ride requested
                 </p>
-
-                <p className="mt-1 text-sm font-medium">
-                  {new Date(
-                    ride.created_at
-                  ).toLocaleString()}
-                </p>
+<p className="mt-1 text-sm font-medium">
+  {ride.created_at
+    ? new Date(ride.created_at).toLocaleString("en-GH", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Date not available"}
+</p>
               </div>
             </div>
           ))
