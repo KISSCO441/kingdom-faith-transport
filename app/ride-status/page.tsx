@@ -247,13 +247,11 @@ export default function RideStatusPage() {
                                 : "border border-border bg-background text-muted-foreground"
                             }`}
                           >
-                            {completed ? (
-                              <CheckCircle2 className="h-5 w-5" />
-                            ) : (
-                              <span className="text-xs font-semibold">
-                                {index + 1}
-                              </span>
-                            )}
+                        {completed ? (
+  <CheckCircle2 className="h-5 w-5" />
+) : (
+  <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
+)}
                           </div>
 
                           <div>
