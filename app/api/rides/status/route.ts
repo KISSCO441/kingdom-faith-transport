@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       const driverResponse = await fetch(
         `${supabaseUrl}/rest/v1/drivers` +
           `?id=eq.${encodeURIComponent(ride.driver_id)}` +
-          `&select=id,full_name,phone,vehicle_type,vehicle_name,vehicle_registration,vehicle_color`,
+           `&select=id,full_name,phone,vehicle_type,vehicle_name,vehicle_registration,vehicle_color,photo_url`,
         {
           method: "GET",
           headers: {
