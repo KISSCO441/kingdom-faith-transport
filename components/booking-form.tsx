@@ -335,17 +335,23 @@ export function BookingForm() {
                 and manage your ride request.
               </p>
 
-              <Button
-                className="mt-6"
-                variant="outline"
-                onClick={() => {
-                  setSubmitted(false)
-                  setBookingCode("")
-                  setError("")
-                }}
-              >
-                Order another ride
-              </Button>
+            <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
+  <Button asChild className="w-full">
+    <a href="/ride-status">Check / Track My Ride</a>
+  </Button>
+
+  <Button
+    className="w-full"
+    variant="outline"
+    onClick={() => {
+      setSubmitted(false)
+      setBookingCode("")
+      setError("")
+    }}
+  >
+    Order another ride
+  </Button>
+</div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
