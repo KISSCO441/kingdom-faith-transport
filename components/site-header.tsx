@@ -10,6 +10,7 @@ const navLinks = [
   { label: "Why Us", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Order", href: "#book" },
+  { label: "Check Ride", href: "/ride-status" },
   { label: "Drive with KFM", href: "/driver-registration" },
   { label: "Driver Portal", href: "/driver-dashboard" },
 ]
