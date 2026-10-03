@@ -333,7 +333,7 @@ export default function RideStatusPage() {
                 </div>
               </div>
 
-              {driver ? (
+              {driver && ride.ride_status !== "requested" ? (
                 <div className="rounded-2xl border bg-card p-6 shadow-sm">
                   <div className="flex items-center gap-3">
                     <Navigation className="h-5 w-5 text-primary" />
