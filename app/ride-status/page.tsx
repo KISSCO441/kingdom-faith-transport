@@ -33,6 +33,7 @@ type Driver = {
   vehicle_name: string | null
   vehicle_registration: string | null
   vehicle_color: string | null
+  photo_url: string | null
 }
 
 const statusSteps = [
@@ -344,15 +345,25 @@ export default function RideStatusPage() {
                   </div>
 
                   <div className="mt-5 space-y-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Driver
-                      </p>
+  {driver.photo_url && (
+    <div className="flex justify-center">
+      <img
+        src={driver.photo_url}
+        alt={`${driver.full_name || "KFM Driver"} profile`}
+        className="h-28 w-28 rounded-full border-4 border-background object-cover shadow-md"
+      />
+    </div>
+  )}
 
-                      <p className="mt-1 text-lg font-semibold">
-                        {driver.full_name || "KFM Driver"}
-                      </p>
-                    </div>
+  <div>
+    <p className="text-xs uppercase tracking-wider text-muted-foreground">
+      Driver
+    </p>
+
+    <p className="mt-1 text-lg font-semibold">
+      {driver.full_name || "KFM Driver"}
+    </p>
+  </div>
 
                     {driver.vehicle_name && (
                       <div>
