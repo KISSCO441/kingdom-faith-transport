@@ -157,7 +157,7 @@ export async function POST(request: Request) {
       )
     }
 
-   // Update driver availability based on the ride lifecycle.
+    // Update driver availability based on the ride lifecycle.
     if (
       action === "accept" ||
       action === "complete" ||
@@ -168,7 +168,8 @@ export async function POST(request: Request) {
 
       const driverResponse = await fetch(
         `${supabaseUrl}/rest/v1/drivers` +
-          `?id=eq.${encodeURIComponent(driver_id)}`,
+          `?id=eq.${encodeURIComponent(driver_id)}` +
+          `&select=id,full_name,availability`,
         {
           method: "PATCH",
           headers: {
@@ -183,23 +184,56 @@ export async function POST(request: Request) {
         },
       )
 
-      if (!driverResponse.ok) {
-        const driverError = await driverResponse.text()
+      const updatedDriver = await driverResponse.json()
 
+      if (!driverResponse.ok) {
         console.error(
           "KFM driver availability update failed:",
-          driverError,
+          updatedDriver,
         )
 
         return NextResponse.json(
           {
             error:
               "Ride updated, but driver availability could not be updated.",
+            details: updatedDriver,
+          },
+          { status: 500 },
+        )
+      }
+
+      console.log(
+        "KFM driver availability updated:",
+        updatedDriver,
+      )
+
+      // Confirm the value returned by Supabase.
+      const savedAvailability =
+        updatedDriver?.[0]?.availability
+
+      if (savedAvailability !== driverAvailability) {
+        console.error(
+          "KFM driver availability mismatch:",
+          {
+            expected: driverAvailability,
+            saved: savedAvailability,
+            driver: updatedDriver,
+          },
+        )
+
+        return NextResponse.json(
+          {
+            error:
+              "Driver availability did not save with the expected value.",
+            expected_availability: driverAvailability,
+            saved_availability: savedAvailability,
+            driver: updatedDriver,
           },
           { status: 500 },
         )
       }
     }
+
     return NextResponse.json({
       success: true,
       booking_code: ride.booking_code,
