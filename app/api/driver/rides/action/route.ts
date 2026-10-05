@@ -18,6 +18,12 @@ export async function POST(request: Request) {
       action,
     } = body
 
+    console.log("KFM DRIVER ACTION RECEIVED:", {
+      ride_id,
+      driver_id,
+      action,
+    })
+
     if (!ride_id || !driver_id || !action) {
       return NextResponse.json(
         {
@@ -42,6 +48,11 @@ export async function POST(request: Request) {
     const supabaseServiceRoleKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY
 
+    console.log("KFM SUPABASE CONFIG:", {
+      hasSupabaseUrl: Boolean(supabaseUrl),
+      hasServiceRoleKey: Boolean(supabaseServiceRoleKey),
+    })
+
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       return NextResponse.json(
         {
@@ -51,6 +62,10 @@ export async function POST(request: Request) {
         { status: 500 },
       )
     }
+
+    // ---------------------------------------------------------
+    // 1. Verify that this ride belongs to this driver
+    // ---------------------------------------------------------
 
     const rideResponse = await fetch(
       `${supabaseUrl}/rest/v1/ride_requests` +
@@ -72,7 +87,7 @@ export async function POST(request: Request) {
       const errorText = await rideResponse.text()
 
       console.error(
-        "KFM driver ride lookup failed:",
+        "KFM DRIVER RIDE LOOKUP FAILED:",
         errorText,
       )
 
@@ -85,6 +100,8 @@ export async function POST(request: Request) {
     }
 
     const rides = await rideResponse.json()
+
+    console.log("KFM DRIVER RIDE LOOKUP RESULT:", rides)
 
     if (!rides.length) {
       return NextResponse.json(
@@ -102,6 +119,17 @@ export async function POST(request: Request) {
       ride.ride_status || "",
     ).toLowerCase()
 
+    console.log("KFM CURRENT RIDE STATUS:", {
+      booking_code: ride.booking_code,
+      currentStatus,
+      requestedAction: action,
+      nextStatus,
+    })
+
+    // ---------------------------------------------------------
+    // 2. Validate ride transition
+    // ---------------------------------------------------------
+
     const validAction =
       (action === "accept" && currentStatus === "requested") ||
       (action === "arrive" && currentStatus === "accepted") ||
@@ -113,6 +141,15 @@ export async function POST(request: Request) {
         ))
 
     if (!validAction) {
+      console.error(
+        "KFM INVALID RIDE ACTION:",
+        {
+          action,
+          currentStatus,
+          booking_code: ride.booking_code,
+        },
+      )
+
       return NextResponse.json(
         {
           error:
@@ -121,6 +158,10 @@ export async function POST(request: Request) {
         { status: 409 },
       )
     }
+
+    // ---------------------------------------------------------
+    // 3. Update ride status
+    // ---------------------------------------------------------
 
     const updateResponse = await fetch(
       `${supabaseUrl}/rest/v1/ride_requests` +
@@ -144,7 +185,7 @@ export async function POST(request: Request) {
 
     if (!updateResponse.ok) {
       console.error(
-        "KFM driver ride status update failed:",
+        "KFM DRIVER RIDE STATUS UPDATE FAILED:",
         updatedRide,
       )
 
@@ -157,7 +198,21 @@ export async function POST(request: Request) {
       )
     }
 
-    // Update driver availability based on the ride lifecycle.
+    console.log("KFM RIDE STATUS UPDATED:", {
+      booking_code: ride.booking_code,
+      previous_status: currentStatus,
+      new_status: nextStatus,
+      updatedRide,
+    })
+
+    // ---------------------------------------------------------
+    // 4. Update driver availability
+    //
+    // ACCEPT  -> BUSY
+    // COMPLETE -> ONLINE
+    // CANCEL  -> ONLINE
+    // ---------------------------------------------------------
+
     if (
       action === "accept" ||
       action === "complete" ||
@@ -166,10 +221,43 @@ export async function POST(request: Request) {
       const driverAvailability =
         action === "accept" ? "BUSY" : "ONLINE"
 
-      const driverResponse = await fetch(
+      console.log(
+        "KFM DRIVER AVAILABILITY UPDATE START:",
+        {
+          driver_id,
+          booking_code: ride.booking_code,
+          action,
+          requestedAvailability: driverAvailability,
+        },
+      )
+
+      // First read the current driver record.
+      const driverBeforeResponse = await fetch(
         `${supabaseUrl}/rest/v1/drivers` +
           `?id=eq.${encodeURIComponent(driver_id)}` +
           `&select=id,full_name,availability`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseServiceRoleKey,
+            Authorization: `Bearer ${supabaseServiceRoleKey}`,
+            "Content-Type": "application/json",
+          },
+          cache: "no-store",
+        },
+      )
+
+      const driverBefore = await driverBeforeResponse.json()
+
+      console.log(
+        "KFM DRIVER BEFORE AVAILABILITY UPDATE:",
+        driverBefore,
+      )
+
+      // Now attempt the actual availability update.
+      const driverResponse = await fetch(
+        `${supabaseUrl}/rest/v1/drivers` +
+          `?id=eq.${encodeURIComponent(driver_id)}`,
         {
           method: "PATCH",
           headers: {
@@ -184,12 +272,39 @@ export async function POST(request: Request) {
         },
       )
 
-      const updatedDriver = await driverResponse.json()
+      const driverResponseText =
+        await driverResponse.text()
+
+      console.log(
+        "KFM DRIVER AVAILABILITY RAW RESPONSE:",
+        {
+          status: driverResponse.status,
+          ok: driverResponse.ok,
+          response: driverResponseText,
+        },
+      )
+
+      let updatedDriver: any[] = []
+
+      try {
+        updatedDriver = driverResponseText
+          ? JSON.parse(driverResponseText)
+          : []
+      } catch (parseError) {
+        console.error(
+          "KFM DRIVER AVAILABILITY RESPONSE JSON PARSE FAILED:",
+          parseError,
+        )
+      }
 
       if (!driverResponse.ok) {
         console.error(
-          "KFM driver availability update failed:",
-          updatedDriver,
+          "KFM DRIVER AVAILABILITY UPDATE FAILED:",
+          {
+            status: driverResponse.status,
+            response: updatedDriver,
+            rawResponse: driverResponseText,
+          },
         )
 
         return NextResponse.json(
@@ -203,17 +318,30 @@ export async function POST(request: Request) {
       }
 
       console.log(
-        "KFM driver availability updated:",
+        "KFM DRIVER AVAILABILITY UPDATE RESULT:",
         updatedDriver,
       )
 
-      // Confirm the value returned by Supabase.
+      // -------------------------------------------------------
+      // 5. Verify the value returned by Supabase
+      // -------------------------------------------------------
+
       const savedAvailability =
         updatedDriver?.[0]?.availability
 
+      console.log(
+        "KFM DRIVER AVAILABILITY VERIFICATION:",
+        {
+          driver_id,
+          expected: driverAvailability,
+          saved: savedAvailability,
+          updatedDriver,
+        },
+      )
+
       if (savedAvailability !== driverAvailability) {
         console.error(
-          "KFM driver availability mismatch:",
+          "KFM DRIVER AVAILABILITY MISMATCH:",
           {
             expected: driverAvailability,
             saved: savedAvailability,
@@ -232,7 +360,27 @@ export async function POST(request: Request) {
           { status: 500 },
         )
       }
+
+      console.log(
+        "KFM DRIVER AVAILABILITY UPDATE SUCCESS:",
+        {
+          driver_id,
+          availability: savedAvailability,
+        },
+      )
+    } else {
+      console.log(
+        "KFM DRIVER AVAILABILITY NOT CHANGED FOR THIS ACTION:",
+        {
+          action,
+          driver_id,
+        },
+      )
     }
+
+    // ---------------------------------------------------------
+    // 6. Final response
+    // ---------------------------------------------------------
 
     return NextResponse.json({
       success: true,
@@ -243,7 +391,7 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error(
-      "KFM driver ride action error:",
+      "KFM DRIVER RIDE ACTION ERROR:",
       error,
     )
 
