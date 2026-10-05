@@ -157,6 +157,49 @@ export async function POST(request: Request) {
       )
     }
 
+   // Update driver availability based on the ride lifecycle.
+    if (
+      action === "accept" ||
+      action === "complete" ||
+      action === "cancel"
+    ) {
+      const driverAvailability =
+        action === "accept" ? "BUSY" : "ONLINE"
+
+      const driverResponse = await fetch(
+        `${supabaseUrl}/rest/v1/drivers` +
+          `?id=eq.${encodeURIComponent(driver_id)}`,
+        {
+          method: "PATCH",
+          headers: {
+            apikey: supabaseServiceRoleKey,
+            Authorization: `Bearer ${supabaseServiceRoleKey}`,
+            "Content-Type": "application/json",
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify({
+            availability: driverAvailability,
+          }),
+        },
+      )
+
+      if (!driverResponse.ok) {
+        const driverError = await driverResponse.text()
+
+        console.error(
+          "KFM driver availability update failed:",
+          driverError,
+        )
+
+        return NextResponse.json(
+          {
+            error:
+              "Ride updated, but driver availability could not be updated.",
+          },
+          { status: 500 },
+        )
+      }
+    }
     return NextResponse.json({
       success: true,
       booking_code: ride.booking_code,
