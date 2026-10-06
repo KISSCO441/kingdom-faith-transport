@@ -1,6 +1,4 @@
-```tsx
 "use client"
-
 import { useEffect, useState } from "react"
 import {
   Bike,
@@ -1050,4 +1048,4 @@ export default function DriverDashboardPage() {
     </main>
   )
 }
-```
+
