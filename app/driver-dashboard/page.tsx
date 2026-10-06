@@ -320,6 +320,19 @@ export default function DriverDashboardPage() {
       </main>
     )
   }
+const activeRideRequests = rideRequests.filter(
+  (ride) =>
+    ride.ride_status === "requested" ||
+    ride.ride_status === "accepted" ||
+    ride.ride_status === "arrived" ||
+    ride.ride_status === "in_progress",
+)
+
+const rideHistory = rideRequests.filter(
+  (ride) =>
+    ride.ride_status === "completed" ||
+    ride.ride_status === "cancelled",
+)
 
   const isOnline = driver.availability === "ONLINE"
   const isVerified = driver.status === "VERIFIED"
