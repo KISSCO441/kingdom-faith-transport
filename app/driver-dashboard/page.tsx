@@ -1,3 +1,4 @@
+```tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -320,19 +321,20 @@ export default function DriverDashboardPage() {
       </main>
     )
   }
-const activeRideRequests = rideRequests.filter(
-  (ride) =>
-    ride.ride_status === "requested" ||
-    ride.ride_status === "accepted" ||
-    ride.ride_status === "arrived" ||
-    ride.ride_status === "in_progress",
-)
 
-const rideHistory = rideRequests.filter(
-  (ride) =>
-    ride.ride_status === "completed" ||
-    ride.ride_status === "cancelled",
-)
+  const activeRideRequests = rideRequests.filter(
+    (ride) =>
+      ride.ride_status === "requested" ||
+      ride.ride_status === "accepted" ||
+      ride.ride_status === "arrived" ||
+      ride.ride_status === "in_progress",
+  )
+
+  const rideHistory = rideRequests.filter(
+    (ride) =>
+      ride.ride_status === "completed" ||
+      ride.ride_status === "cancelled",
+  )
 
   const isOnline = driver.availability === "ONLINE"
   const isVerified = driver.status === "VERIFIED"
@@ -653,18 +655,18 @@ const rideHistory = rideRequests.filter(
           </div>
         </section>
 
-        {/* Assigned Ride Requests */}
+        {/* Active Ride Requests */}
         <section className="rounded-2xl bg-white p-6 shadow-sm">
 
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 
             <div>
               <h2 className="text-2xl font-bold">
-                Assigned Ride Requests
+                Active Ride Requests
               </h2>
 
               <p className="text-sm text-gray-500">
-                Ride requests assigned to you by KFM Transport
+                Your current ride requests assigned by KFM Transport
               </p>
             </div>
 
@@ -679,22 +681,22 @@ const rideHistory = rideRequests.filter(
 
           <div className="mt-6 space-y-4">
 
-            {rideRequests.length === 0 && !loadingRides ? (
+            {activeRideRequests.length === 0 && !loadingRides ? (
               <div className="rounded-xl border border-dashed p-8 text-center">
 
                 <Car className="mx-auto h-10 w-10 text-gray-400" />
 
                 <h3 className="mt-3 font-semibold text-gray-800">
-                  No Assigned Ride Requests
+                  No Active Ride Requests
                 </h3>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  When a ride is assigned to you, it will appear here.
+                  New ride requests assigned to you will appear here.
                 </p>
 
               </div>
             ) : (
-              rideRequests.map((ride) => (
+              activeRideRequests.map((ride) => (
                 <div
                   key={ride.id}
                   className="rounded-xl border p-5 transition hover:shadow-sm"
@@ -810,80 +812,233 @@ const rideHistory = rideRequests.filter(
 
                   </div>
 
-       {/* Ride Actions */}
-      {ride.ride_status === "requested" && (
-     <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
-     <Button
-      onClick={() =>
-        handleRideAction(
-          ride.id,
-          "accept",
-        )
-      }
-      disabled={updatingRideId === ride.id}
-      className="bg-green-600 hover:bg-green-700"
-    >
-      {updatingRideId === ride.id
-        ? "Accepting..."
-        : "Accept Ride"}
-    </Button>
-  </div>
-)}
+                  {/* Ride Actions */}
 
-{ride.ride_status === "accepted" && (
-  <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
-    <Button
-      onClick={() =>
-        handleRideAction(
-          ride.id,
-          "arrive",
-        )
-      }
-      disabled={updatingRideId === ride.id}
-      className="bg-blue-600 hover:bg-blue-700"
-    >
-      {updatingRideId === ride.id
-        ? "Updating..."
-        : "Arrived at Pickup"}
-    </Button>
-  </div>
-)}
-{ride.ride_status === "arrived" && (
-  <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
-    <Button
-      onClick={() =>
-        handleRideAction(
-          ride.id,
-          "start",
-        )
-      }
-      disabled={updatingRideId === ride.id}
-      className="bg-purple-600 hover:bg-purple-700"
-    >
-      {updatingRideId === ride.id
-        ? "Starting..."
-        : "Start Ride"}
-    </Button>
-  </div>
-)}
-  {ride.ride_status === "in_progress" && (
-  <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
-    <Button
-      onClick={() =>
-        handleRideAction(
-          ride.id,
-          "complete",
-        )
-      }
-      disabled={updatingRideId === ride.id}
-      className="bg-green-600 hover:bg-green-700"
-    >
-      {updatingRideId === ride.id
-        ? "Completing..."
-        : "Complete Ride"}
-    </Button>
-  </div>
-)}                
+                  {ride.ride_status === "requested" && (
+                    <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+                      <Button
+                        onClick={() =>
+                          handleRideAction(
+                            ride.id,
+                            "accept",
+                          )
+                        }
+                        disabled={updatingRideId === ride.id}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {updatingRideId === ride.id
+                          ? "Accepting..."
+                          : "Accept Ride"}
+                      </Button>
+                    </div>
+                  )}
+
+                  {ride.ride_status === "accepted" && (
+                    <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+                      <Button
+                        onClick={() =>
+                          handleRideAction(
+                            ride.id,
+                            "arrive",
+                          )
+                        }
+                        disabled={updatingRideId === ride.id}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {updatingRideId === ride.id
+                          ? "Updating..."
+                          : "Arrived at Pickup"}
+                      </Button>
+                    </div>
+                  )}
+
+                  {ride.ride_status === "arrived" && (
+                    <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+                      <Button
+                        onClick={() =>
+                          handleRideAction(
+                            ride.id,
+                            "start",
+                          )
+                        }
+                        disabled={updatingRideId === ride.id}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        {updatingRideId === ride.id
+                          ? "Starting..."
+                          : "Start Ride"}
+                      </Button>
+                    </div>
+                  )}
+
+                  {ride.ride_status === "in_progress" && (
+                    <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+                      <Button
+                        onClick={() =>
+                          handleRideAction(
+                            ride.id,
+                            "complete",
+                          )
+                        }
+                        disabled={updatingRideId === ride.id}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {updatingRideId === ride.id
+                          ? "Completing..."
+                          : "Complete Ride"}
+                      </Button>
+                    </div>
+                  )}
+
+                </div>
+              ))
+            )}
+
+          </div>
+        </section>
+
+        {/* Ride History */}
+        <section className="rounded-2xl bg-white p-6 shadow-sm">
+
+          <div>
+            <h2 className="text-2xl font-bold">
+              Ride History
+            </h2>
+
+            <p className="text-sm text-gray-500">
+              Completed and cancelled rides assigned to you
+            </p>
+          </div>
+
+          <div className="mt-6 space-y-4">
+
+            {rideHistory.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-center">
+
+                <Clock className="mx-auto h-10 w-10 text-gray-400" />
+
+                <h3 className="mt-3 font-semibold text-gray-800">
+                  No Ride History
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Your completed rides will appear here.
+                </p>
+
+              </div>
+            ) : (
+              rideHistory.map((ride) => (
+                <div
+                  key={ride.id}
+                  className="rounded-xl border p-5"
+                >
+
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Booking Number
+                      </p>
+
+                      <p className="text-lg font-bold">
+                        {ride.booking_code || ride.id}
+                      </p>
+                    </div>
+
+                    <span className="w-fit rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">
+                      {ride.ride_status || "COMPLETED"}
+                    </span>
+
+                  </div>
+
+                  <div className="mt-5 grid gap-4 md:grid-cols-2">
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Customer
+                      </p>
+
+                      <p className="font-medium">
+                        {ride.customer_name || "Not provided"}
+                      </p>
+
+                      {ride.customer_phone && (
+                        <p className="text-sm text-gray-600">
+                          {ride.customer_phone}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Vehicle Requested
+                      </p>
+
+                      <p className="font-medium">
+                        {ride.vehicle_type || "Not specified"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Pickup
+                      </p>
+
+                      <p className="font-medium">
+                        {ride.pickup_town || "Not provided"}
+
+                        {ride.pickup_area
+                          ? ` • ${ride.pickup_area}`
+                          : ""}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Destination
+                      </p>
+
+                      <p className="font-medium">
+                        {ride.destination_town || "Not provided"}
+
+                        {ride.destination_area
+                          ? ` • ${ride.destination_area}`
+                          : ""}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Fare
+                      </p>
+
+                      <p className="font-semibold text-green-700">
+                        {ride.fare_estimate !== null &&
+                        ride.fare_estimate !== undefined
+                          ? `GH₵ ${Number(
+                              ride.fare_estimate,
+                            ).toFixed(2)}`
+                          : "Not provided"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Date
+                      </p>
+
+                      <p className="text-sm font-medium">
+                        {new Date(
+                          ride.created_at,
+                        ).toLocaleString("en-GH", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </p>
+                    </div>
+
+                  </div>
+
                 </div>
               ))
             )}
@@ -895,3 +1050,4 @@ const rideHistory = rideRequests.filter(
     </main>
   )
 }
+```
