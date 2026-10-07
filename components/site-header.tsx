@@ -5,14 +5,14 @@ import { Car, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const navLinks = [
-  { label: "Home", href: "#" },
-  { label: "Ride", href: "#rides" },
-  { label: "Track Ride", href: "/ride-status" },
-  { label: "KFM Market", href: "#nsawam-market" },
-  { label: "Become a Driver", href: "/driver-registration" },
-  { label: "About", href: "#features" },
-  { label: "Driver Portal", href: "/driver-dashboard" },
-  { label: "Contact", href: "#contact" },
+  { label: "HOME", href: "#" },
+  { label: "RIDE", href: "#rides" },
+  { label: "TRACK RIDE", href: "/ride-status" },
+  { label: "KFM MARKET", href: "#nsawam-market" },
+  { label: "BECOME A DRIVER", href: "/driver-registration" },
+  { label: "ABOUT", href: "#features" },
+  { label: "DRIVER PORTAL", href: "/driver-dashboard" },
+  { label: "CONTACT", href: "#contact" },
 ]
 
 export function SiteHeader() {
@@ -48,7 +48,7 @@ export function SiteHeader() {
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+              className="text-sm font-bold tracking-wide text-muted-foreground transition-colors hover:text-primary"
             >
               {link.label}
             </a>
@@ -57,14 +57,14 @@ export function SiteHeader() {
 
         {/* Desktop Book a Ride */}
         <div className="hidden items-center lg:flex">
-          <Button asChild size="sm" className="font-semibold">
+          <Button asChild size="sm" className="font-bold tracking-wide">
             <a href="#book">BOOK A RIDE</a>
           </Button>
         </div>
 
         {/* Mobile Menu Button */}
         <div className="flex items-center gap-2 lg:hidden">
-          <Button asChild size="sm" className="hidden font-semibold sm:flex">
+          <Button asChild size="sm" className="hidden font-bold tracking-wide sm:flex">
             <a href="#book">BOOK A RIDE</a>
           </Button>
 
@@ -92,13 +92,13 @@ export function SiteHeader() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="border-b border-border/60 py-3 text-sm font-medium text-muted-foreground transition-colors last:border-b-0 hover:text-primary"
+                className="border-b border-border/60 py-3 text-sm font-bold tracking-wide text-muted-foreground transition-colors last:border-b-0 hover:text-primary"
               >
                 {link.label}
               </a>
             ))}
 
-            <Button asChild className="mt-3 w-full font-semibold">
+            <Button asChild className="mt-3 w-full font-bold tracking-wide">
               <a
                 href="#book"
                 onClick={() => setMobileMenuOpen(false)}
