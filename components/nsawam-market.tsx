@@ -378,109 +378,146 @@ export function NsawamMarket() {
       className="border-t border-border bg-background"
     >
       <div className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24">
-        {/* MARKET HERO */}
-        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-          <div className="grid items-stretch lg:grid-cols-2">
-            <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-14">
-              <div className="inline-flex w-fit items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary">
-                KFM Nsawam Market
-              </div>
+       {/* MARKET HERO */}
+<div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-lg">
+  <div className="grid items-stretch lg:grid-cols-[1.05fr_0.95fr]">
+    {/* HERO CONTENT */}
+    <div className="flex flex-col justify-center p-7 sm:p-10 md:p-14 lg:p-16">
+      <div className="inline-flex w-fit items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-bold text-primary">
+        🛒 KFM Nsawam Market
+      </div>
 
-              <h2 className="mt-5 text-balance text-4xl font-bold tracking-tight md:text-5xl">
-                Fresh from the market.
-                <span className="block text-primary">
-                  Delivered to you.
-                </span>
-              </h2>
+      <h2 className="mt-6 max-w-3xl text-balance text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
+        Fresh from the market.
+        <span className="mt-2 block text-primary">
+          Delivered to you.
+        </span>
+      </h2>
 
-              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground md:text-lg">
-                Shop selected fresh market essentials from Nsawam and have
-                your order delivered to your home. Choose your amount,
-                build your basket and let KFM help make your market shopping
-                easier.
-              </p>
+      <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg md:text-xl">
+        Shop selected fresh market essentials from Nsawam and have
+        your order delivered to your home. Choose your amount, build
+        your basket and let KFM make your market shopping easier.
+      </p>
 
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  type="button"
-                  size="lg"
-                  onClick={scrollToProducts}
-                >
-                  Shop the Market
-                </Button>
+      {/* HERO ACTIONS */}
+      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <Button
+          type="button"
+          size="lg"
+          className="h-12 px-7 text-base font-bold"
+          onClick={scrollToProducts}
+        >
+          Shop the Market
+        </Button>
 
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="outline"
-                  onClick={scrollToBasket}
-                >
-                  <ShoppingBasket className="mr-2 h-4 w-4" />
-                  View Basket
-                  {totalItems > 0 ? ` (${totalItems})` : ""}
-                </Button>
-              </div>
+        <Button
+          type="button"
+          size="lg"
+          variant="outline"
+          className="h-12 px-7 text-base font-bold"
+          onClick={scrollToBasket}
+        >
+          <ShoppingBasket className="mr-2 h-5 w-5" />
+          View Basket
+          {totalItems > 0 ? ` (${totalItems})` : ""}
+        </Button>
+      </div>
 
-              <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                <div className="flex gap-3">
-                  <Truck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <div>
-                    <p className="text-sm font-semibold">
-                      Nsawam Delivery
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      GH₵{DELIVERY_FEE}
-                    </p>
-                  </div>
-                </div>
+      {/* HERO BENEFITS */}
+      <div className="mt-10 grid gap-4 border-t border-border pt-7 sm:grid-cols-3">
+        <div className="flex gap-3">
+          <div className="rounded-xl bg-primary/10 p-2.5">
+            <Truck className="h-5 w-5 text-primary" />
+          </div>
 
-                <div className="flex gap-3">
-                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <div>
-                    <p className="text-sm font-semibold">
-                      Simple Ordering
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Choose your amount
-                    </p>
-                  </div>
-                </div>
+          <div>
+            <p className="text-sm font-bold">
+              Nsawam Delivery
+            </p>
 
-                <div className="flex gap-3">
-                  <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                  <div>
-                    <p className="text-sm font-semibold">
-                      Convenient
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Order from home
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative min-h-[300px] lg:min-h-[520px]">
-              <Image
-                src="/images/vegetables.jpg"
-                alt="Fresh market vegetables"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                priority
-              />
-
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-6 pt-24">
-                <p className="text-lg font-bold text-white">
-                  Fresh market essentials
-                </p>
-                <p className="mt-1 text-sm text-white/80">
-                  Vegetables • Fruits • Staples • Protein
-                </p>
-              </div>
-            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              GH₵{DELIVERY_FEE}
+            </p>
           </div>
         </div>
+
+        <div className="flex gap-3">
+          <div className="rounded-xl bg-primary/10 p-2.5">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+          </div>
+
+          <div>
+            <p className="text-sm font-bold">
+              Easy Ordering
+            </p>
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              Choose your amount
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <div className="rounded-xl bg-primary/10 p-2.5">
+            <Clock3 className="h-5 w-5 text-primary" />
+          </div>
+
+          <div>
+            <p className="text-sm font-bold">
+              Convenient
+            </p>
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              Order from home
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* HERO IMAGE */}
+    <div className="relative min-h-[380px] lg:min-h-[620px]">
+      <Image
+        src="/images/vegetables.jpg"
+        alt="Fresh market vegetables at KFM Nsawam Market"
+        fill
+        className="object-cover"
+        sizes="(max-width: 1024px) 100vw, 50vw"
+        priority
+      />
+
+      {/* IMAGE OVERLAY */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+
+      <div className="absolute inset-x-0 bottom-0 p-7 sm:p-9">
+        <div className="rounded-2xl border border-white/20 bg-black/35 p-5 backdrop-blur-sm">
+          <p className="text-xl font-extrabold text-white sm:text-2xl">
+            Fresh market essentials
+          </p>
+
+          <p className="mt-2 text-sm text-white/85 sm:text-base">
+            Vegetables • Fruits • Staples • Protein
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
+              Fresh
+            </span>
+
+            <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
+              Convenient
+            </span>
+
+            <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
+              Nsawam Delivery
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* MARKET INFORMATION */}
         <div className="mt-8 grid gap-4 md:grid-cols-3">
