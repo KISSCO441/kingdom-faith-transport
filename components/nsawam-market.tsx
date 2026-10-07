@@ -2,7 +2,17 @@
 
 import { useMemo, useState } from "react"
 import Image from "next/image"
-import { Minus, Plus, ShoppingBasket, Truck, X } from "lucide-react"
+import {
+  Clock3,
+  MapPin,
+  Minus,
+  Phone,
+  Plus,
+  ShieldCheck,
+  ShoppingBasket,
+  Truck,
+  X,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type Product = {
@@ -206,6 +216,24 @@ export function NsawamMarket() {
 
   const grandTotal = subtotal > 0 ? subtotal + DELIVERY_FEE : 0
 
+  function scrollToProducts() {
+    document
+      .getElementById("market-products")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      })
+  }
+
+  function scrollToBasket() {
+    document
+      .getElementById("market-basket")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      })
+  }
+
   function selectAmount(product: Product, amount: number) {
     setCart((current) => {
       const existing = current[product.id]
@@ -283,7 +311,11 @@ export function NsawamMarket() {
       return
     }
 
-    if (!customerName.trim() || !customerPhone.trim() || !deliveryLocation.trim()) {
+    if (
+      !customerName.trim() ||
+      !customerPhone.trim() ||
+      !deliveryLocation.trim()
+    ) {
       alert(
         "Please enter your name, phone number and delivery location before placing your order.",
       )
@@ -295,7 +327,10 @@ export function NsawamMarket() {
     setTimeout(() => {
       document
         .getElementById("market-order-options")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" })
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        })
     }, 100)
   }
 
@@ -338,314 +373,541 @@ export function NsawamMarket() {
   }
 
   return (
-    <section id="nsawam-market" className="border-t border-border">
-      <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-            Nsawam Market
-          </p>
+    <section
+      id="nsawam-market"
+      className="border-t border-border bg-background"
+    >
+      <div className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24">
+        {/* MARKET HERO */}
+        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+          <div className="grid items-stretch lg:grid-cols-2">
+            <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-14">
+              <div className="inline-flex w-fit items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary">
+                KFM Nsawam Market
+              </div>
 
-          <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight md:text-4xl">
-            Fresh market items delivered to your door
-          </h2>
+              <h2 className="mt-5 text-balance text-4xl font-bold tracking-tight md:text-5xl">
+                Fresh from the market.
+                <span className="block text-primary">
+                  Delivered to you.
+                </span>
+              </h2>
 
-          <p className="mt-4 text-pretty text-muted-foreground">
-            Skip the crowd and the heat. Order fresh produce, staples and
-            protein straight from Nsawam Market and our riders bring them
-            to your home.
-          </p>
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground md:text-lg">
+                Shop selected fresh market essentials from Nsawam and have
+                your order delivered to your home. Choose your amount,
+                build your basket and let KFM help make your market shopping
+                easier.
+              </p>
 
-          <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
-            <p className="font-semibold">KFM Market Ordering</p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={scrollToProducts}
+                >
+                  Shop the Market
+                </Button>
 
-            <p className="mt-1 text-muted-foreground">
-              Minimum product order:{" "}
-              <span className="font-semibold text-foreground">
-                GH₵{MINIMUM_ORDER}
-              </span>{" "}
-              • Nsawam delivery:{" "}
-              <span className="font-semibold text-foreground">
-                GH₵{DELIVERY_FEE}
-              </span>
-            </p>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  onClick={scrollToBasket}
+                >
+                  <ShoppingBasket className="mr-2 h-4 w-4" />
+                  View Basket
+                  {totalItems > 0 ? ` (${totalItems})` : ""}
+                </Button>
+              </div>
+
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                <div className="flex gap-3">
+                  <Truck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold">
+                      Nsawam Delivery
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      GH₵{DELIVERY_FEE}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold">
+                      Simple Ordering
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Choose your amount
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold">
+                      Convenient
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Order from home
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative min-h-[300px] lg:min-h-[520px]">
+              <Image
+                src="/images/vegetables.jpg"
+                alt="Fresh market vegetables"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                priority
+              />
+
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-6 pt-24">
+                <p className="text-lg font-bold text-white">
+                  Fresh market essentials
+                </p>
+                <p className="mt-1 text-sm text-white/80">
+                  Vegetables • Fruits • Staples • Protein
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_320px]">
-          <div>
+        {/* MARKET INFORMATION */}
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-primary/10 p-3">
+                <MapPin className="h-5 w-5 text-primary" />
+              </div>
+
+              <div>
+                <h3 className="font-semibold">
+                  Nsawam Delivery
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Delivery within Nsawam
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-2xl font-bold">
+              GH₵{DELIVERY_FEE}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-primary/10 p-3">
+                <ShoppingBasket className="h-5 w-5 text-primary" />
+              </div>
+
+              <div>
+                <h3 className="font-semibold">
+                  Minimum Order
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Products subtotal
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-2xl font-bold">
+              GH₵{MINIMUM_ORDER}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-primary/10 p-3">
+                <Phone className="h-5 w-5 text-primary" />
+              </div>
+
+              <div>
+                <h3 className="font-semibold">
+                  Need Help?
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Call KFM Market
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-1 text-sm font-semibold">
+              <p>{KFM_PHONE_1}</p>
+              <p>{KFM_PHONE_2}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* MARKET INTRO */}
+        <div className="mx-auto mt-16 max-w-3xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+            Shop Nsawam Market
+          </p>
+
+          <h3 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">
+            Choose what you need
+          </h3>
+
+          <p className="mt-4 text-muted-foreground">
+            Select a category, choose the amount you want, and add it to
+            your basket. You can mix products until you reach the minimum
+            order.
+          </p>
+        </div>
+
+        {/* PRODUCTS */}
+        <div
+          id="market-products"
+          className="mt-10 scroll-mt-24"
+        >
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold">
+                Market Categories
+              </p>
+
+              <p className="text-xs text-muted-foreground">
+                Browse the products currently available
+              </p>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               {categories.map((cat) => (
                 <button
                   key={cat}
+                  type="button"
                   onClick={() => setActiveCategory(cat)}
-                  className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                     activeCategory === cat
                       ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                      : "border-border bg-background text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {cat}
                 </button>
               ))}
             </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {visibleProducts.map((product) => {
-                const cartItem = cart[product.id]
-                const quantity = cartItem?.quantity ?? 0
-
-                return (
-                  <div
-                    key={product.id}
-                    className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
-                  >
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, 300px"
-                      />
-                    </div>
-
-                    <div className="flex flex-1 flex-col p-4">
-                      <h3 className="text-sm font-semibold">
-                        {product.name}
-                      </h3>
-
-                      <p className="text-xs text-muted-foreground">
-                        {product.unit}
-                      </p>
-
-                      <div className="mt-3">
-                        <label
-                          htmlFor={`${product.id}-amount`}
-                          className="text-xs font-medium"
-                        >
-                          Choose amount
-                        </label>
-
-                        <select
-                          id={`${product.id}-amount`}
-                          className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-                          value={cartItem?.selectedAmount ?? ""}
-                          onChange={(event) => {
-                            const amount = Number(event.target.value)
-
-                            if (!amount) return
-
-                            selectAmount(product, amount)
-                          }}
-                        >
-                          <option value="">
-                            Select GH₵ amount
-                          </option>
-
-                          {product.amountOptions.map((amount) => (
-                            <option key={amount} value={amount}>
-                              GH₵{amount}
-                            </option>
-                          ))}
-                        </select>
-
-                        {quantity > 0 && cartItem?.selectedAmount ? (
-                          <div className="mt-3 flex items-center justify-between">
-                            <span className="text-sm font-bold">
-                              GH₵{cartItem.selectedAmount}
-                            </span>
-
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                className="h-8 w-8 bg-transparent"
-                                onClick={() =>
-                                  removeItemQuantity(product.id)
-                                }
-                                aria-label={`Remove one ${product.name}`}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-
-                              <span className="w-5 text-center text-sm font-semibold">
-                                {quantity}
-                              </span>
-
-                              <Button
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => addItem(product)}
-                                aria-label={`Add another ${product.name}`}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
           </div>
 
-          <aside className="lg:sticky lg:top-20 lg:h-fit">
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <div className="flex items-center gap-2">
-                <ShoppingBasket className="h-5 w-5 text-primary" />
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {visibleProducts.map((product) => {
+              const cartItem = cart[product.id]
+              const quantity = cartItem?.quantity ?? 0
 
-                <h3 className="text-lg font-semibold">
-                  Your basket
-                </h3>
+              return (
+                <div
+                  key={product.id}
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
+                >
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+                    <Image
+                      src={product.image || "/placeholder.svg"}
+                      alt={product.name}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    />
+
+                    {quantity > 0 && (
+                      <div className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow">
+                        {quantity} in basket
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-5">
+                    <h4 className="text-base font-semibold">
+                      {product.name}
+                    </h4>
+
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {product.unit}
+                    </p>
+
+                    <div className="mt-4">
+                      <label
+                        htmlFor={`${product.id}-amount`}
+                        className="text-xs font-medium"
+                      >
+                        Choose amount
+                      </label>
+
+                      <select
+                        id={`${product.id}-amount`}
+                        className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                        value={cartItem?.selectedAmount ?? ""}
+                        onChange={(event) => {
+                          const amount = Number(event.target.value)
+
+                          if (!amount) return
+
+                          selectAmount(product, amount)
+                        }}
+                      >
+                        <option value="">
+                          Select GH₵ amount
+                        </option>
+
+                        {product.amountOptions.map((amount) => (
+                          <option key={amount} value={amount}>
+                            GH₵{amount}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {quantity > 0 && cartItem?.selectedAmount ? (
+                      <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 p-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Selected
+                          </p>
+
+                          <p className="font-bold">
+                            GH₵{cartItem.selectedAmount}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="h-8 w-8 bg-transparent"
+                            onClick={() =>
+                              removeItemQuantity(product.id)
+                            }
+                            aria-label={`Remove one ${product.name}`}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+
+                          <span className="w-5 text-center text-sm font-semibold">
+                            {quantity}
+                          </span>
+
+                          <Button
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => addItem(product)}
+                            aria-label={`Add another ${product.name}`}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Select an amount to add this item to your basket.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* BASKET */}
+        <div
+          id="market-basket"
+          className="mt-14 scroll-mt-24"
+        >
+          <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
+            <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-primary/10 p-3">
+                  <ShoppingBasket className="h-6 w-6 text-primary" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-wide text-primary">
+                    Your Shopping Basket
+                  </p>
+
+                  <h3 className="mt-1 text-2xl font-bold">
+                    Review your market items
+                  </h3>
+                </div>
 
                 {totalItems > 0 && (
-                  <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-                    {totalItems}
+                  <span className="ml-auto rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+                    {totalItems} item
+                    {totalItems === 1 ? "" : "s"}
                   </span>
                 )}
               </div>
 
               {cartItems.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Your basket is empty. Add items from the market to get
-                  started.
-                </p>
+                <div className="mt-8 rounded-2xl border border-dashed border-border p-8 text-center">
+                  <ShoppingBasket className="mx-auto h-10 w-10 text-muted-foreground" />
+
+                  <p className="mt-4 font-semibold">
+                    Your basket is empty
+                  </p>
+
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Select products above to start building your market
+                    order.
+                  </p>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-5"
+                    onClick={scrollToProducts}
+                  >
+                    Browse Market
+                  </Button>
+                </div>
               ) : (
-                <>
-                  <ul className="mt-4 space-y-3">
-                    {cartItems.map(
-                      ({
-                        product,
-                        quantity,
-                        unitPrice,
-                        total,
-                      }) => (
-                        <li
-                          key={product.id}
-                          className="flex items-center justify-between gap-2 text-sm"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate font-medium">
-                              {product.name}
-                            </p>
+                <div className="mt-6 space-y-3">
+                  {cartItems.map(
+                    ({
+                      product,
+                      quantity,
+                      unitPrice,
+                      total,
+                    }) => (
+                      <div
+                        key={product.id}
+                        className="flex items-center justify-between gap-4 rounded-xl border border-border p-4"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-semibold">
+                            {product.name}
+                          </p>
 
-                            <p className="text-xs text-muted-foreground">
-                              {quantity} × GH₵{unitPrice}
-                            </p>
-                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {quantity} × GH₵{unitPrice}
+                          </p>
+                        </div>
 
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">
-                              GH₵{total}
-                            </span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold">
+                            GH₵{total}
+                          </span>
 
-                            <button
-                              onClick={() =>
-                                removeItem(product.id)
-                              }
-                              className="text-muted-foreground transition-colors hover:text-destructive"
-                              aria-label={`Remove ${product.name} from basket`}
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </li>
-                      ),
-                    )}
-                  </ul>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeItem(product.id)
+                            }
+                            className="rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+                            aria-label={`Remove ${product.name} from basket`}
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </div>
+              )}
+            </div>
 
-                  <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Products subtotal</span>
-                      <span>GH₵{subtotal}</span>
-                    </div>
+            <aside className="lg:sticky lg:top-20 lg:h-fit">
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="text-lg font-bold">
+                  Basket Summary
+                </h3>
 
-                    <div className="flex justify-between text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Truck className="h-4 w-4" />
-                        Nsawam delivery
-                      </span>
+                <div className="mt-5 space-y-3 text-sm">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Products subtotal</span>
+                    <span>GH₵{subtotal}</span>
+                  </div>
 
-                      <span>GH₵{DELIVERY_FEE}</span>
-                    </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Truck className="h-4 w-4" />
+                      Nsawam delivery
+                    </span>
 
-                    <div className="flex justify-between text-base font-bold">
+                    <span>GH₵{subtotal > 0 ? DELIVERY_FEE : 0}</span>
+                  </div>
+
+                  <div className="border-t border-border pt-3">
+                    <div className="flex justify-between text-lg font-bold">
                       <span>Total</span>
                       <span>GH₵{grandTotal}</span>
                     </div>
                   </div>
+                </div>
 
-                  {!minimumOrderReached && (
-                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                      Add GH₵
-                      {MINIMUM_ORDER - subtotal} more in products
-                      to reach the GH₵{MINIMUM_ORDER} minimum order.
-                    </div>
-                  )}
-
-                  {minimumOrderReached && (
-                    <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-xs text-green-800">
-                      Minimum order reached. Your basket is ready for
-                      checkout.
-                    </div>
-                  )}
-                </>
-              )}
-
-              <Button
-                type="button"
-                className="mt-6 w-full"
-                disabled={
-                  cartItems.length === 0 ||
-                  !minimumOrderReached
-                }
-                onClick={() => {
-                  if (!minimumOrderReached) return
-
-                  document
-                    .getElementById("market-checkout")
-                    ?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    })
-                }}
-              >
-                {minimumOrderReached ? (
-                  "Checkout & schedule delivery"
-                ) : (
-                  `Minimum GH₵${MINIMUM_ORDER} Required`
+                {!minimumOrderReached && subtotal > 0 && (
+                  <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    Add GH₵
+                    {MINIMUM_ORDER - subtotal} more in products to reach
+                    the GH₵{MINIMUM_ORDER} minimum order.
+                  </div>
                 )}
-              </Button>
 
-              <p className="mt-3 text-center text-xs text-muted-foreground">
-                Delivery within Nsawam: GH₵{DELIVERY_FEE}
-              </p>
-            </div>
-          </aside>
+                {minimumOrderReached && (
+                  <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                    Your minimum order has been reached. You can continue
+                    to checkout.
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  className="mt-5 w-full"
+                  disabled={
+                    cartItems.length === 0 ||
+                    !minimumOrderReached
+                  }
+                  onClick={() => {
+                    if (!minimumOrderReached) return
+
+                    document
+                      .getElementById("market-checkout")
+                      ?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                      })
+                  }}
+                >
+                  {minimumOrderReached
+                    ? "Checkout & schedule delivery"
+                    : `Minimum GH₵${MINIMUM_ORDER} Required`}
+                </Button>
+              </div>
+            </aside>
+          </div>
         </div>
 
+        {/* CHECKOUT */}
         {minimumOrderReached && (
           <div
             id="market-checkout"
-            className="mx-auto mt-12 max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-sm"
+            className="mx-auto mt-14 max-w-3xl scroll-mt-24 rounded-3xl border border-border bg-card p-6 shadow-sm md:p-8"
           >
             <div className="text-center">
               <p className="text-sm font-semibold uppercase tracking-wider text-primary">
                 Market Checkout
               </p>
 
-              <h3 className="mt-2 text-2xl font-bold">
+              <h3 className="mt-2 text-3xl font-bold">
                 Complete Your Market Order
               </h3>
 
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-3 text-sm text-muted-foreground">
                 Enter your details below to continue with your order.
               </p>
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-8 space-y-5">
               <div>
                 <label
                   htmlFor="market-customer-name"
@@ -709,12 +971,19 @@ export function NsawamMarket() {
                 />
               </div>
 
-              <div className="rounded-xl border border-border bg-muted/40 p-4">
-                <h4 className="font-semibold">
-                  Order Summary
-                </h4>
+              <div className="rounded-2xl border border-border bg-muted/40 p-5">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold">
+                    Order Summary
+                  </h4>
 
-                <div className="mt-3 space-y-2 text-sm">
+                  <span className="text-sm font-semibold text-primary">
+                    {totalItems} item
+                    {totalItems === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-3 text-sm">
                   {cartItems.map(
                     ({
                       product,
@@ -738,7 +1007,7 @@ export function NsawamMarket() {
                     ),
                   )}
 
-                  <div className="border-t border-border pt-2">
+                  <div className="border-t border-border pt-3">
                     <div className="flex justify-between">
                       <span>Products subtotal</span>
                       <span>GH₵{subtotal}</span>
@@ -749,7 +1018,7 @@ export function NsawamMarket() {
                       <span>GH₵{DELIVERY_FEE}</span>
                     </div>
 
-                    <div className="mt-2 flex justify-between text-base font-bold">
+                    <div className="mt-2 flex justify-between text-lg font-bold">
                       <span>Total</span>
                       <span>GH₵{grandTotal}</span>
                     </div>
@@ -760,6 +1029,7 @@ export function NsawamMarket() {
               <Button
                 type="button"
                 className="w-full"
+                size="lg"
                 onClick={prepareOrder}
               >
                 Place Market Order
@@ -768,9 +1038,9 @@ export function NsawamMarket() {
               {showOrderOptions && (
                 <div
                   id="market-order-options"
-                  className="rounded-xl border border-primary/20 bg-primary/5 p-5"
+                  className="rounded-2xl border border-primary/20 bg-primary/5 p-6"
                 >
-                  <h4 className="text-center font-bold">
+                  <h4 className="text-center text-lg font-bold">
                     How would you like to confirm your order?
                   </h4>
 
@@ -783,6 +1053,7 @@ export function NsawamMarket() {
                     <Button
                       type="button"
                       className="w-full"
+                      size="lg"
                       onClick={sendWhatsAppOrder}
                     >
                       Send Order via WhatsApp
@@ -808,13 +1079,33 @@ export function NsawamMarket() {
                   </div>
 
                   <p className="mt-4 text-center text-xs text-muted-foreground">
-                    KFM will confirm your order and delivery details with you.
+                    KFM will confirm your order and delivery details with
+                    you.
                   </p>
                 </div>
               )}
             </div>
           </div>
         )}
+
+        {/* MARKET FOOTER */}
+        <div className="mt-14 rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center">
+          <p className="font-semibold">
+            KFM Nsawam Market
+          </p>
+
+          <p className="mt-2 text-sm text-muted-foreground">
+            Fresh market essentials. Convenient ordering. Nsawam delivery.
+          </p>
+
+          <div className="mt-4 flex flex-col items-center justify-center gap-2 text-sm font-medium sm:flex-row sm:gap-5">
+            <span>{KFM_PHONE_1}</span>
+            <span className="hidden text-muted-foreground sm:inline">
+              •
+            </span>
+            <span>{KFM_PHONE_2}</span>
+          </div>
+        </div>
       </div>
     </section>
   )
