@@ -93,6 +93,32 @@ export default function Page() {
                 </div>
               </div>
             </div>
+
+            {/* WhatsApp Live Chat */}
+            <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-border bg-background p-8 shadow-sm">
+              <p className="text-sm font-bold uppercase tracking-widest text-primary">
+                LIVE CHAT
+              </p>
+
+              <h3 className="mt-2 text-2xl font-bold">
+                Chat with KFM
+              </h3>
+
+              <p className="mt-3 text-muted-foreground">
+                Need help with a ride, market order, delivery, or another KFM
+                service? Start a live conversation with us on WhatsApp.
+              </p>
+
+              <Button asChild className="mt-6 font-bold tracking-wide">
+                <a
+                  href="https://wa.me/233240555688?text=Hello%20KFM%2C%20I%20need%20assistance."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  START LIVE CHAT
+                </a>
+              </Button>
+            </div>
           </div>
         </section>
       </main>
