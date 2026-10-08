@@ -1193,12 +1193,13 @@ const [orderError, setOrderError] = useState("")
     </p>
 
     <p className="mt-2">
-    Please check your information and try again.
+      Please check your information and try again.
     </p>
   </div>
 )}
-  </div>
-)}         
+    </div>
+   </div>
+ )}
 
    {/* MARKET FOOTER */}
         <div className="mt-14 rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center">
