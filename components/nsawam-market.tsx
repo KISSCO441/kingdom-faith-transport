@@ -301,108 +301,96 @@ export function NsawamMarket() {
     setShowOrderOptions(false)
     setOrderError("")
   }
+async function prepareOrder() {
+  if (orderNumber) {
+    return
+  }
 
-  function removeItem(id: string) {
-    setCart((current) => {
-      const next = { ...current }
-      delete next[id]
-      return next
+  if (!minimumOrderReached) {
+    alert(`Minimum market order is GH₵${MINIMUM_ORDER}.`)
+    return
+  }
+
+  if (
+    !customerName.trim() ||
+    !customerEmail.trim() ||
+    !customerPhone.trim() ||
+    !deliveryLocation.trim()
+  ) {
+    alert(
+      "Please enter your name, email, phone number and delivery location before placing your order.",
+    )
+    return
+  }
+
+  if (cartItems.length === 0) {
+    alert("Your basket is empty.")
+    return
+  }
+
+  setIsSubmittingOrder(true)
+  setOrderError("")
+  setShowOrderOptions(false)
+
+  try {
+    const response = await fetch("/api/market-orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerName: customerName.trim(),
+        customerEmail: customerEmail.trim(),
+        customerPhone: customerPhone.trim(),
+        deliveryLocation: deliveryLocation.trim(),
+        productSubtotal: subtotal,
+        deliveryFee: DELIVERY_FEE,
+        totalAmount: grandTotal,
+        items: cartItems.map(
+          ({ product, quantity, unitPrice, total }) => ({
+            productName: product.name,
+            category: product.category,
+            quantity,
+            unitAmount: unitPrice,
+            lineTotal: total,
+          }),
+        ),
+      }),
     })
 
-    setOrderNumber("")
-    setShowOrderOptions(false)
-    setOrderError("")
-  }
+    const data = await response.json()
 
-  async function prepareOrder() {
-    if (orderNumber) {
-      return
-    }
-
-    if (!minimumOrderReached) {
-      alert(`Minimum market order is GH₵${MINIMUM_ORDER}.`)
-      return
-    }
-
-   if (
-  !customerName.trim() ||
-  !customerEmail.trim() ||
-  !customerPhone.trim() ||
-  !deliveryLocation.trim()
-) {
-      alert(
-      "Please enter your name, email, phone number and delivery location before placing your order.",
+    if (!response.ok) {
+      throw new Error(
+        data?.error || "Unable to create your market order.",
       )
-      return
     }
 
-    if (cartItems.length === 0) {
-      alert("Your basket is empty.")
-      return
-    }
+    const paymentUrl = data?.order?.paymentUrl
+    const createdOrderNumber = data?.order?.orderNumber
 
-    setIsSubmittingOrder(true)
-    setOrderError("")
-    setShowOrderOptions(false)
-
-    try {
-      const response = await fetch("/api/market-orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-       body: JSON.stringify({
-      customerName: customerName.trim(),
-      customerEmail: customerEmail.trim(),
-      customerPhone: customerPhone.trim(),
-      deliveryLocation: deliveryLocation.trim(),
-          productSubtotal: subtotal,
-          deliveryFee: DELIVERY_FEE,
-          totalAmount: grandTotal,
-          items: cartItems.map(
-            ({ product, quantity, unitPrice, total }) => ({
-              productName: product.name,
-              category: product.category,
-              quantity,
-              unitAmount: unitPrice,
-              lineTotal: total,
-            }),
-          ),
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(
-          data?.error || "Unable to create your market order.",
-        )
-      }
-
-      setOrderNumber(data.order.orderNumber)
-      setShowOrderOptions(true)
-
-      setTimeout(() => {
-        document
-          .getElementById("market-order-options")
-          ?.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          })
-      }, 100)
-    } catch (error) {
-      console.error("KFM Market order submission error:", error)
-
-      setOrderError(
-        error instanceof Error
-          ? error.message
-          : "Unable to create your market order. Please try again.",
+    if (!paymentUrl) {
+      throw new Error(
+        "Your order was created, but the Paystack payment link was not received.",
       )
-    } finally {
-      setIsSubmittingOrder(false)
     }
-  }
 
+    setOrderNumber(createdOrderNumber)
+
+    // Send the customer directly to Paystack Test Mode.
+    window.location.href = paymentUrl
+  } catch (error) {
+    console.error("KFM Market order submission error:", error)
+
+    setOrderError(
+      error instanceof Error
+        ? error.message
+        : "Unable to create your market order. Please try again.",
+    )
+  } finally {
+    setIsSubmittingOrder(false)
+  }
+}
   function createWhatsAppMessage() {
     const orderLines = cartItems
       .map(
