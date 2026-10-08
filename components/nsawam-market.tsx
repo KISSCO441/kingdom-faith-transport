@@ -301,6 +301,17 @@ export function NsawamMarket() {
     setShowOrderOptions(false)
     setOrderError("")
   }
+  function removeItem(id: string) {
+    setCart((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+     })
+
+     setOrderNumber("")
+     setShowOrderOptions(false)
+     setOrderError("")
+    }
 async function prepareOrder() {
   if (orderNumber) {
     return
