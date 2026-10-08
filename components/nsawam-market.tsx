@@ -1198,9 +1198,8 @@ const [orderError, setOrderError] = useState("")
   </div>
 )}
   </div>
-        )}
 
-        {/* MARKET FOOTER */}
+   {/* MARKET FOOTER */}
         <div className="mt-14 rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center">
           <p className="font-semibold">
             KFM Nsawam Market
