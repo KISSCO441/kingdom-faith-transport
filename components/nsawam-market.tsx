@@ -166,6 +166,7 @@ export function NsawamMarket() {
   const [cart, setCart] = useState<Record<string, CartItem>>({})
 
   const [customerName, setCustomerName] = useState("")
+  const [customerEmail, setCustomerEmail] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [deliveryLocation, setDeliveryLocation] = useState("")
 
@@ -323,13 +324,14 @@ export function NsawamMarket() {
       return
     }
 
-    if (
-      !customerName.trim() ||
-      !customerPhone.trim() ||
-      !deliveryLocation.trim()
-    ) {
+   if (
+  !customerName.trim() ||
+  !customerEmail.trim() ||
+  !customerPhone.trim() ||
+  !deliveryLocation.trim()
+) {
       alert(
-        "Please enter your name, phone number and delivery location before placing your order.",
+      "Please enter your name, email, phone number and delivery location before placing your order.",
       )
       return
     }
@@ -349,10 +351,11 @@ export function NsawamMarket() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          customerName: customerName.trim(),
-          customerPhone: customerPhone.trim(),
-          deliveryLocation: deliveryLocation.trim(),
+       body: JSON.stringify({
+      customerName: customerName.trim(),
+      customerEmail: customerEmail.trim(),
+      customerPhone: customerPhone.trim(),
+      deliveryLocation: deliveryLocation.trim(),
           productSubtotal: subtotal,
           deliveryFee: DELIVERY_FEE,
           totalAmount: grandTotal,
@@ -1041,6 +1044,30 @@ export function NsawamMarket() {
                   className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
               </div>
+
+         {/* CUSTOMER EMAIL */}
+  <div>
+  <label
+    htmlFor="market-customer-email"
+    className="text-sm font-medium"
+  >
+  Email Address
+  </label>
+
+  <input
+    id="market-customer-email"
+    type="email"
+    value={customerEmail}
+    onChange={(event) => {
+      setCustomerEmail(event.target.value)
+      setOrderNumber("")
+      setShowOrderOptions(false)
+      setOrderError("")
+    }}
+    placeholder="Enter your email address"
+    className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+  />
+</div>
 
               {/* CUSTOMER PHONE */}
               <div>
