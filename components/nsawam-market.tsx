@@ -162,13 +162,17 @@ const KFM_PHONE_1 = "024 0555 688"
 const KFM_PHONE_2 = "020 409 7129"
 
 export function NsawamMarket() {
-  const [activeCategory, setActiveCategory] = useState("All")
-  const [cart, setCart] = useState<Record<string, CartItem>>({})
+const [activeCategory, setActiveCategory] = useState("All")
+const [cart, setCart] = useState<Record<string, CartItem>>({})
 
-  const [customerName, setCustomerName] = useState("")
-  const [customerPhone, setCustomerPhone] = useState("")
-  const [deliveryLocation, setDeliveryLocation] = useState("")
-  const [showOrderOptions, setShowOrderOptions] = useState(false)
+const [customerName, setCustomerName] = useState("")
+const [customerPhone, setCustomerPhone] = useState("")
+const [deliveryLocation, setDeliveryLocation] = useState("")
+const [showOrderOptions, setShowOrderOptions] = useState(false)
+
+const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
+const [orderNumber, setOrderNumber] = useState("")
+const [orderError, setOrderError] = useState("")
 
   const visibleProducts = useMemo(
     () =>
@@ -305,23 +309,67 @@ export function NsawamMarket() {
     setShowOrderOptions(false)
   }
 
-  function prepareOrder() {
-    if (!minimumOrderReached) {
-      alert(`Minimum market order is GH₵${MINIMUM_ORDER}.`)
-      return
-    }
+ async function prepareOrder() {
+  if (!minimumOrderReached) {
+    alert(`Minimum market order is GH₵${MINIMUM_ORDER}.`)
+    return
+  }
 
-    if (
-      !customerName.trim() ||
-      !customerPhone.trim() ||
-      !deliveryLocation.trim()
-    ) {
-      alert(
-        "Please enter your name, phone number and delivery location before placing your order.",
+  if (
+    !customerName.trim() ||
+    !customerPhone.trim() ||
+    !deliveryLocation.trim()
+  ) {
+    alert(
+      "Please enter your name, phone number and delivery location before placing your order.",
+    )
+    return
+  }
+
+  if (cartItems.length === 0) {
+    alert("Your basket is empty.")
+    return
+  }
+
+  setIsSubmittingOrder(true)
+  setOrderError("")
+  setOrderNumber("")
+  setShowOrderOptions(false)
+
+  try {
+    const response = await fetch("/api/market-orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        deliveryLocation: deliveryLocation.trim(),
+        productSubtotal: subtotal,
+        deliveryFee: DELIVERY_FEE,
+        totalAmount: grandTotal,
+        items: cartItems.map(
+          ({ product, quantity, unitPrice, total }) => ({
+            productName: product.name,
+            category: product.category,
+            quantity,
+            unitAmount: unitPrice,
+            lineTotal: total,
+          }),
+        ),
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(
+        data?.error || "Unable to create your market order.",
       )
-      return
     }
 
+    setOrderNumber(data.order.orderNumber)
     setShowOrderOptions(true)
 
     setTimeout(() => {
@@ -332,8 +380,18 @@ export function NsawamMarket() {
           block: "center",
         })
     }, 100)
-  }
+  } catch (error) {
+    console.error("KFM Market order submission error:", error)
 
+    setOrderError(
+      error instanceof Error
+        ? error.message
+        : "Unable to create your market order. Please try again.",
+    )
+  } finally {
+    setIsSubmittingOrder(false)
+  }
+}
   function createWhatsAppMessage() {
     const orderLines = cartItems
       .map(
@@ -1063,68 +1121,84 @@ export function NsawamMarket() {
                 </div>
               </div>
 
-              <Button
-                type="button"
-                className="w-full"
-                size="lg"
-                onClick={prepareOrder}
-              >
-                Place Market Order
-              </Button>
+             <Button
+  type="button"
+  className="w-full"
+  size="lg"
+  onClick={prepareOrder}
+  disabled={isSubmittingOrder}
+>
+  {isSubmittingOrder
+    ? "Creating Your KFM Order..."
+    : "Place Market Order"}
+</Button>
 
-              {showOrderOptions && (
-                <div
-                  id="market-order-options"
-                  className="rounded-2xl border border-primary/20 bg-primary/5 p-6"
-                >
-                  <h4 className="text-center text-lg font-bold">
-                    How would you like to confirm your order?
-                  </h4>
+  {showOrderOptions && orderNumber && (
+  <div
+    id="market-order-options"
+    className="rounded-2xl border border-green-200 bg-green-50 p-6"
+  >
+    <div className="text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl">
+        ✓
+      </div>
 
-                  <p className="mt-2 text-center text-sm text-muted-foreground">
-                    Choose WhatsApp or call KFM directly. You do not need
-                    WhatsApp to place your order.
-                  </p>
+      <h4 className="mt-4 text-xl font-bold text-green-900">
+        Order Received Successfully
+      </h4>
 
-                  <div className="mt-5 grid gap-3">
-                    <Button
-                      type="button"
-                      className="w-full"
-                      size="lg"
-                      onClick={sendWhatsAppOrder}
-                    >
-                      Send Order via WhatsApp
-                    </Button>
+      <p className="mt-2 text-sm text-green-800">
+        Your KFM Market order has been saved successfully.
+      </p>
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => callKFM(KFM_PHONE_1)}
-                    >
-                      Call KFM: {KFM_PHONE_1}
-                    </Button>
+      <div className="mt-5 rounded-xl border border-green-200 bg-white p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Your KFM Order Number
+        </p>
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => callKFM(KFM_PHONE_2)}
-                    >
-                      Call KFM: {KFM_PHONE_2}
-                    </Button>
-                  </div>
+        <p className="mt-2 text-2xl font-extrabold tracking-wide text-primary">
+          {orderNumber}
+        </p>
+      </div>
 
-                  <p className="mt-4 text-center text-xs text-muted-foreground">
-                    KFM will confirm your order and delivery details with
-                    you.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+      <div className="mt-5 space-y-2 text-sm text-green-800">
+        <p>
+          <strong>Products:</strong> GH₵{subtotal}
+        </p>
 
+        <p>
+          <strong>Delivery:</strong> GH₵{DELIVERY_FEE}
+        </p>
+
+        <p>
+          <strong>Total:</strong> GH₵{grandTotal}
+        </p>
+      </div>
+
+      <p className="mt-5 text-sm text-green-800">
+        Please keep your order number. We will use it to track your
+        KFM Market order.
+      </p>
+    </div>
+  </div>
+)}
+
+{orderError && (
+  <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+    <p className="font-bold">
+      We could not create your order.
+    </p>
+
+    <p className="mt-2">
+      {orderError}
+    </p>
+
+    <p className="mt-2">
+      Please check your information and try again.
+    </p>
+  </div>
+)}
+</div>
         {/* MARKET FOOTER */}
         <div className="mt-14 rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center">
           <p className="font-semibold">
