@@ -162,17 +162,17 @@ const KFM_PHONE_1 = "024 0555 688"
 const KFM_PHONE_2 = "020 409 7129"
 
 export function NsawamMarket() {
-const [activeCategory, setActiveCategory] = useState("All")
-const [cart, setCart] = useState<Record<string, CartItem>>({})
+  const [activeCategory, setActiveCategory] = useState("All")
+  const [cart, setCart] = useState<Record<string, CartItem>>({})
 
-const [customerName, setCustomerName] = useState("")
-const [customerPhone, setCustomerPhone] = useState("")
-const [deliveryLocation, setDeliveryLocation] = useState("")
-const [showOrderOptions, setShowOrderOptions] = useState(false)
+  const [customerName, setCustomerName] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
+  const [deliveryLocation, setDeliveryLocation] = useState("")
 
-const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
-const [orderNumber, setOrderNumber] = useState("")
-const [orderError, setOrderError] = useState("")
+  const [showOrderOptions, setShowOrderOptions] = useState(false)
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false)
+  const [orderNumber, setOrderNumber] = useState("")
+  const [orderError, setOrderError] = useState("")
 
   const visibleProducts = useMemo(
     () =>
@@ -221,21 +221,17 @@ const [orderError, setOrderError] = useState("")
   const grandTotal = subtotal > 0 ? subtotal + DELIVERY_FEE : 0
 
   function scrollToProducts() {
-    document
-      .getElementById("market-products")
-      ?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      })
+    document.getElementById("market-products")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
   }
 
   function scrollToBasket() {
-    document
-      .getElementById("market-basket")
-      ?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      })
+    document.getElementById("market-basket")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
   }
 
   function selectAmount(product: Product, amount: number) {
@@ -252,7 +248,9 @@ const [orderError, setOrderError] = useState("")
       }
     })
 
+    setOrderNumber("")
     setShowOrderOptions(false)
+    setOrderError("")
   }
 
   function addItem(product: Product) {
@@ -270,7 +268,9 @@ const [orderError, setOrderError] = useState("")
       }
     })
 
+    setOrderNumber("")
     setShowOrderOptions(false)
+    setOrderError("")
   }
 
   function removeItemQuantity(id: string) {
@@ -296,7 +296,9 @@ const [orderError, setOrderError] = useState("")
       }
     })
 
+    setOrderNumber("")
     setShowOrderOptions(false)
+    setOrderError("")
   }
 
   function removeItem(id: string) {
@@ -306,92 +308,98 @@ const [orderError, setOrderError] = useState("")
       return next
     })
 
+    setOrderNumber("")
     setShowOrderOptions(false)
+    setOrderError("")
   }
 
- async function prepareOrder() {
-  if (!minimumOrderReached) {
-    alert(`Minimum market order is GH₵${MINIMUM_ORDER}.`)
-    return
-  }
-
-  if (
-    !customerName.trim() ||
-    !customerPhone.trim() ||
-    !deliveryLocation.trim()
-  ) {
-    alert(
-      "Please enter your name, phone number and delivery location before placing your order.",
-    )
-    return
-  }
-
-  if (cartItems.length === 0) {
-    alert("Your basket is empty.")
-    return
-  }
-
-  setIsSubmittingOrder(true)
-  setOrderError("")
-  setOrderNumber("")
-  setShowOrderOptions(false)
-
-  try {
-    const response = await fetch("/api/market-orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        customerName: customerName.trim(),
-        customerPhone: customerPhone.trim(),
-        deliveryLocation: deliveryLocation.trim(),
-        productSubtotal: subtotal,
-        deliveryFee: DELIVERY_FEE,
-        totalAmount: grandTotal,
-        items: cartItems.map(
-          ({ product, quantity, unitPrice, total }) => ({
-            productName: product.name,
-            category: product.category,
-            quantity,
-            unitAmount: unitPrice,
-            lineTotal: total,
-          }),
-        ),
-      }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(
-        data?.error || "Unable to create your market order.",
-      )
+  async function prepareOrder() {
+    if (orderNumber) {
+      return
     }
 
-    setOrderNumber(data.order.orderNumber)
-    setShowOrderOptions(true)
+    if (!minimumOrderReached) {
+      alert(`Minimum market order is GH₵${MINIMUM_ORDER}.`)
+      return
+    }
 
-    setTimeout(() => {
-      document
-        .getElementById("market-order-options")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        })
-    }, 100)
-  } catch (error) {
-    console.error("KFM Market order submission error:", error)
+    if (
+      !customerName.trim() ||
+      !customerPhone.trim() ||
+      !deliveryLocation.trim()
+    ) {
+      alert(
+        "Please enter your name, phone number and delivery location before placing your order.",
+      )
+      return
+    }
 
-    setOrderError(
-      error instanceof Error
-        ? error.message
-        : "Unable to create your market order. Please try again.",
-    )
-  } finally {
-    setIsSubmittingOrder(false)
+    if (cartItems.length === 0) {
+      alert("Your basket is empty.")
+      return
+    }
+
+    setIsSubmittingOrder(true)
+    setOrderError("")
+    setShowOrderOptions(false)
+
+    try {
+      const response = await fetch("/api/market-orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          deliveryLocation: deliveryLocation.trim(),
+          productSubtotal: subtotal,
+          deliveryFee: DELIVERY_FEE,
+          totalAmount: grandTotal,
+          items: cartItems.map(
+            ({ product, quantity, unitPrice, total }) => ({
+              productName: product.name,
+              category: product.category,
+              quantity,
+              unitAmount: unitPrice,
+              lineTotal: total,
+            }),
+          ),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || "Unable to create your market order.",
+        )
+      }
+
+      setOrderNumber(data.order.orderNumber)
+      setShowOrderOptions(true)
+
+      setTimeout(() => {
+        document
+          .getElementById("market-order-options")
+          ?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          })
+      }, 100)
+    } catch (error) {
+      console.error("KFM Market order submission error:", error)
+
+      setOrderError(
+        error instanceof Error
+          ? error.message
+          : "Unable to create your market order. Please try again.",
+      )
+    } finally {
+      setIsSubmittingOrder(false)
+    }
   }
-}
+
   function createWhatsAppMessage() {
     const orderLines = cartItems
       .map(
@@ -403,6 +411,7 @@ const [orderError, setOrderError] = useState("")
     return [
       "KFM NSAWAM MARKET ORDER",
       "",
+      `KFM Order Number: ${orderNumber}`,
       `Customer: ${customerName.trim()}`,
       `Phone: ${customerPhone.trim()}`,
       `Delivery Location: ${deliveryLocation.trim()}`,
@@ -419,9 +428,13 @@ const [orderError, setOrderError] = useState("")
   }
 
   function sendWhatsAppOrder() {
+    if (!orderNumber) return
+
     const message = createWhatsAppMessage()
 
-    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      message,
+    )}`
 
     window.open(whatsappUrl, "_blank", "noopener,noreferrer")
   }
@@ -436,146 +449,146 @@ const [orderError, setOrderError] = useState("")
       className="border-t border-border bg-background"
     >
       <div className="mx-auto max-w-7xl px-4 py-16 md:px-6 md:py-24">
-       {/* MARKET HERO */}
-<div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-lg">
-  <div className="grid items-stretch lg:grid-cols-[1.05fr_0.95fr]">
-    {/* HERO CONTENT */}
-    <div className="flex flex-col justify-center p-7 sm:p-10 md:p-14 lg:p-16">
-      <div className="inline-flex w-fit items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-bold text-primary">
-        🛒 KFM Nsawam Market
-      </div>
+        {/* MARKET HERO */}
+        <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-lg">
+          <div className="grid items-stretch lg:grid-cols-[1.05fr_0.95fr]">
+            {/* HERO CONTENT */}
+            <div className="flex flex-col justify-center p-7 sm:p-10 md:p-14 lg:p-16">
+              <div className="inline-flex w-fit items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-bold text-primary">
+                🛒 KFM Nsawam Market
+              </div>
 
-      <h2 className="mt-6 max-w-3xl text-balance text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
-        Fresh from the market.
-        <span className="mt-2 block text-primary">
-          Delivered to you.
-        </span>
-      </h2>
+              <h2 className="mt-6 max-w-3xl text-balance text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
+                Fresh from the market.
+                <span className="mt-2 block text-primary">
+                  Delivered to you.
+                </span>
+              </h2>
 
-      <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg md:text-xl">
-        Shop selected fresh market essentials from Nsawam and have
-        your order delivered to your home. Choose your amount, build
-        your basket and let KFM make your market shopping easier.
-      </p>
+              <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg md:text-xl">
+                Shop selected fresh market essentials from Nsawam and have
+                your order delivered to your home. Choose your amount, build
+                your basket and let KFM make your market shopping easier.
+              </p>
 
-      {/* HERO ACTIONS */}
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Button
-          type="button"
-          size="lg"
-          className="h-12 px-7 text-base font-bold"
-          onClick={scrollToProducts}
-        >
-          Shop the Market
-        </Button>
+              {/* HERO ACTIONS */}
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  type="button"
+                  size="lg"
+                  className="h-12 px-7 text-base font-bold"
+                  onClick={scrollToProducts}
+                >
+                  Shop the Market
+                </Button>
 
-        <Button
-          type="button"
-          size="lg"
-          variant="outline"
-          className="h-12 px-7 text-base font-bold"
-          onClick={scrollToBasket}
-        >
-          <ShoppingBasket className="mr-2 h-5 w-5" />
-          View Basket
-          {totalItems > 0 ? ` (${totalItems})` : ""}
-        </Button>
-      </div>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className="h-12 px-7 text-base font-bold"
+                  onClick={scrollToBasket}
+                >
+                  <ShoppingBasket className="mr-2 h-5 w-5" />
+                  View Basket
+                  {totalItems > 0 ? ` (${totalItems})` : ""}
+                </Button>
+              </div>
 
-      {/* HERO BENEFITS */}
-      <div className="mt-10 grid gap-4 border-t border-border pt-7 sm:grid-cols-3">
-        <div className="flex gap-3">
-          <div className="rounded-xl bg-primary/10 p-2.5">
-            <Truck className="h-5 w-5 text-primary" />
-          </div>
+              {/* HERO BENEFITS */}
+              <div className="mt-10 grid gap-4 border-t border-border pt-7 sm:grid-cols-3">
+                <div className="flex gap-3">
+                  <div className="rounded-xl bg-primary/10 p-2.5">
+                    <Truck className="h-5 w-5 text-primary" />
+                  </div>
 
-          <div>
-            <p className="text-sm font-bold">
-              Nsawam Delivery
-            </p>
+                  <div>
+                    <p className="text-sm font-bold">
+                      Nsawam Delivery
+                    </p>
 
-            <p className="mt-1 text-xs text-muted-foreground">
-              GH₵{DELIVERY_FEE}
-            </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      GH₵{DELIVERY_FEE}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="rounded-xl bg-primary/10 p-2.5">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-bold">
+                      Easy Ordering
+                    </p>
+
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Choose your amount
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="rounded-xl bg-primary/10 p-2.5">
+                    <Clock3 className="h-5 w-5 text-primary" />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-bold">
+                      Convenient
+                    </p>
+
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Order from home
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* HERO IMAGE */}
+            <div className="relative min-h-[380px] lg:min-h-[620px]">
+              <Image
+                src="/images/vegetables.jpg"
+                alt="Fresh market vegetables at KFM Nsawam Market"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                priority
+              />
+
+              {/* IMAGE OVERLAY */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+
+              <div className="absolute inset-x-0 bottom-0 p-7 sm:p-9">
+                <div className="rounded-2xl border border-white/20 bg-black/35 p-5 backdrop-blur-sm">
+                  <p className="text-xl font-extrabold text-white sm:text-2xl">
+                    Fresh market essentials
+                  </p>
+
+                  <p className="mt-2 text-sm text-white/85 sm:text-base">
+                    Vegetables • Fruits • Staples • Protein
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
+                      Fresh
+                    </span>
+
+                    <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
+                      Convenient
+                    </span>
+
+                    <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
+                      Nsawam Delivery
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div className="flex gap-3">
-          <div className="rounded-xl bg-primary/10 p-2.5">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-          </div>
-
-          <div>
-            <p className="text-sm font-bold">
-              Easy Ordering
-            </p>
-
-            <p className="mt-1 text-xs text-muted-foreground">
-              Choose your amount
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <div className="rounded-xl bg-primary/10 p-2.5">
-            <Clock3 className="h-5 w-5 text-primary" />
-          </div>
-
-          <div>
-            <p className="text-sm font-bold">
-              Convenient
-            </p>
-
-            <p className="mt-1 text-xs text-muted-foreground">
-              Order from home
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* HERO IMAGE */}
-    <div className="relative min-h-[380px] lg:min-h-[620px]">
-      <Image
-        src="/images/vegetables.jpg"
-        alt="Fresh market vegetables at KFM Nsawam Market"
-        fill
-        className="object-cover"
-        sizes="(max-width: 1024px) 100vw, 50vw"
-        priority
-      />
-
-      {/* IMAGE OVERLAY */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-
-      <div className="absolute inset-x-0 bottom-0 p-7 sm:p-9">
-        <div className="rounded-2xl border border-white/20 bg-black/35 p-5 backdrop-blur-sm">
-          <p className="text-xl font-extrabold text-white sm:text-2xl">
-            Fresh market essentials
-          </p>
-
-          <p className="mt-2 text-sm text-white/85 sm:text-base">
-            Vegetables • Fruits • Staples • Protein
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
-              Fresh
-            </span>
-
-            <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
-              Convenient
-            </span>
-
-            <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white">
-              Nsawam Delivery
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
         {/* MARKET INFORMATION */}
         <div className="mt-8 grid gap-4 md:grid-cols-3">
@@ -929,7 +942,9 @@ const [orderError, setOrderError] = useState("")
                       Nsawam delivery
                     </span>
 
-                    <span>GH₵{subtotal > 0 ? DELIVERY_FEE : 0}</span>
+                    <span>
+                      GH₵{subtotal > 0 ? DELIVERY_FEE : 0}
+                    </span>
                   </div>
 
                   <div className="border-t border-border pt-3">
@@ -1003,6 +1018,7 @@ const [orderError, setOrderError] = useState("")
             </div>
 
             <div className="mt-8 space-y-5">
+              {/* CUSTOMER NAME */}
               <div>
                 <label
                   htmlFor="market-customer-name"
@@ -1017,13 +1033,16 @@ const [orderError, setOrderError] = useState("")
                   value={customerName}
                   onChange={(event) => {
                     setCustomerName(event.target.value)
+                    setOrderNumber("")
                     setShowOrderOptions(false)
+                    setOrderError("")
                   }}
                   placeholder="Enter your name"
                   className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
               </div>
 
+              {/* CUSTOMER PHONE */}
               <div>
                 <label
                   htmlFor="market-customer-phone"
@@ -1038,13 +1057,16 @@ const [orderError, setOrderError] = useState("")
                   value={customerPhone}
                   onChange={(event) => {
                     setCustomerPhone(event.target.value)
+                    setOrderNumber("")
                     setShowOrderOptions(false)
+                    setOrderError("")
                   }}
                   placeholder="e.g. 024 000 0000"
                   className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
               </div>
 
+              {/* DELIVERY LOCATION */}
               <div>
                 <label
                   htmlFor="market-delivery-location"
@@ -1059,13 +1081,16 @@ const [orderError, setOrderError] = useState("")
                   value={deliveryLocation}
                   onChange={(event) => {
                     setDeliveryLocation(event.target.value)
+                    setOrderNumber("")
                     setShowOrderOptions(false)
+                    setOrderError("")
                   }}
                   placeholder="Enter your delivery location in Nsawam"
                   className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
               </div>
 
+              {/* ORDER SUMMARY */}
               <div className="rounded-2xl border border-border bg-muted/40 p-5">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold">
@@ -1121,87 +1146,127 @@ const [orderError, setOrderError] = useState("")
                 </div>
               </div>
 
-             <Button
-  type="button"
-  className="w-full"
-  size="lg"
-  onClick={prepareOrder}
-  disabled={isSubmittingOrder}
->
-  {isSubmittingOrder
-    ? "Creating Your KFM Order..."
-    : "Place Market Order"}
-</Button>
+              {/* PLACE ORDER */}
+              <Button
+                type="button"
+                className="w-full"
+                size="lg"
+                onClick={prepareOrder}
+                disabled={isSubmittingOrder || !!orderNumber}
+              >
+                {isSubmittingOrder
+                  ? "Creating Your KFM Order..."
+                  : orderNumber
+                    ? `Order Created: ${orderNumber}`
+                    : "Place Market Order"}
+              </Button>
 
-  {showOrderOptions && orderNumber && (
-  <div
-    id="market-order-options"
-    className="rounded-2xl border border-green-200 bg-green-50 p-6"
-  >
-    <div className="text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl">
-        ✓
-      </div>
+              {/* SUCCESS */}
+              {showOrderOptions && orderNumber && (
+                <div
+                  id="market-order-options"
+                  className="rounded-2xl border border-green-200 bg-green-50 p-6"
+                >
+                  <div className="text-center">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl">
+                      ✓
+                    </div>
 
-      <h4 className="mt-4 text-xl font-bold text-green-900">
-        Order Received Successfully
-      </h4>
+                    <h4 className="mt-4 text-xl font-bold text-green-900">
+                      Order Received Successfully
+                    </h4>
 
-      <p className="mt-2 text-sm text-green-800">
-        Your KFM Market order has been saved successfully.
-      </p>
+                    <p className="mt-2 text-sm text-green-800">
+                      Your KFM Market order has been saved successfully.
+                    </p>
 
-      <div className="mt-5 rounded-xl border border-green-200 bg-white p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Your KFM Order Number
-        </p>
+                    {/* ORDER NUMBER */}
+                    <div className="mt-5 rounded-xl border border-green-200 bg-white p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Your KFM Order Number
+                      </p>
 
-        <p className="mt-2 text-2xl font-extrabold tracking-wide text-primary">
-          {orderNumber}
-        </p>
-      </div>
+                      <p className="mt-2 text-2xl font-extrabold tracking-wide text-primary">
+                        {orderNumber}
+                      </p>
+                    </div>
 
-      <div className="mt-5 space-y-2 text-sm text-green-800">
-        <p>
-          <strong>Products:</strong> GH₵{subtotal}
-        </p>
+                    {/* TOTALS */}
+                    <div className="mt-5 space-y-2 text-sm text-green-800">
+                      <p>
+                        <strong>Products:</strong> GH₵{subtotal}
+                      </p>
 
-        <p>
-          <strong>Delivery:</strong> GH₵{DELIVERY_FEE}
-        </p>
+                      <p>
+                        <strong>Delivery:</strong> GH₵{DELIVERY_FEE}
+                      </p>
 
-        <p>
-          <strong>Total:</strong> GH₵{grandTotal}
-        </p>
-      </div>
+                      <p>
+                        <strong>Total:</strong> GH₵{grandTotal}
+                      </p>
+                    </div>
 
-      <p className="mt-5 text-sm text-green-800">
-        Please keep your order number. We will use it to track your
-        KFM Market order.
-      </p>
-    </div>
-  </div>
-)}
-{orderError && (
-  <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
-    <p className="font-bold">
-      We could not create your order.
-    </p>
+                    <p className="mt-5 text-sm text-green-800">
+                      Please keep your order number. We will use it to track
+                      your KFM Market order.
+                    </p>
 
-    <p className="mt-2">
-      {orderError}
-    </p>
+                    {/* ORDER CONTACT ACTIONS */}
+                    <div className="mt-6 space-y-3">
+                      <Button
+                        type="button"
+                        className="w-full"
+                        size="lg"
+                        onClick={sendWhatsAppOrder}
+                      >
+                        Send Order via WhatsApp
+                      </Button>
 
-    <p className="mt-2">
-      Please check your information and try again.
-    </p>
-  </div>
-)}
-    </div>
-   </div>
- )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        size="lg"
+                        onClick={() => callKFM(KFM_PHONE_1)}
+                      >
+                        Call KFM: {KFM_PHONE_1}
+                      </Button>
 
-   {/* MARKET FOOTER */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        size="lg"
+                        onClick={() => callKFM(KFM_PHONE_2)}
+                      >
+                        Call KFM: {KFM_PHONE_2}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ERROR */}
+              {orderError && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
+                  <p className="font-bold">
+                    We could not create your order.
+                  </p>
+
+                  <p className="mt-2">
+                    {orderError}
+                  </p>
+
+                  <p className="mt-2">
+                    Please check your information and try again.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* MARKET FOOTER */}
         <div className="mt-14 rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center">
           <p className="font-semibold">
             KFM Nsawam Market
@@ -1213,9 +1278,11 @@ const [orderError, setOrderError] = useState("")
 
           <div className="mt-4 flex flex-col items-center justify-center gap-2 text-sm font-medium sm:flex-row sm:gap-5">
             <span>{KFM_PHONE_1}</span>
+
             <span className="hidden text-muted-foreground sm:inline">
               •
             </span>
+
             <span>{KFM_PHONE_2}</span>
           </div>
         </div>
