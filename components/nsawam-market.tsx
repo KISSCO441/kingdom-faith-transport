@@ -1182,7 +1182,6 @@ const [orderError, setOrderError] = useState("")
     </div>
   </div>
 )}
-
 {orderError && (
   <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800">
     <p className="font-bold">
@@ -1198,7 +1197,9 @@ const [orderError, setOrderError] = useState("")
     </p>
   </div>
 )}
-</div>
+  </div>
+        )}
+
         {/* MARKET FOOTER */}
         <div className="mt-14 rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center">
           <p className="font-semibold">
