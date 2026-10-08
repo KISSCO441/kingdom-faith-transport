@@ -28,6 +28,7 @@ type MarketOrderItem = {
 
 type MarketOrderRequest = {
   customerName: string;
+  customerEmail: string;
   customerPhone: string;
   deliveryLocation: string;
   productSubtotal: number;
@@ -45,23 +46,24 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as MarketOrderRequest;
 
-    const {
-      customerName,
-      customerPhone,
-      deliveryLocation,
-      productSubtotal,
-      deliveryFee,
-      totalAmount,
-      items,
-    } = body;
-
-    if (
-      !customerName ||
-      !customerPhone ||
-      !deliveryLocation ||
-      !Array.isArray(items) ||
-      items.length === 0
-    ) {
+   const {
+  customerName,
+  customerEmail,
+  customerPhone,
+  deliveryLocation,
+  productSubtotal,
+  deliveryFee,
+  totalAmount,
+  items,
+} = body;
+   if (
+  !customerName ||
+  !customerEmail ||
+  !customerPhone ||
+  !deliveryLocation ||
+  !Array.isArray(items) ||
+  items.length === 0
+) {
       return NextResponse.json(
         {
           error: "Please provide all required order information.",
@@ -70,31 +72,46 @@ export async function POST(request: Request) {
       );
     }
 
-    if (productSubtotal < 50) {
-      return NextResponse.json(
-        {
-          error: "Minimum KFM Market order is GH₵50.",
-        },
-        { status: 400 },
-      );
-    }
+   const normalizedEmail = customerEmail.trim().toLowerCase();
 
+const emailIsValid =
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+
+if (!emailIsValid) {
+  return NextResponse.json(
+    {
+      error: "Please provide a valid email address.",
+    },
+    { status: 400 },
+  );
+}
+
+if (productSubtotal < 50) {
+  return NextResponse.json(
+    {
+      error: "Minimum KFM Market order is GH₵50.",
+    },
+    { status: 400 },
+  );
+}
+    
     const orderNumber = generateOrderNumber();
 
     // STEP 1: Create the KFM Market order
     const { data: order, error: orderError } = await supabase
       .from("market_orders")
-      .insert({
-        order_number: orderNumber,
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        delivery_location: deliveryLocation,
-        product_subtotal: productSubtotal,
-        delivery_fee: deliveryFee,
-        total_amount: totalAmount,
-        payment_status: "PENDING",
-        order_status: "NEW",
-      })
+     .insert({
+  order_number: orderNumber,
+  customer_name: customerName,
+  customer_email: normalizedEmail,
+  customer_phone: customerPhone,
+  delivery_location: deliveryLocation,
+  product_subtotal: productSubtotal,
+  delivery_fee: deliveryFee,
+  total_amount: totalAmount,
+  payment_status: "PENDING",
+  order_status: "NEW",
+})
       .select()
       .single();
 
@@ -149,7 +166,7 @@ export async function POST(request: Request) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: `${customerPhone.replace(/\D/g, "")}@kfm-order.local`,
+          email: normalizedEmail,
           amount: Math.round(Number(totalAmount) * 100),
           currency: "GHS",
           reference: orderNumber,
