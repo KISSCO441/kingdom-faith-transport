@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
+export const runtime = "nodejs"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     const hash = crypto
-      .createHmac("sha512", paystackSecretKey)
+      .createHmac("sha512", paystackSecretKey!)
       .update(body)
       .digest("hex")
 
