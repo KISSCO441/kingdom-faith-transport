@@ -60,7 +60,7 @@ return ( <section
  > <div className="mx-auto max-w-4xl"> <div className="text-center"> <p className="mb-2 text-sm font-bold uppercase tracking-widest text-primary">
 KFM SUPPORT </p>
 
-```
+
       <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
         Frequently Asked Questions
       </h2>
@@ -106,7 +106,7 @@ KFM SUPPORT </p>
     </div>
   </div>
 </section>
-```
+
 
 )
 }
