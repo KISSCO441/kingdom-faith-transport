@@ -7,6 +7,7 @@ import { NsawamMarket } from "@/components/nsawam-market"
 import { Features } from "@/components/features"
 import { HowItWorks } from "@/components/how-it-works"
 import { BookingForm } from "@/components/booking-form"
+import { FAQ } from "@/components/faq"
 import { SiteFooter } from "@/components/site-footer"
 
 export default function Page() {
@@ -22,6 +23,7 @@ export default function Page() {
         <Features />
         <HowItWorks />
         <BookingForm />
+        <FAQ />
 
         {/* Contact KFM */}
         <section
