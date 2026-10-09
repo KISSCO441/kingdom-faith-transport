@@ -5,6 +5,7 @@ import Image from "next/image"
 import {
   Clock3,
   MapPin,
+  MessageCircle,
   Minus,
   Phone,
   Plus,
@@ -235,6 +236,27 @@ export function NsawamMarket() {
     })
   }
 
+function startLiveMarketOrder() {
+  const message = [
+    "Hello KFM, I want to place a LIVE MARKET ORDER.",
+    "",
+    "Please check availability and current prices for these items:",
+    "1. Item and quantity:",
+    "2. Item and quantity:",
+    "3. Item and quantity:",
+    "",
+    "Please send me the itemized order and delivery fee for confirmation before payment.",
+    "",
+    "Customer name:",
+    "Delivery location:",
+    "Contact number:",
+  ].join("\n")
+
+  const whatsappUrl =
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+
+  window.open(whatsappUrl, "_blank", "noopener,noreferrer")
+}
   function selectAmount(product: Product, amount: number) {
     setCart((current) => {
       const existing = current[product.id]
@@ -473,32 +495,42 @@ async function prepareOrder() {
                 your basket and let KFM make your market shopping easier.
               </p>
 
-              {/* HERO ACTIONS */}
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="h-12 px-7 text-base font-bold"
-                  onClick={scrollToProducts}
-                >
-                  Shop the Market
-                </Button>
+          {/* HERO ACTIONS */}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button
+              type="button"
+              size="lg"
+              className="h-12 px-7 text-base font-bold"
+              onClick={scrollToProducts}
+            >
+              Shop the Market
+            </Button>
 
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="outline"
-                  className="h-12 px-7 text-base font-bold"
-                  onClick={scrollToBasket}
-                >
-                  <ShoppingBasket className="mr-2 h-5 w-5" />
-                  View Basket
-                  {totalItems > 0 ? ` (${totalItems})` : ""}
-                </Button>
-              </div>
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="h-12 px-7 text-base font-bold"
+              onClick={scrollToBasket}
+            >
+              <ShoppingBasket className="mr-2 h-5 w-5" />
+              View Basket
+              {totalItems > 0 ? ` (${totalItems})` : ""}
+            </Button>
 
-              {/* HERO BENEFITS */}
-              <div className="mt-10 grid gap-4 border-t border-border pt-7 sm:grid-cols-3">
+            <Button
+              type="button"
+              size="lg"
+              className="h-12 px-7 text-base font-bold"
+              onClick={startLiveMarketOrder}
+            >
+              <MessageCircle className="mr-2 h-5 w-5" />
+              LIVE MARKET ORDER
+            </Button>
+          </div>
+
+          {/* HERO BENEFITS */}
+               <div className="mt-10 grid gap-4 border-t border-border pt-7 sm:grid-cols-3">
                 <div className="flex gap-3">
                   <div className="rounded-xl bg-primary/10 p-2.5">
                     <Truck className="h-5 w-5 text-primary" />
