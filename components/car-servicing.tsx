@@ -1,109 +1,305 @@
-import { Wrench, Droplets, Battery, Gauge, ShieldCheck, Check } from "lucide-react"
+
+"use client"
+
+import { useMemo, useState } from "react"
+import {
+  Battery,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Search,
+  Wrench,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const packages = [
+type Mechanic = {
+  name: string
+  area: string
+  phone?: string
+  services: string[]
+  mapQuery: string
+  note: string
+}
+
+const mechanics: Mechanic[] = [
   {
-    name: "Minor Service",
-    price: "₵180",
-    duration: "About 1 hour",
-    icon: Droplets,
-    description: "Essential upkeep to keep your car and okada running smoothly.",
-    includes: ["Engine oil & filter change", "Fluid top-up", "Tyre pressure check", "20-point inspection"],
+    name: "Nsawam Mechanic Shop",
+    area: "Nsawam–Aburi Road",
+    phone: "+233247940097",
+    services: ["General repairs", "Vehicle maintenance"],
+    mapQuery: "Nsawam Mechanic Shop, Nsawam, Ghana",
+    note: "Public listing; contact details and current services need confirmation.",
   },
   {
-    name: "Major Service",
-    price: "₵420",
-    duration: "Half day",
-    icon: Wrench,
-    description: "A thorough service covering the parts that wear out over time.",
-    includes: ["Everything in Minor Service", "Brake pads & discs check", "Air & fuel filters", "Spark plugs", "Full diagnostics"],
-    popular: true,
+    name: "Kahlmahn Ghana",
+    area: "Nsawam",
+    phone: "+233269993452",
+    services: ["Car repairs", "Vehicle maintenance"],
+    mapQuery: "Kahlmahn Ghana, Nsawam, Ghana",
+    note: "Public listing; confirm services and WhatsApp availability.",
   },
   {
-    name: "Diagnostics & Repair",
-    price: "From ₵120",
-    duration: "Same day",
-    icon: Gauge,
-    description: "Computer diagnostics and expert repairs for any fault.",
-    includes: ["Full computer scan", "Fault report & quote", "Genuine parts", "Warranty on repairs"],
+    name: "Automobile Heavy Duty Mechanic",
+    area: "Nsawam",
+    phone: "+233500275188",
+    services: ["Mechanical repairs"],
+    mapQuery: "EG-065-0632, Nsawam, Ghana",
+    note: "Confirm workshop location and passenger-car services before visiting.",
+  },
+  {
+    name: "Car Mechanic",
+    area: "Nsawam Adoagyiri",
+    phone: "+233594172149",
+    services: ["Mechanical repairs"],
+    mapQuery: "RJ9X+QFP, Nsawam Adoagyiri, Ghana",
+    note: "Public listing; business name, location and services need confirmation.",
+  },
+  {
+    name: "Traction zone",
+    area: "Adodi Roundabout, Nsawam",
+    phone: "+233540412945",
+    services: ["Battery services"],
+    mapQuery: "Traction Zone, Adodi Roundabout, Nsawam, Ghana",
+    note: "Listed as a battery store; confirm available vehicle services.",
+  },
+  {
+    name: "SIMPAT LIMITED",
+    area: "Dobro, Nsawam Road",
+    phone: "+233201444561",
+    services: ["Tyres"],
+    mapQuery: "SIMPAT LIMITED, Dobro, Nsawam Road, Ghana",
+    note: "Listed as a tyre shop; confirm current contact details and services.",
+  },
+  {
+    name: "Kujo Mechanic",
+    area: "Nsawam–Suhum Road",
+    services: ["Mechanical services"],
+    mapQuery: "Kujo Mechanic, Nsawam-Suhum Road, Ghana",
+    note: "Public listing; phone number and workshop details not yet confirmed.",
   },
 ]
 
-const perks = [
-  { icon: ShieldCheck, label: "Certified mechanics" },
-  { icon: Battery, label: "Genuine spare parts" },
-  { icon: Wrench, label: "Free pickup & drop-off" },
+const categories = [
+  "All services",
+  "General repairs",
+  "Vehicle maintenance",
+  "Mechanical repairs",
+  "Battery services",
+  "Tyres",
 ]
 
 export function CarServicing() {
+  const [search, setSearch] = useState("")
+  const [category, setCategory] = useState("All services")
+  const [view, setView] = useState<"list" | "map">("list")
+
+  const filteredMechanics = useMemo(() => {
+    const query = search.trim().toLowerCase()
+
+    return mechanics.filter((mechanic) => {
+      const matchesSearch =
+        !query ||
+        mechanic.name.toLowerCase().includes(query) ||
+        mechanic.area.toLowerCase().includes(query) ||
+        mechanic.services.some((service) =>
+          service.toLowerCase().includes(query),
+        )
+
+      const matchesCategory =
+        category === "All services" ||
+        mechanic.services.includes(category)
+
+      return matchesSearch && matchesCategory
+    })
+  }, [search, category])
+
   return (
     <section id="servicing" className="border-t border-border bg-muted/40">
-      <div className="mx-auto max-w-6xl px-4 py-20 md:py-28">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Vehicle Servicing</p>
+      <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+            KFM Vehicle Servicing
+          </p>
           <h2 className="mt-2 text-balance text-3xl font-bold tracking-tight md:text-4xl">
-            Keep your vehicle road-ready
+            Find a Mechanic Near You
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground">
-            Beyond rides, we service and maintain cars and okadas across the Eastern Region. Book a slot and our
-            certified mechanics handle the rest.
+            Find vehicle repair and maintenance contacts around Nsawam,
+            Adoagyiri, and nearby communities. Contact providers directly
+            to discuss services, availability, and prices.
           </p>
         </div>
 
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          {perks.map(({ icon: Icon, label }) => (
-            <span
-              key={label}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium"
+        <div className="mx-auto mt-8 flex max-w-2xl items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
+          <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search mechanic, service, or area..."
+            aria-label="Search mechanics by name, service, or area"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+          />
+        </div>
+
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {categories.map((item) => (
+            <Button
+              key={item}
+              type="button"
+              size="sm"
+              variant={category === item ? "default" : "outline"}
+              onClick={() => setCategory(item)}
             >
-              <Icon className="h-4 w-4 text-primary" />
-              {label}
-            </span>
+              {item}
+            </Button>
           ))}
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {packages.map((pkg) => {
-            const Icon = pkg.icon
-            return (
-              <div
-                key={pkg.name}
-                className={`relative flex flex-col rounded-2xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md ${
-                  pkg.popular ? "border-primary ring-1 ring-primary" : "border-border"
-                }`}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {filteredMechanics.length} listing
+            {filteredMechanics.length === 1 ? "" : "s"} found
+          </p>
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={view === "list" ? "default" : "outline"}
+              onClick={() => setView("list")}
+            >
+              <Wrench className="mr-2 h-4 w-4" />
+              List
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={view === "map" ? "default" : "outline"}
+              onClick={() => setView("map")}
+            >
+              <MapPin className="mr-2 h-4 w-4" />
+              Map
+            </Button>
+          </div>
+        </div>
+
+        {view === "map" && (
+          <div className="mt-5 rounded-xl border border-border bg-card p-5">
+            <h3 className="font-semibold">Find listings on Google Maps</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Workshop pins depend on the location information published
+              by each business. Open a listing to check its location.
+            </p>
+            <Button asChild className="mt-4" variant="outline">
+              <a
+                href="https://www.google.com/maps/search/mechanics+in+Nsawam+Ghana"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                {pkg.popular && (
-                  <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                    Most booked
-                  </span>
-                )}
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="h-5 w-5" />
-                </span>
-                <h3 className="mt-4 text-lg font-semibold">{pkg.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{pkg.description}</p>
+                <MapPin className="mr-2 h-4 w-4" />
+                Explore mechanics near Nsawam
+              </a>
+            </Button>
+          </div>
+        )}
 
-                <div className="mt-4 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{pkg.price}</span>
-                  <span className="text-sm text-muted-foreground">{pkg.duration}</span>
+        <div className="mt-5 grid gap-5 md:grid-cols-2">
+          {filteredMechanics.map((mechanic) => (
+            <article
+              key={mechanic.name}
+              className="flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm"
+            >
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl bg-primary/10 p-3 text-primary">
+                  {mechanic.services.includes("Battery services") ? (
+                    <Battery className="h-6 w-6" />
+                  ) : (
+                    <Wrench className="h-6 w-6" />
+                  )}
                 </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold">{mechanic.name}</h3>
+                  <p className="mt-1 flex items-start gap-1 text-sm text-muted-foreground">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                    {mechanic.area}
+                  </p>
+                </div>
+              </div>
 
-                <ul className="mt-6 space-y-3">
-                  {pkg.includes.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {mechanic.services.map((service) => (
+                  <span
+                    key={service}
+                    className="rounded-full bg-muted px-3 py-1 text-xs font-medium"
+                  >
+                    {service}
+                  </span>
+                ))}
+              </div>
 
-                <Button asChild className="mt-6 w-full" variant={pkg.popular ? "default" : "outline"}>
-                  <a href="#book">Book {pkg.name}</a>
+              <p className="mt-4 text-xs text-muted-foreground">
+                {mechanic.note}
+              </p>
+
+              <div className="mt-auto flex flex-wrap gap-2 pt-5">
+                {mechanic.phone ? (
+                  <Button asChild className="flex-1">
+                    <a href={`tel:${mechanic.phone}`}>
+                      <Phone className="mr-2 h-4 w-4" />
+                      Call
+                    </a>
+                  </Button>
+                ) : (
+                  <Button className="flex-1" disabled>
+                    Phone not confirmed
+                  </Button>
+                )}
+
+                {mechanic.phone && (
+                  <Button asChild variant="outline" className="flex-1">
+                    <a
+                      href={`https://wa.me/${mechanic.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                        `Hello, I found your listing on KFM Car Servicing. Are you available for ${mechanic.services.join(", ")} near ${mechanic.area}? Please share your current services and prices.`,
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      WhatsApp
+                    </a>
+                  </Button>
+                )}
+
+                <Button asChild variant="ghost" className="w-full">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mechanic.mapQuery)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MapPin className="mr-2 h-4 w-4" />
+                    Directions / Location
+                  </a>
                 </Button>
               </div>
-            )
-          })}
+            </article>
+          ))}
         </div>
+
+        {filteredMechanics.length === 0 && (
+          <div className="mt-8 rounded-xl border border-dashed border-border p-8 text-center">
+            <p className="font-semibold">No matching mechanics found</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Try a different service or area.
+            </p>
+          </div>
+        )}
+
+        <p className="mt-8 text-center text-xs text-muted-foreground">
+          Listings are based on publicly available information and have not
+          yet been verified or endorsed by KFM. Confirm the provider,
+          location, availability, and price before travelling or agreeing
+          to any work. WhatsApp availability is not independently confirmed.
+        </p>
       </div>
     </section>
   )
