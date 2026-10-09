@@ -183,26 +183,77 @@ export function CarServicing() {
           </div>
         </div>
 
-        {view === "map" && (
-          <div className="mt-5 rounded-xl border border-border bg-card p-5">
-            <h3 className="font-semibold">Find listings on Google Maps</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Workshop pins depend on the location information published
-              by each business. Open a listing to check its location.
-            </p>
-            <Button asChild className="mt-4" variant="outline">
-              <a
-                href="https://www.google.com/maps/search/mechanics+in+Nsawam+Ghana"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MapPin className="mr-2 h-4 w-4" />
-                Explore mechanics near Nsawam
-              </a>
-            </Button>
-          </div>
-        )}
+{view === "map" && (
+  <div className="mt-5">
+    <div className="mb-4 rounded-xl border border-border bg-card p-4">
+      <h3 className="font-semibold">Mechanic Locations Around Nsawam</h3>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Explore a separate Google Maps view for each matching listing.
+        Locations come from public search descriptions and may need
+        confirmation with the provider before you travel.
+      </p>
+    </div>
 
+    {filteredMechanics.length > 0 ? (
+      <div className="grid gap-5 md:grid-cols-2">
+        {filteredMechanics.map((mechanic) => (
+          <article
+            key={mechanic.name}
+            className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+          >
+            <div className="p-4">
+              <h4 className="font-semibold">{mechanic.name}</h4>
+              <p className="mt-1 flex items-start gap-2 text-sm text-muted-foreground">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                {mechanic.area}
+              </p>
+            </div>
+
+            <iframe
+              title={`Google Maps search for ${mechanic.name}`}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(
+                mechanic.mapQuery,
+              )}&output=embed`}
+              width="100%"
+              height="260"
+              style={{ border: 0 }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+
+            <div className="p-4">
+              <p className="text-xs text-muted-foreground">
+                {mechanic.note}
+              </p>
+
+              <Button asChild variant="outline" className="mt-3 w-full">
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    mechanic.mapQuery,
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Open location in Google Maps
+                </a>
+              </Button>
+            </div>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <div className="rounded-xl border border-dashed border-border p-8 text-center">
+        <p className="font-semibold">No matching locations found</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Change your search or select another service category.
+        </p>
+      </div>
+    )}
+  </div>
+)}
+        
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           {filteredMechanics.map((mechanic) => (
             <article
