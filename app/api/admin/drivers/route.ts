@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const driverId = new URL(request.url).searchParams.get("driverId");
-
+    
     // Load documents for one selected driver.
     if (driverId !== null) {
       if (!driverId.trim()) {
@@ -45,9 +45,18 @@ export async function GET(request: NextRequest) {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.error("KFM admin documents fetch error:", error);
+        console.error("KFM admin documents fetch error:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+
         return NextResponse.json(
-          { error: "Unable to load driver documents." },
+          {
+            error: `Unable to load driver documents: ${error.message}`,
+            code: error.code || null,
+          },
           { status: 500 }
         );
       }
