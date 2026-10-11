@@ -134,7 +134,7 @@ export default function AdminDriversPage() {
     loadDrivers()
   }, [])
 
- async function loadDrivers() {
+async function loadDrivers() {
   setLoading(true);
   setError("");
 
@@ -164,14 +164,20 @@ export default function AdminDriversPage() {
 
     if (!response.ok) {
       setDrivers([]);
-      setError(result.error || "Unable to load driver registrations.");
+      setError(
+        result.error || "Unable to load driver registrations."
+      );
       return;
     }
 
-    setDrivers(Array.isArray(result.drivers) ? result.drivers : []);
+    setDrivers(
+      Array.isArray(result.drivers) ? result.drivers : []
+    );
   } catch {
     setDrivers([]);
-    setError("Unable to load drivers. Please refresh and try again.");
+    setError(
+      "Unable to load drivers. Please refresh and try again."
+    );
   } finally {
     setLoading(false);
   }
