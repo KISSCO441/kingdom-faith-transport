@@ -134,48 +134,50 @@ export default function AdminDriversPage() {
     loadDrivers()
   }, [])
 
-  async function loadDrivers() {
-    setLoading(true)
-    setError("")
+ async function loadDrivers() {
+  setLoading(true);
+  setError("");
 
-    const { data, error } = await supabase
-      .from("drivers")
-      .select(`
-        id,
-        full_name,
-        name,
-        phone,
-        email,
-        vehicle_type,
-        vehicle_name,
-        vehicle_registration,
-        vehicle_color,
-        operating_town,
-        operating_area,
-        driver_license_number,
-        national_id_number,
-        nationalid_number,
-        momo_number,
-        momo_network,
-        emergency_contact_name,
-        emergency_contact_phone,
-        status,
-        availability,
-        created_at
-      `)
-      .order("created_at", { ascending: false })
+  try {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
+    if (sessionError || !session?.access_token) {
+      setDrivers([]);
+      setError(
+        "Administrator sign-in required. Please sign in at /admin/login."
+      );
+      return;
     }
 
-    setDrivers(data || [])
-    setLoading(false)
-  }
+    const response = await fetch("/api/admin/drivers", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      cache: "no-store",
+    });
 
-  async function loadDriverDocuments(driverId: string) {
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      setDrivers([]);
+      setError(result.error || "Unable to load driver registrations.");
+      return;
+    }
+
+    setDrivers(Array.isArray(result.drivers) ? result.drivers : []);
+  } catch {
+    setDrivers([]);
+    setError("Unable to load drivers. Please refresh and try again.");
+  } finally {
+    setLoading(false);
+  }
+}
+
+ async function loadDriverDocuments(driverId: string) {
     setLoadingDocuments(true)
     setError("")
 
