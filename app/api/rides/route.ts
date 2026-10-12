@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server"
-import { calculateCarFareFromLocations } from "@/lib/kfm-fare"
+
+import { NextResponse } from "next/server";
+import { calculateCarFareFromLocations } from "@/lib/kfm-fare";
 
 const okadaFares: Record<string, number> = {
   "Nsawam Central": 15,
@@ -7,102 +8,85 @@ const okadaFares: Record<string, number> = {
   "Ntoaso / Nsumia Area": 40,
   "Sakyikrom / Ahodwo Area": 60,
   "Fotobi / Outer Local Area": 80,
-}
+};
 
 function createBookingCode() {
-  const random = Math.floor(100000 + Math.random() * 900000)
-  return `KFM-${random}`
+  const random = Math.floor(100000 + Math.random() * 900000);
+  return `KFM-${random}`;
 }
 
 type Driver = {
-  id: string
-  full_name: string | null
-  phone: string | null
-  vehicle_type: string | null
-  operating_town: string | null
-  operating_area: string | null
-  status: string | null
-  availability: string | null
-}
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  vehicle_type: string | null;
+  operating_town: string | null;
+  operating_area: string | null;
+  status: string | null;
+  availability: string | null;
+};
 
 async function findAvailableDriver(
   supabaseUrl: string,
-  supabaseServiceRoleKey: string,
+  supabaseSecretKey: string,
   vehicleType: string,
-  pickupTown: string,
-) {
+  pickupTown: string
+): Promise<Driver | null> {
   const requiredVehicleType =
     vehicleType.trim().toLowerCase() === "motorbike"
       ? "Okada"
-      : "Car"
+      : "Car";
+
+  const params = new URLSearchParams({
+    select:
+      "id,full_name,phone,vehicle_type,operating_town,operating_area,status,availability",
+    status: "eq.VERIFIED",
+    availability: "eq.ONLINE",
+    vehicle_type: `ilike.${requiredVehicleType}`,
+  });
 
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/drivers` +
-      `?select=id,full_name,phone,vehicle_type,operating_town,operating_area,status,availability` +
-      `&status=eq.VERIFIED` +
-      `&availability=eq.ONLINE` +
-      `&vehicle_type=ilike.${encodeURIComponent(requiredVehicleType)}`,
+    `${supabaseUrl}/rest/v1/drivers?${params.toString()}`,
     {
       method: "GET",
       headers: {
-        apikey: supabaseServiceRoleKey,
-        Authorization: `Bearer ${supabaseServiceRoleKey}`,
-        "Content-Type": "application/json",
+        apikey: supabaseSecretKey,
       },
       cache: "no-store",
-    },
-  )
+    }
+  );
 
   if (!response.ok) {
-    const errorData = await response.text()
+    const errorText = await response.text();
 
     console.error(
       "Unable to find available KFM drivers:",
-      errorData,
-    )
+      errorText
+    );
 
-    return null
+    return null;
   }
 
-  const drivers = (await response.json()) as Driver[]
-
-  console.log("KFM DRIVER MATCH QUERY RESULT:", {
-    requiredVehicleType,
-    pickupTown,
-    drivers,
-  })
-
-  console.log("KFM AVAILABLE DRIVERS:", drivers)
-
-  if (!drivers.length) {
-    console.log(
-      "No VERIFIED + ONLINE KFM driver found for vehicle:",
-      requiredVehicleType,
-    )
-
-    return null
-  }
+  const drivers = (await response.json()) as Driver[];
 
   const sameTownDriver = drivers.find(
     (driver) =>
       driver.operating_town?.trim().toLowerCase() ===
-      pickupTown.trim().toLowerCase(),
-  )
+      pickupTown.trim().toLowerCase()
+  );
 
-  if (sameTownDriver) {
-    return sameTownDriver
-  }
-
-  return drivers[0]
+  return sameTownDriver ?? drivers[0] ?? null;
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    const body = await request.json();
 
     const {
       customer_name,
       customer_phone,
+      customer_email,
+      payment_method,
       vehicle_type,
       ride_option,
       pickup_town,
@@ -112,7 +96,7 @@ export async function POST(request: Request) {
       when_option,
       notes,
       okada_zone,
-    } = body
+    } = body;
 
     if (
       !customer_name ||
@@ -126,21 +110,49 @@ export async function POST(request: Request) {
       !when_option
     ) {
       return NextResponse.json(
-        {
-          error:
-            "Please provide all required booking details.",
-        },
-        { status: 400 },
-      )
+        { error: "Please provide all required booking details." },
+        { status: 400 }
+      );
     }
 
-    let fareEstimate: number | null = null
+    // Existing bookings default to cash until a customer selects otherwise.
+    const paymentMethod =
+      payment_method == null
+        ? "cash"
+        : typeof payment_method === "string"
+          ? payment_method.trim().toLowerCase()
+          : "";
 
-    /*
-     * KFM OKADA FARE
-     *
-     * Okada remains zone-based.
-     */
+    if (!["cash", "paystack"].includes(paymentMethod)) {
+      return NextResponse.json(
+        { error: "Please select a valid payment method." },
+        { status: 400 }
+      );
+    }
+
+    const normalizedCustomerEmail =
+      typeof customer_email === "string"
+        ? customer_email.trim().toLowerCase()
+        : "";
+
+    if (
+      paymentMethod === "paystack" &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        normalizedCustomerEmail
+      )
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Please provide a valid email address for online payment.",
+        },
+        { status: 400 }
+      );
+    }
+
+    let fareEstimate: number | null = null;
+
+    // KFM OKADA: preserve the existing zone-based fares.
     if (vehicle_type.trim().toLowerCase() === "motorbike") {
       if (pickup_town !== "Nsawam") {
         return NextResponse.json(
@@ -148,8 +160,8 @@ export async function POST(request: Request) {
             error:
               "Okada service is currently limited to approved Nsawam-area routes.",
           },
-          { status: 400 },
-        )
+          { status: 400 }
+        );
       }
 
       if (!okada_zone || !okadaFares[okada_zone]) {
@@ -158,22 +170,14 @@ export async function POST(request: Request) {
             error:
               "Please select a valid KFM Okada destination zone.",
           },
-          { status: 400 },
-        )
+          { status: 400 }
+        );
       }
 
-      fareEstimate = okadaFares[okada_zone]
+      fareEstimate = okadaFares[okada_zone];
     }
 
-    /*
-     * KFM CAR FARE
-     *
-     * Mapbox calculates the actual road distance.
-     * KFM then applies:
-     *
-     * GH₵6 per billed kilometre
-     * Minimum fare: GH₵25
-     */
+    // KFM CAR: preserve the existing server-calculated fare.
     if (vehicle_type.trim().toLowerCase() === "car") {
       try {
         const carFare = await calculateCarFareFromLocations({
@@ -181,9 +185,9 @@ export async function POST(request: Request) {
           pickupTown: pickup_town,
           destinationArea: destination_area,
           destinationTown: destination_town,
-        })
+        });
 
-        fareEstimate = carFare.fare
+        fareEstimate = carFare.fare;
 
         console.log("KFM CAR FARE CALCULATION:", {
           pickupTown: pickup_town,
@@ -195,62 +199,65 @@ export async function POST(request: Request) {
           ratePerKm: carFare.ratePerKm,
           minimumFare: carFare.minimumFare,
           fare: carFare.fare,
-        })
+        });
       } catch (fareError) {
         console.error(
           "KFM car fare calculation failed:",
-          fareError,
-        )
+          fareError
+        );
 
         return NextResponse.json(
           {
             error:
               "Unable to calculate the KFM car fare from the selected locations. Please check the pickup and destination and try again.",
           },
-          { status: 400 },
-        )
+          { status: 400 }
+        );
       }
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseServiceRoleKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseUrl =
+      process.env.SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
+    const supabaseSecretKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseSecretKey) {
+      console.error("KFM ride API Supabase configuration is missing.");
+
       return NextResponse.json(
         {
           error:
             "Supabase environment variables are not configured.",
         },
-        { status: 500 },
-      )
+        { status: 500 }
+      );
     }
 
-    const bookingCode = createBookingCode()
+    const bookingCode = createBookingCode();
 
     const matchedDriver = await findAvailableDriver(
       supabaseUrl,
-      supabaseServiceRoleKey,
+      supabaseSecretKey,
       vehicle_type,
-      pickup_town,
-    )
+      pickup_town
+    );
 
-    const matchedDriverId = matchedDriver?.id || null
+    const matchedDriverId = matchedDriver?.id || null;
 
     console.log("KFM DRIVER MATCH RESULT:", {
       vehicle_type,
       pickup_town,
       matchedDriverId,
-      matchedDriver,
-    })
+    });
 
     const response = await fetch(
       `${supabaseUrl}/rest/v1/ride_requests`,
       {
         method: "POST",
         headers: {
-          apikey: supabaseServiceRoleKey,
-          Authorization: `Bearer ${supabaseServiceRoleKey}`,
+          apikey: supabaseSecretKey,
           "Content-Type": "application/json",
           Prefer: "return=representation",
         },
@@ -268,24 +275,29 @@ export async function POST(request: Request) {
           notes: notes || null,
           ride_status: "requested",
           payment_status: "unpaid",
+          payment_method: paymentMethod,
+          customer_email:
+            paymentMethod === "paystack"
+              ? normalizedCustomerEmail
+              : null,
+          payment_reference: null,
+          payment_paid_at: null,
           driver_id: matchedDriverId,
           fare_estimate: fareEstimate,
         }),
-      },
-    )
+        cache: "no-store",
+      }
+    );
 
-    const data = await response.json()
+    const data = await response.json().catch(() => null);
 
-    if (!response.ok) {
-      console.error("Supabase booking error:", data)
+    if (!response.ok || !Array.isArray(data) || !data[0]) {
+      console.error("KFM Supabase booking error:", data);
 
       return NextResponse.json(
-        {
-          error: "Unable to save the ride request.",
-          details: data,
-        },
-        { status: 500 },
-      )
+        { error: "Unable to save the ride request." },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(
@@ -307,17 +319,17 @@ export async function POST(request: Request) {
           ? "Ride request received and a KFM driver has been matched."
           : "Ride request received. KFM is looking for an available driver.",
       },
-      { status: 201 },
-    )
+      { status: 201 }
+    );
   } catch (error) {
-    console.error("Ride booking API error:", error)
+    console.error("Ride booking API error:", error);
 
     return NextResponse.json(
       {
         error:
           "Something went wrong while creating the ride request.",
       },
-      { status: 500 },
-    )
+      { status: 500 }
+    );
   }
 }
