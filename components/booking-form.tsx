@@ -217,6 +217,14 @@ export function BookingForm() {
       return
     }
 
+    if (
+  paymentMethod === "paystack" &&
+  !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)
+) {
+  setError("Please enter a valid email address for online payment.")
+  return
+}
+
     if (!pickupTown || !pickupArea) {
       setError("Please select your pickup town and area.")
       return
@@ -597,11 +605,74 @@ if (
                   />
                 </div>
               </div>
+              
+<div className="space-y-3">
+  <span className="block text-sm font-medium">
+    Choose Your Payment Method
+  </span>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="when"
-                  className="text-sm font-medium"
+  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <button
+      type="button"
+      aria-pressed={paymentMethod === "cash"}
+      onClick={() => setPaymentMethod("cash")}
+      className={cn(
+        "rounded-lg border p-4 text-left transition-colors",
+        paymentMethod === "cash"
+          ? "border-primary bg-primary/10 text-foreground"
+          : "border-input text-muted-foreground hover:border-ring"
+      )}
+    >
+      <span className="block font-semibold">Cash to Driver</span>
+      <span className="mt-1 block text-sm">
+        Pay your driver directly after the ride.
+      </span>
+    </button>
+
+    <button
+      type="button"
+      aria-pressed={paymentMethod === "paystack"}
+      onClick={() => setPaymentMethod("paystack")}
+      className={cn(
+        "rounded-lg border p-4 text-left transition-colors",
+        paymentMethod === "paystack"
+          ? "border-primary bg-primary/10 text-foreground"
+          : "border-input text-muted-foreground hover:border-ring"
+      )}
+    >
+      <span className="block font-semibold">Pay Online</span>
+      <span className="mt-1 block text-sm">
+        Choose online payment for your completed ride.
+      </span>
+    </button>
+  </div>
+
+  {paymentMethod === "paystack" && (
+    <div className="space-y-2">
+      <label
+        htmlFor="customer_email"
+        className="block text-sm font-medium"
+      >
+        Email for payment receipt
+      </label>
+
+      <input
+        id="customer_email"
+        name="customer_email"
+        type="email"
+        autoComplete="email"
+        required
+        className={fieldClass}
+        placeholder="you@example.com"
+      />
+    </div>
+  )}
+</div>
+
+      <div className="space-y-2">
+          <label
+           htmlFor="when"
+             className="text-sm font-medium"
                 >
                   When
                 </label>
