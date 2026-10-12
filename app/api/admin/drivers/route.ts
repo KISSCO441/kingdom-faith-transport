@@ -12,14 +12,29 @@ const requiredDocuments = [
   "profile_photo",
 ];
 
+const documentFields = `
+  id,
+  driver_id,
+  document_type,
+  document_number,
+  document_url,
+  issue_date,
+  expiry_date,
+  verification_status,
+  created_at
+`;
+
 export async function GET(request: NextRequest) {
   const auth = await requireKfmAdmin(request);
-  if (!auth.ok) return auth.response;
+
+  if (!auth.ok) {
+    return auth.response;
+  }
 
   try {
     const driverId = new URL(request.url).searchParams.get("driverId");
-    
-    // Load documents for one selected driver.
+
+    // Return documents for a selected driver.
     if (driverId !== null) {
       if (!driverId.trim()) {
         return NextResponse.json(
@@ -30,22 +45,12 @@ export async function GET(request: NextRequest) {
 
       const { data, error } = await auth.supabase
         .from("driver_documents")
-        .select(`
-          id,
-          driver_id,
-          document_type,
-          document_number,
-          document_url,
-          issue_date,
-          expiry_date,
-          verification_status,
-          created_at
-        `)
+        .select(documentFields)
         .eq("driver_id", driverId)
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.error("KFM admin documents fetch error:", {
+        console.error("KFM admin document query failed:", {
           code: error.code,
           message: error.message,
           details: error.details,
@@ -67,7 +72,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Load driver registrations.
+    // Return the driver registration list.
     const { data, error } = await auth.supabase
       .from("drivers")
       .select(`
@@ -96,7 +101,13 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("KFM admin drivers fetch error:", error);
+      console.error("KFM admin driver query failed:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+
       return NextResponse.json(
         { error: "Unable to load driver registrations." },
         { status: 500 }
@@ -119,7 +130,10 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const auth = await requireKfmAdmin(request);
-  if (!auth.ok) return auth.response;
+
+  if (!auth.ok) {
+    return auth.response;
+  }
 
   try {
     const body = await request.json();
@@ -139,7 +153,10 @@ export async function PATCH(request: NextRequest) {
         !["Verified", "Rejected"].includes(status)
       ) {
         return NextResponse.json(
-          { error: "A valid document ID and verification status are required." },
+          {
+            error:
+              "A valid document ID and verification status are required.",
+          },
           { status: 400 }
         );
       }
@@ -148,21 +165,12 @@ export async function PATCH(request: NextRequest) {
         .from("driver_documents")
         .update({ verification_status: status })
         .eq("id", documentId)
-        .select(`
-          id,
-          driver_id,
-          document_type,
-          document_number,
-          document_url,
-          issue_date,
-          expiry_date,
-          verification_status,
-          created_at
-        `)
+        .select(documentFields)
         .maybeSingle();
 
       if (error || !data) {
-        console.error("KFM document status update error:", error);
+        console.error("KFM document status update failed:", error);
+
         return NextResponse.json(
           { error: "Unable to update this document." },
           { status: 500 }
@@ -189,13 +197,15 @@ export async function PATCH(request: NextRequest) {
         !["VERIFIED", "REJECTED"].includes(status)
       ) {
         return NextResponse.json(
-          { error: "A valid driver ID and registration status are required." },
+          {
+            error:
+              "A valid driver ID and registration status are required.",
+          },
           { status: 400 }
         );
       }
 
-      // Approval is blocked unless all seven required document types
-      // exist and have the exact verification status "Verified".
+      // The server independently checks all seven required documents.
       if (status === "VERIFIED") {
         const { data: docs, error: docsError } = await auth.supabase
           .from("driver_documents")
@@ -203,7 +213,8 @@ export async function PATCH(request: NextRequest) {
           .eq("driver_id", driverId);
 
         if (docsError) {
-          console.error("KFM approval document check error:", docsError);
+          console.error("KFM approval document check failed:", docsError);
+
           return NextResponse.json(
             { error: "Unable to verify the driver's documents." },
             { status: 500 }
@@ -212,20 +223,22 @@ export async function PATCH(request: NextRequest) {
 
         const verifiedTypes = new Set(
           (docs ?? [])
-            .filter((doc) => doc.verification_status === "Verified")
+            .filter(
+              (doc) => doc.verification_status === "Verified"
+            )
             .map((doc) => doc.document_type)
         );
 
-        const missing = requiredDocuments.filter(
+        const missingDocuments = requiredDocuments.filter(
           (type) => !verifiedTypes.has(type)
         );
 
-        if (missing.length > 0) {
+        if (missingDocuments.length > 0) {
           return NextResponse.json(
             {
               error:
                 "Approval blocked. All seven required documents must be uploaded and verified first.",
-              missingDocuments: missing,
+              missingDocuments,
             },
             { status: 400 }
           );
@@ -240,9 +253,12 @@ export async function PATCH(request: NextRequest) {
         .maybeSingle();
 
       if (error || !data) {
-        console.error("KFM driver status update error:", error);
+        console.error("KFM driver status update failed:", error);
+
         return NextResponse.json(
-          { error: "Unable to update this driver's registration." },
+          {
+            error: "Unable to update this driver's registration.",
+          },
           { status: 500 }
         );
       }
@@ -269,7 +285,10 @@ export async function PATCH(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const auth = await requireKfmAdmin(request);
-  if (!auth.ok) return auth.response;
+
+  if (!auth.ok) {
+    return auth.response;
+  }
 
   try {
     const body = await request.json();
@@ -293,13 +312,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: document, error: documentError } = await auth.supabase
-      .from("driver_documents")
-      .select("document_url")
-      .eq("id", documentId)
-      .maybeSingle();
+    const { data: document, error: documentError } =
+      await auth.supabase
+        .from("driver_documents")
+        .select("document_url")
+        .eq("id", documentId)
+        .maybeSingle();
 
     if (documentError || !document?.document_url) {
+      console.error("KFM document lookup for viewing failed:", documentError);
+
       return NextResponse.json(
         { error: "The requested document could not be found." },
         { status: 404 }
@@ -311,7 +333,8 @@ export async function POST(request: NextRequest) {
       .createSignedUrl(document.document_url, 300);
 
     if (error || !data?.signedUrl) {
-      console.error("KFM signed document URL error:", error);
+      console.error("KFM signed document URL creation failed:", error);
+
       return NextResponse.json(
         { error: "Unable to create a secure document viewing link." },
         { status: 500 }
