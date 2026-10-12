@@ -142,6 +142,7 @@ export function BookingForm() {
   const [bookingCode, setBookingCode] = useState("")
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "paystack">("cash")
 
   const [pickupTown, setPickupTown] = useState("Nsawam")
   const [pickupArea, setPickupArea] = useState("Nsawam Station")
@@ -205,6 +206,7 @@ export function BookingForm() {
 
     const customerName = String(formData.get("name") || "").trim()
     const customerPhone = String(formData.get("phone") || "").trim()
+    const customerEmail = String(formData.get("customer_email") || "").trim().toLowerCase()
     const whenOption = String(formData.get("when") || "").trim()
     const notes = String(formData.get("notes") || "").trim()
 
@@ -227,12 +229,22 @@ export function BookingForm() {
       setError("Please select an Okada destination area.")
       return
     }
+    
+if (
+  paymentMethod === "paystack" &&
+  !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)
+) {
+  setError("Please enter a valid email address for online payment.")
+  return
+}
 
     setIsSubmitting(true)
 
     const bookingData = {
       customer_name: customerName,
       customer_phone: customerPhone,
+      customer_email: paymentMethod === "paystack" ? customerEmail : null,
+      payment_method: paymentMethod,
       vehicle_type: vehicle,
       ride_option: isOkada ? "KFM Okada" : "KFM Car",
       pickup_town: pickupTown,
