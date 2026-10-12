@@ -140,9 +140,11 @@ export function BookingForm() {
   const [vehicle, setVehicle] = useState<VehicleType>("car")
   const [submitted, setSubmitted] = useState(false)
   const [bookingCode, setBookingCode] = useState("")
+ 
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "paystack">("cash")
+  const [paymentMethod, setPaymentMethod] =
+    useState<"cash" | "paystack">("cash")
 
   const [pickupTown, setPickupTown] = useState("Nsawam")
   const [pickupArea, setPickupArea] = useState("Nsawam Station")
