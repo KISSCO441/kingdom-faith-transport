@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { requireKfmAdmin } from "@/lib/admin-auth";
 
@@ -252,17 +251,36 @@ export async function PATCH(request: NextRequest) {
         .select("id, status")
         .maybeSingle();
 
-      if (error || !data) {
-        console.error("KFM driver status update failed:", error);
+if (error) {
+  console.error("KFM driver status update failed:", {
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+  });
 
-        return NextResponse.json(
-          {
-            error: "Unable to update this driver's registration.",
-          },
-          { status: 500 }
-        );
-      }
+  return NextResponse.json(
+    {
+      error: "The database rejected the driver status update.",
+      diagnosticCode: error.code || "UNKNOWN",
+    },
+    { status: 500 }
+  );
+}
 
+if (!data) {
+  console.error(
+    "KFM driver status update matched no driver row:",
+    { driverId }
+  );
+
+  return NextResponse.json(
+    {
+      error: "No driver record was updated. Please verify the selected driver.",
+    },
+    { status: 404 }
+  );
+}
       return NextResponse.json({
         success: true,
         driver: data,
