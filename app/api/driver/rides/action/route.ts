@@ -63,6 +63,70 @@ export async function POST(request: Request) {
       )
     }
 
+    // Verify the driver's authenticated Supabase session.
+    const authHeader = request.headers.get("authorization")
+    const accessToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null
+
+    const publishableKey =
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+
+    if (!accessToken) {
+      return NextResponse.json(
+        { error: "Authentication required. Please sign in again." },
+        { status: 401 },
+      )
+    }
+
+    if (!publishableKey) {
+      console.error(
+        "Supabase publishable key is not configured.",
+      )
+
+      return NextResponse.json(
+        { error: "Server authentication is not configured." },
+        { status: 500 },
+      )
+    }
+
+    const authResponse = await fetch(
+      `${supabaseUrl}/auth/v1/user`,
+      {
+        method: "GET",
+        headers: {
+          apikey: publishableKey,
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+      },
+    )
+
+    if (!authResponse.ok) {
+      return NextResponse.json(
+        {
+          error:
+            "Your session is invalid or expired. Please sign in again.",
+        },
+        { status: 401 },
+      )
+    }
+
+    const authenticatedUser = await authResponse.json()
+
+    if (
+      !authenticatedUser?.id ||
+      authenticatedUser.id !== driver_id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "You are not authorized to update this driver's ride.",
+        },
+        { status: 403 },
+      )
+    }
+
     // ---------------------------------------------------------
     // 1. Verify that this ride belongs to this driver
     // ---------------------------------------------------------
