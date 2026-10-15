@@ -269,12 +269,13 @@ export async function POST(request: Request) {
       updatedRide,
     })
 
-    // ---------------------------------------------------------
+       // ---------------------------------------------------------
     // 4. Update driver availability
     //
-    // ACCEPT  -> BUSY
-    // COMPLETE -> ONLINE
-    // CANCEL  -> ONLINE
+    // ACCEPT, COMPLETE, CANCEL:
+    // Check remaining active rides.
+    // Active rides remain -> BUSY
+    // No active rides remain -> ONLINE
     // ---------------------------------------------------------
 
     if (
@@ -282,10 +283,47 @@ export async function POST(request: Request) {
       action === "complete" ||
       action === "cancel"
     ) {
-      const driverAvailability =
-        action === "accept" ? "BUSY" : "ONLINE"
+     
+      // Check whether this driver still has any active rides.
+      const activeRidesResponse = await fetch(
+        `${supabaseUrl}/rest/v1/ride_requests` +
+          `?driver_id=eq.${encodeURIComponent(driver_id)}` +
+          `&ride_status=in.(requested,accepted,arrived,in_progress)` +
+          `&select=id&limit=1`,
+        {
+          method: "GET",
+          headers: {
+            apikey: supabaseServiceRoleKey,
+            Authorization: `Bearer ${supabaseServiceRoleKey}`,
+            "Content-Type": "application/json",
+          },
+          cache: "no-store",
+        },
+      )
 
-      console.log(
+      if (!activeRidesResponse.ok) {
+        const errorText = await activeRidesResponse.text()
+
+        console.error(
+          "KFM ACTIVE RIDES CHECK FAILED:",
+          errorText,
+        )
+
+        return NextResponse.json(
+          {
+            error:
+              "Ride status was updated, but driver availability could not be safely checked.",
+          },
+          { status: 500 },
+        )
+      }
+
+      const activeRides = await activeRidesResponse.json()
+
+      const driverAvailability =
+        activeRides.length > 0 ? "BUSY" : "ONLINE"
+
+     console.log(
         "KFM DRIVER AVAILABILITY UPDATE START:",
         {
           driver_id,
@@ -311,7 +349,42 @@ export async function POST(request: Request) {
         },
       )
 
-      const driverBefore = await driverBeforeResponse.json()
+    if (!driverBeforeResponse.ok) {
+        const errorText = await driverBeforeResponse.text()
+
+        console.error(
+          "KFM DRIVER LOOKUP BEFORE UPDATE FAILED:",
+          errorText,
+        )
+
+        return NextResponse.json(
+          {
+            error:
+              "Ride status was updated, but the driver record could not be checked.",
+          },
+          { status: 500 },
+        )
+      }
+
+        const driverBefore = await driverBeforeResponse.json()
+
+      if (
+        !Array.isArray(driverBefore) ||
+        driverBefore.length === 0
+      ) {
+        console.error(
+          "KFM DRIVER RECORD NOT FOUND:",
+          { driver_id },
+        )
+
+        return NextResponse.json(
+          {
+            error:
+              "Ride status was updated, but the driver record was not found.",
+          },
+          { status: 500 },
+        )
+      }
 
       console.log(
         "KFM DRIVER BEFORE AVAILABILITY UPDATE:",
