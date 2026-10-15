@@ -51,6 +51,7 @@ async function findAvailableDriver(
       method: "GET",
       headers: {
         apikey: supabaseSecretKey,
+        Authorization: `Bearer ${supabaseSecretKey}`,
       },
       cache: "no-store",
     }
@@ -69,13 +70,64 @@ async function findAvailableDriver(
 
   const drivers = (await response.json()) as Driver[];
 
-  const sameTownDriver = drivers.find(
+  if (drivers.length === 0) {
+    return null;
+  }
+
+  // Retrieve active rides so drivers already handling a ride
+  // are not selected for another booking.
+  const rideParams = new URLSearchParams({
+    select: "driver_id",
+    ride_status: "in.(requested,accepted,arrived,in_progress)",
+    driver_id: `in.(${drivers.map((driver) => driver.id).join(",")})`,
+  });
+
+  const activeRidesResponse = await fetch(
+    `${supabaseUrl}/rest/v1/ride_requests?${rideParams.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        apikey: supabaseSecretKey,
+        Authorization: `Bearer ${supabaseSecretKey}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!activeRidesResponse.ok) {
+    const errorText = await activeRidesResponse.text();
+
+    console.error(
+      "Unable to check active KFM rides:",
+      errorText
+    );
+
+    // Fail closed: do not automatically assign a driver when
+    // the active-ride check cannot be completed.
+    return null;
+  }
+
+  const activeRides = (await activeRidesResponse.json()) as {
+    driver_id: string | null;
+  }[];
+
+  const busyDriverIds = new Set(
+    activeRides
+      .map((ride) => ride.driver_id)
+      .filter((id): id is string => Boolean(id))
+  );
+
+  const availableDrivers = drivers.filter(
+    (driver) => !busyDriverIds.has(driver.id)
+  );
+
+  const sameTownDriver = availableDrivers.find(
     (driver) =>
       driver.operating_town?.trim().toLowerCase() ===
       pickupTown.trim().toLowerCase()
   );
 
-  return sameTownDriver ?? drivers[0] ?? null;
+  return sameTownDriver ?? availableDrivers[0] ?? null;
 }
 
 export async function POST(request: Request) {
