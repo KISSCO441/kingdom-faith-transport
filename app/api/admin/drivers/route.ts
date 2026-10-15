@@ -261,11 +261,12 @@ if (error) {
 
   return NextResponse.json(
     {
-      error: "The database rejected the driver status update.",
-      diagnosticCode: error.code || "UNKNOWN",
-    },
-    { status: 500 }
-  );
+    error: "The database rejected the driver status update.",
+    diagnosticCode: error.code || "UNKNOWN",
+    diagnosticMessage: error.message,
+  },
+  { status: 500 }
+); 
 }
 
 if (!data) {
