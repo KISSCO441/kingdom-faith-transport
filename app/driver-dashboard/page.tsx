@@ -259,6 +259,40 @@ const response = await fetch(
       return
     }
 
+  // Prevent going ONLINE while an active ride exists.
+    if (newAvailability === "ONLINE") {
+      const { data: activeRides, error: activeRidesError } =
+        await supabase
+          .from("ride_requests")
+          .select("id")
+          .eq("driver_id", driver.id)
+          .in("ride_status", [
+            "requested",
+            "accepted",
+            "arrived",
+            "in_progress",
+          ])
+          .limit(1)
+
+      if (activeRidesError) {
+        console.error(
+          "Active ride availability check failed:",
+          activeRidesError,
+        )
+        setError(
+          "Unable to verify your active rides. Please try again.",
+        )
+        return
+      }
+
+      if (activeRides && activeRides.length > 0) {
+        setError(
+          "You have an active ride. Complete or cancel it before going online.",
+        )
+        return
+      }
+    }
+
     try {
       setUpdatingAvailability(true)
       setError("")
