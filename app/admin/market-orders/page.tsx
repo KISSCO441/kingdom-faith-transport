@@ -1,6 +1,6 @@
 "use client"
-
 import { useEffect, useMemo, useState } from "react"
+import { supabase as supabaseClient } from "@/lib/supabase"
 import {
   AlertCircle,
   CheckCircle2,
@@ -60,16 +60,42 @@ export default function MarketOrdersPage() {
 
       setError("")
 
-      const response = await fetch("/api/admin/market-orders", {
-        method: "GET",
-        cache: "no-store",
-      })
+ const { data: sessionData, error: sessionError } =
+  await supabaseClient!.auth.getSession()
 
-      const data = await response.json()
+const accessToken = sessionData.session?.access_token
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Unable to load market orders.")
-      }
+if (sessionError || !accessToken) {
+  throw new Error("Please sign in again to access market orders.")
+}
+
+const response = await fetch("/api/admin/market-orders", {
+  method: "GET",
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+  },
+  cache: "no-store",
+})
+
+const data = await response.json()
+
+if (!response.ok || !data.success) {
+  throw new Error(data.error || "Unable to load market orders.")
+}
+
+setOrders(data.orders ?? [])
+setItems(data.items ?? [])
+
+setSelectedOrderId((current) => {
+  if (
+    current &&
+    data.orders?.some((order: MarketOrder) => order.id === current)
+  ) {
+    return current
+  }
+
+  return data.orders?.[0]?.id ?? null
+})
 
       setOrders(data.orders ?? [])
       setItems(data.items ?? [])
