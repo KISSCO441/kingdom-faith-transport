@@ -66,14 +66,24 @@ export function SiteFooter() {
     reserved.
   </p>
 
-  <p className="mt-3">
+    <p className="mt-3 flex items-center justify-center gap-4">
     <a
       href="/admin/login"
       className="transition-colors hover:text-foreground"
     >
       Admin Login
     </a>
+
+    <span aria-hidden="true">|</span>
+
+    <a
+      href="/admin/market-orders"
+      className="transition-colors hover:text-foreground"
+    >
+      Market Orders
+    </a>
   </p>
+
 </div>
  </div>
    </footer>
