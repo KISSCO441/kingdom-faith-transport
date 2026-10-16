@@ -60,11 +60,22 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Kingdom Faith Marketplace Transport App (Eastern Region). All rights
-          reserved.
-        </div>
-      </div>
-    </footer>
+       <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
+  <p>
+    &copy; {new Date().getFullYear()} Kingdom Faith Marketplace Transport App (Eastern Region). All rights
+    reserved.
+  </p>
+
+  <p className="mt-3">
+    <a
+      href="/admin/login"
+      className="transition-colors hover:text-foreground"
+    >
+      Admin Login
+    </a>
+  </p>
+</div>
+ </div>
+   </footer>
   )
 }
