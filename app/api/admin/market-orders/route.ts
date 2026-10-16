@@ -1,20 +1,17 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { NextRequest, NextResponse } from "next/server";
+import { requireKfmAdmin } from "@/lib/admin-auth";
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error("Missing Supabase environment variables");
-}
+export async function GET(request: NextRequest) {
+  const auth = await requireKfmAdmin(request);
 
-const supabase = createClient(
-  supabaseUrl,
-  supabaseServiceKey,
-);
+  if (!auth.ok) {
+    return auth.response;
+  }
 
-export async function GET() {
   try {
+    const supabase = auth.supabase;
+
     const { data: orders, error: ordersError } = await supabase
       .from("market_orders")
       .select("*")
