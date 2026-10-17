@@ -1,6 +1,8 @@
+
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
+
 export const runtime = "nodejs"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -11,110 +13,198 @@ if (!supabaseUrl || !supabaseServiceKey || !paystackSecretKey) {
   throw new Error("Missing required environment variables")
 }
 
-const supabase = createClient(
-  supabaseUrl,
-  supabaseServiceKey,
-)
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 export async function POST(request: Request) {
   try {
     const body = await request.text()
-
     const signature = request.headers.get("x-paystack-signature")
 
-    if (!signature) {
+    if (!signature || !/^[a-f0-9]{128}$/i.test(signature)) {
       return NextResponse.json(
-        { error: "Missing Paystack signature." },
+        { error: "Missing or invalid Paystack signature." },
         { status: 401 },
       )
     }
 
-    const hash = crypto
-      .createHmac("sha512", paystackSecretKey!)
+    const expectedSignature = crypto
+      .createHmac("sha512", paystackSecretKey)
       .update(body)
-      .digest("hex")
+      .digest()
 
-    if (hash !== signature) {
+    const receivedSignature = Buffer.from(signature, "hex")
+
+    if (
+      expectedSignature.length !== receivedSignature.length ||
+      !crypto.timingSafeEqual(expectedSignature, receivedSignature)
+    ) {
       return NextResponse.json(
         { error: "Invalid Paystack signature." },
         { status: 401 },
       )
     }
 
-    const event = JSON.parse(body)
+    let event: {
+      event?: string
+      data?: { reference?: string }
+    }
+
+    try {
+      event = JSON.parse(body)
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid webhook JSON." },
+        { status: 400 },
+      )
+    }
 
     console.log("KFM Paystack webhook event:", event.event)
 
-    if (event.event === "charge.success") {
-      const reference = event.data?.reference
+    // Acknowledge events that do not concern successful charges.
+    if (event.event !== "charge.success") {
+      return NextResponse.json({ success: true })
+    }
 
-      if (!reference) {
-        return NextResponse.json(
-          { error: "Missing payment reference." },
-          { status: 400 },
-        )
-      }
+    const reference = event.data?.reference
 
-      const { data: order, error: orderError } = await supabase
-        .from("market_orders")
-        .select("id, order_number, payment_status")
-        .eq("payment_reference", reference)
-        .maybeSingle()
+    if (!reference) {
+      return NextResponse.json(
+        { error: "Missing payment reference." },
+        { status: 400 },
+      )
+    }
 
-      if (orderError) {
-        console.error(
-          "KFM Paystack order lookup error:",
-          orderError,
-        )
+    // Find the KFM order associated with this Paystack reference.
+    const { data: order, error: orderError } = await supabase
+      .from("market_orders")
+      .select("id, order_number, payment_status, total_amount")
+      .eq("payment_reference", reference)
+      .maybeSingle()
 
-        return NextResponse.json(
-          { error: "Unable to find KFM order." },
-          { status: 500 },
-        )
-      }
+    if (orderError) {
+      console.error("KFM Paystack order lookup error:", orderError)
 
-      if (!order) {
-        console.error(
-          "KFM order not found for Paystack reference:",
-          reference,
-        )
+      return NextResponse.json(
+        { error: "Unable to find KFM order." },
+        { status: 500 },
+      )
+    }
 
-        return NextResponse.json(
-          { error: "KFM order not found." },
-          { status: 404 },
-        )
-      }
+    if (!order) {
+      console.error("KFM order not found for Paystack reference:", reference)
 
-      if (order.payment_status !== "PAID") {
-        const { error: updateError } = await supabase
-          .from("market_orders")
-          .update({
-            payment_status: "PAID",
-            payment_reference: reference,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", order.id)
+      return NextResponse.json(
+        { error: "KFM order not found." },
+        { status: 404 },
+      )
+    }
 
-        if (updateError) {
-          console.error(
-            "KFM Paystack payment update error:",
-            updateError,
-          )
+    // Verify the transaction directly with Paystack.
+    const verificationResponse = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${paystackSecretKey}`,
+          Accept: "application/json",
+        },
+        cache: "no-store",
+      },
+    )
 
-          return NextResponse.json(
-            { error: "Unable to update KFM order." },
-            { status: 500 },
-          )
-        }
+    if (!verificationResponse.ok) {
+      console.error(
+        "KFM Paystack verification request failed:",
+        verificationResponse.status,
+      )
 
-        console.log(
-          `KFM order ${order.order_number} marked PAID.`,
-        )
-      }
+      return NextResponse.json(
+        { error: "Unable to verify payment with Paystack." },
+        { status: 502 },
+      )
+    }
+
+    const verification = await verificationResponse.json()
+    const transaction = verification?.data
+
+    if (
+      verification?.status !== true ||
+      transaction?.status !== "success" ||
+      transaction?.reference !== reference
+    ) {
+      console.error("KFM Paystack transaction verification failed:", reference)
+
+      return NextResponse.json(
+        { error: "Paystack transaction is not verified as successful." },
+        { status: 400 },
+      )
+    }
+
+    // Database order totals are in Ghana cedis; Paystack amounts are pesewas.
+    const expectedAmount = Math.round(Number(order.total_amount) * 100)
+
+    if (
+      !Number.isFinite(expectedAmount) ||
+      expectedAmount <= 0 ||
+      transaction?.amount !== expectedAmount
+    ) {
+      console.error("KFM Paystack amount mismatch:", order.order_number)
+
+      return NextResponse.json(
+        { error: "Payment amount does not match the KFM order." },
+        { status: 400 },
+      )
+    }
+
+    if (transaction?.currency !== "GHS") {
+      console.error("KFM Paystack currency mismatch:", order.order_number)
+
+      return NextResponse.json(
+        { error: "Payment currency does not match GHS." },
+        { status: 400 },
+      )
+    }
+
+    // Do not repeat the payment update for an already-paid order.
+    if (order.payment_status === "PAID") {
+      return NextResponse.json({
+        success: true,
+        message: "Order was already marked as paid.",
+      })
+    }
+
+    // Conditional update helps prevent duplicate webhook deliveries
+    // from changing an order that has already been marked PAID.
+    const { data: updatedOrder, error: updateError } = await supabase
+      .from("market_orders")
+      .update({
+        payment_status: "PAID",
+        payment_reference: reference,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", order.id)
+      .neq("payment_status", "PAID")
+      .select("id")
+      .maybeSingle()
+
+    if (updateError) {
+      console.error("KFM Paystack payment update error:", updateError)
+
+      return NextResponse.json(
+        { error: "Unable to update KFM order." },
+        { status: 500 },
+      )
+    }
+
+    if (updatedOrder) {
+      console.log(`KFM order ${order.order_number} marked PAID.`)
     }
 
     return NextResponse.json({
       success: true,
+      message: updatedOrder
+        ? "Payment verified and order marked as paid."
+        : "Order was already marked as paid.",
     })
   } catch (error) {
     console.error("KFM Paystack webhook error:", error)
