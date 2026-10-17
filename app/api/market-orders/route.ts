@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  MARKET_DELIVERY_FEE,
+  MARKET_MINIMUM_ORDER,
+  MARKET_PRODUCTS,
+} from "@/lib/market-catalogue";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -13,10 +18,7 @@ if (!paystackSecretKey) {
   throw new Error("Missing PAYSTACK_SECRET_KEY");
 }
 
-const supabase = createClient(
-  supabaseUrl,
-  supabaseServiceKey,
-);
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 type MarketOrderItem = {
   productName: string;
@@ -44,74 +46,145 @@ function generateOrderNumber() {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as MarketOrderRequest;
+    const body = (await request.json()) as Partial<MarketOrderRequest>;
 
-   const {
-  customerName,
-  customerEmail,
-  customerPhone,
-  deliveryLocation,
-  productSubtotal,
-  deliveryFee,
-  totalAmount,
-  items,
-} = body;
-   if (
-  !customerName ||
-  !customerEmail ||
-  !customerPhone ||
-  !deliveryLocation ||
-  !Array.isArray(items) ||
-  items.length === 0
-) {
+    const {
+      customerName,
+      customerEmail,
+      customerPhone,
+      deliveryLocation,
+      items,
+    } = body;
+
+    if (
+      typeof customerName !== "string" ||
+      !customerName.trim() ||
+      typeof customerEmail !== "string" ||
+      !customerEmail.trim() ||
+      typeof customerPhone !== "string" ||
+      !customerPhone.trim() ||
+      typeof deliveryLocation !== "string" ||
+      !deliveryLocation.trim() ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      items.length > MARKET_PRODUCTS.length
+    ) {
       return NextResponse.json(
-        {
-          error: "Please provide all required order information.",
-        },
+        { error: "Please provide all required order information." },
         { status: 400 },
       );
     }
 
-   const normalizedEmail = customerEmail.trim().toLowerCase();
+    const normalizedEmail = customerEmail.trim().toLowerCase();
 
-const emailIsValid =
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return NextResponse.json(
+        { error: "Please provide a valid email address." },
+        { status: 400 },
+      );
+    }
 
-if (!emailIsValid) {
-  return NextResponse.json(
-    {
-      error: "Please provide a valid email address.",
-    },
-    { status: 400 },
-  );
-}
+    // Validate each product and calculate prices from the trusted catalogue.
+    const verifiedItems: {
+      product_name: string;
+      category: string;
+      quantity: number;
+      unit_amount: number;
+      line_total: number;
+    }[] = [];
 
-if (productSubtotal < 50) {
-  return NextResponse.json(
-    {
-      error: "Minimum KFM Market order is GH₵50.",
-    },
-    { status: 400 },
-  );
-}
-    
+    for (const item of items) {
+      if (
+        !item ||
+        typeof item.productName !== "string" ||
+        !Number.isSafeInteger(item.quantity) ||
+        item.quantity < 1 ||
+        !Number.isSafeInteger(item.unitAmount)
+      ) {
+        return NextResponse.json(
+          { error: "One or more order items are invalid." },
+          { status: 400 },
+        );
+      }
+
+      const product = MARKET_PRODUCTS.find(
+        (candidate) =>
+          candidate.name.toLowerCase() === item.productName.trim().toLowerCase(),
+      );
+
+      if (
+        !product ||
+        !product.allowedAmounts.includes(item.unitAmount)
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "A selected product or amount is invalid. Please refresh the market and try again.",
+          },
+          { status: 400 },
+        );
+      }
+
+      const lineTotal = item.quantity * item.unitAmount;
+
+      if (!Number.isSafeInteger(lineTotal)) {
+        return NextResponse.json(
+          { error: "An order item total is invalid." },
+          { status: 400 },
+        );
+      }
+
+      verifiedItems.push({
+        product_name: product.name,
+        category: product.category,
+        quantity: item.quantity,
+        unit_amount: item.unitAmount,
+        line_total: lineTotal,
+      });
+    }
+
+    const productSubtotal = verifiedItems.reduce(
+      (sum, item) => sum + item.line_total,
+      0,
+    );
+
+    if (
+      !Number.isSafeInteger(productSubtotal) ||
+      productSubtotal < MARKET_MINIMUM_ORDER
+    ) {
+      return NextResponse.json(
+        { error: "Minimum KFM Market order is GH₵50." },
+        { status: 400 },
+      );
+    }
+
+    const deliveryFee = MARKET_DELIVERY_FEE;
+    const totalAmount = productSubtotal + deliveryFee;
+
+    if (!Number.isSafeInteger(totalAmount)) {
+      return NextResponse.json(
+        { error: "The order total is invalid." },
+        { status: 400 },
+      );
+    }
+
     const orderNumber = generateOrderNumber();
 
-    // STEP 1: Create the KFM Market order
+    // STEP 1: Create the order using server-calculated amounts.
     const { data: order, error: orderError } = await supabase
       .from("market_orders")
-     .insert({
-  order_number: orderNumber,
-  customer_name: customerName,
-  customer_email: normalizedEmail,
-  customer_phone: customerPhone,
-  delivery_location: deliveryLocation,
-  product_subtotal: productSubtotal,
-  delivery_fee: deliveryFee,
-  total_amount: totalAmount,
-  payment_status: "PENDING",
-  order_status: "NEW",
-})
+      .insert({
+        order_number: orderNumber,
+        customer_name: customerName.trim(),
+        customer_email: normalizedEmail,
+        customer_phone: customerPhone.trim(),
+        delivery_location: deliveryLocation.trim(),
+        product_subtotal: productSubtotal,
+        delivery_fee: deliveryFee,
+        total_amount: totalAmount,
+        payment_status: "PENDING",
+        order_status: "NEW",
+      })
       .select()
       .single();
 
@@ -119,21 +192,15 @@ if (productSubtotal < 50) {
       console.error("KFM Market order creation error:", orderError);
 
       return NextResponse.json(
-        {
-          error: "Unable to create the market order.",
-        },
+        { error: "Unable to create the market order." },
         { status: 500 },
       );
     }
 
-    // STEP 2: Save the order items
-    const orderItems = items.map((item) => ({
+    // STEP 2: Save verified order items.
+    const orderItems = verifiedItems.map((item) => ({
       order_id: order.id,
-      product_name: item.productName,
-      category: item.category,
-      quantity: item.quantity,
-      unit_amount: item.unitAmount,
-      line_total: item.lineTotal,
+      ...item,
     }));
 
     const { error: itemsError } = await supabase
@@ -143,20 +210,15 @@ if (productSubtotal < 50) {
     if (itemsError) {
       console.error("KFM Market order items error:", itemsError);
 
-      await supabase
-        .from("market_orders")
-        .delete()
-        .eq("id", order.id);
+      await supabase.from("market_orders").delete().eq("id", order.id);
 
       return NextResponse.json(
-        {
-          error: "Unable to save the market order items.",
-        },
+        { error: "Unable to save the market order items." },
         { status: 500 },
       );
     }
 
-    // STEP 3: Initialize Paystack payment
+    // STEP 3: Initialize Paystack with the verified total.
     const paystackResponse = await fetch(
       "https://api.paystack.co/transaction/initialize",
       {
@@ -167,15 +229,15 @@ if (productSubtotal < 50) {
         },
         body: JSON.stringify({
           email: normalizedEmail,
-          amount: Math.round(Number(totalAmount) * 100),
+          amount: Math.round(totalAmount * 100),
           currency: "GHS",
           reference: orderNumber,
           metadata: {
             kfm_order_id: order.id,
             kfm_order_number: orderNumber,
-            customer_name: customerName,
-            customer_phone: customerPhone,
-            delivery_location: deliveryLocation,
+            customer_name: customerName.trim(),
+            customer_phone: customerPhone.trim(),
+            delivery_location: deliveryLocation.trim(),
           },
         }),
       },
@@ -184,22 +246,14 @@ if (productSubtotal < 50) {
     const paystackData = await paystackResponse.json();
 
     if (!paystackResponse.ok || !paystackData.status) {
-      console.error(
-        "KFM Paystack initialization error:",
-        paystackData,
-      );
+      console.error("KFM Paystack initialization error:", paystackData);
 
-      // Remove the order because payment initialization failed.
-      await supabase
-        .from("market_orders")
-        .delete()
-        .eq("id", order.id);
+      await supabase.from("market_orders").delete().eq("id", order.id);
 
       return NextResponse.json(
         {
           error:
-            paystackData?.message ||
-            "Unable to initialize payment.",
+            paystackData?.message || "Unable to initialize payment.",
         },
         { status: 500 },
       );
@@ -208,19 +262,14 @@ if (productSubtotal < 50) {
     const paymentReference = paystackData.data.reference;
     const paymentUrl = paystackData.data.authorization_url;
 
-    // STEP 4: Save Paystack reference against the KFM order
+    // STEP 4: Save the Paystack reference.
     const { error: referenceError } = await supabase
       .from("market_orders")
-      .update({
-        payment_reference: paymentReference,
-      })
+      .update({ payment_reference: paymentReference })
       .eq("id", order.id);
 
     if (referenceError) {
-      console.error(
-        "KFM payment reference update error:",
-        referenceError,
-      );
+      console.error("KFM payment reference update error:", referenceError);
 
       return NextResponse.json(
         {
@@ -231,7 +280,7 @@ if (productSubtotal < 50) {
       );
     }
 
-    // STEP 5: Return order + Paystack checkout URL
+    // STEP 5: Return the order and existing Paystack checkout URL.
     return NextResponse.json(
       {
         success: true,
@@ -239,7 +288,7 @@ if (productSubtotal < 50) {
           id: order.id,
           orderNumber: order.order_number,
           customerName: order.customer_name,
-          totalAmount: order.total_amount,
+          totalAmount,
           paymentStatus: order.payment_status,
           orderStatus: order.order_status,
           paymentReference,
@@ -253,8 +302,7 @@ if (productSubtotal < 50) {
 
     return NextResponse.json(
       {
-        error:
-          "Something went wrong while creating the market order.",
+        error: "Something went wrong while creating the market order.",
       },
       { status: 500 },
     );
