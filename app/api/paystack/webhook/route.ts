@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
@@ -28,7 +27,7 @@ export async function POST(request: Request) {
     }
 
     const expectedSignature = crypto
-      .createHmac("sha512", paystackSecretKey)
+      .createHmac("sha512", paystackSecretKey!)
       .update(body)
       .digest()
 
