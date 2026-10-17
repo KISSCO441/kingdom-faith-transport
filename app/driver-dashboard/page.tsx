@@ -49,6 +49,9 @@ type RideRequest = {
   vehicle_type: string | null
   ride_status: string | null
   fare_estimate: number | null
+  payment_method: string | null
+  payment_status: string | null
+  payment_paid_at: string | null
   created_at: string
 }
 
@@ -147,7 +150,8 @@ export default function DriverDashboardPage() {
 
       const { data, error: ridesError } = await supabase
         .from("ride_requests")
-        .select(`
+
+          .select(`
           id,
           booking_code,
           customer_name,
@@ -159,9 +163,13 @@ export default function DriverDashboardPage() {
           vehicle_type,
           ride_status,
           fare_estimate,
+          payment_method,
+          payment_status,
+          payment_paid_at,
           created_at
         `)
-        .eq("driver_id", driver.id)
+
+     .eq("driver_id", driver.id)
         .order("created_at", { ascending: false })
 
       if (ridesError) {
@@ -247,6 +255,69 @@ const response = await fetch(
     }
   }
 
+  async function confirmCashPayment(rideId: string) {
+    if (!driver) return
+
+    const confirmed = window.confirm(
+      "Confirm that you have actually received the cash fare for this completed ride?",
+    )
+
+    if (!confirmed) return
+
+    try {
+      setUpdatingRideId(rideId)
+      setError("")
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) throw sessionError
+
+      if (!session?.access_token) {
+        throw new Error(
+          "Your session has expired. Please sign in again.",
+        )
+      }
+
+      const response = await fetch(
+        "/api/driver/rides/confirm-cash",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            ride_id: rideId,
+            driver_id: driver.id,
+          }),
+        },
+      )
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || "Unable to confirm cash payment.",
+        )
+      }
+
+      await loadAssignedRideRequests()
+    } catch (err) {
+      console.error("Cash payment confirmation error:", err)
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to confirm cash payment.",
+      )
+    } finally {
+      setUpdatingRideId(null)
+    }
+  }
+ 
   async function updateAvailability(
     newAvailability: "ONLINE" | "OFFLINE",
   ) {
@@ -824,12 +895,12 @@ const response = await fetch(
                       </p>
                     </div>
 
-                    <div>
+                     <div>
                       <p className="text-xs font-medium uppercase text-gray-500">
                         Fare
                       </p>
 
-                      <p className="mt-1 font-semibold">
+                      <p className="mt-1 font-semibold text-green-700">
                         {ride.fare_estimate !== null &&
                         ride.fare_estimate !== undefined
                           ? `GH₵ ${Number(
@@ -839,7 +910,68 @@ const response = await fetch(
                       </p>
                     </div>
 
-                  </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Payment Method
+                      </p>
+
+                      <p className="mt-1 font-medium">
+                        {ride.payment_method?.toLowerCase() === "cash"
+                          ? "Cash"
+                          : ride.payment_method?.toLowerCase() === "paystack"
+                            ? "Pay Online"
+                            : ride.payment_method || "Not recorded"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium uppercase text-gray-500">
+                        Payment Status
+                      </p>
+
+                      <p
+                        className={`mt-1 font-semibold ${
+                          ride.payment_status?.toLowerCase() === "paid"
+                            ? "text-green-700"
+                            : "text-orange-700"
+                        }`}
+                      >
+                        {ride.payment_status?.toLowerCase() === "paid"
+                          ? "PAID"
+                          : ride.payment_status?.toLowerCase() === "unpaid"
+                            ? "UNPAID"
+                            : ride.payment_status || "Not recorded"}
+                      </p>
+
+                      {ride.payment_status?.toLowerCase() === "paid" &&
+                        ride.payment_paid_at && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            Confirmed:{" "}
+                            {new Date(
+                              ride.payment_paid_at,
+                            ).toLocaleString("en-GH", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </p>
+                        )}
+
+                      {ride.ride_status?.toLowerCase() === "completed" &&
+                        ride.payment_method?.toLowerCase() === "cash" &&
+                        ride.payment_status?.toLowerCase() === "unpaid" && (
+                          <Button
+                            className="mt-3 bg-green-600 hover:bg-green-700"
+                            disabled={updatingRideId === ride.id}
+                            onClick={() => confirmCashPayment(ride.id)}
+                          >
+                            {updatingRideId === ride.id
+                              ? "Confirming..."
+                              : "Confirm Cash Received"}
+                          </Button>
+                        )}
+                    </div>
+
+                   </div>
 
                   <div className="mt-5 border-t pt-4">
 
