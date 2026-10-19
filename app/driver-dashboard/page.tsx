@@ -80,14 +80,6 @@ export default function DriverDashboardPage() {
   useEffect(() => {
     if (!driver) return
 
-    if (action === "reject") {
-  const confirmed = window.confirm(
-    "Are you sure you want to reject this ride? KFM will try to assign another eligible driver.",
-  )
-
-  if (!confirmed) return
-}
-
     loadAssignedRideRequests()
 
     const interval = window.setInterval(() => {
@@ -201,24 +193,32 @@ export default function DriverDashboardPage() {
     }
   }
 
-  async function handleRideAction(
-    rideId: string,
-    action: RideAction,
-  ) {
-    if (!driver) return
+async function handleRideAction(
+  rideId: string,
+  action: RideAction,
+) {
+  if (!driver) return
 
-    try {
-      setUpdatingRideId(rideId)
-      setError("")
-      
-const {
-  data: { session },
-  error: sessionError,
-} = await supabase.auth.getSession()
+  if (action === "reject") {
+    const confirmed = window.confirm(
+      "Are you sure you want to reject this ride? KFM will try to assign another eligible driver.",
+    )
 
-if (sessionError) {
-  throw sessionError
-}
+    if (!confirmed) return
+  }
+
+  try {
+    setUpdatingRideId(rideId)
+    setError("")
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      throw sessionError
+    }
 
 if (!session?.access_token) {
   throw new Error(
