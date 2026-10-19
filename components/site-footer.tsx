@@ -103,21 +103,22 @@ export function SiteFooter() {
 
             <span aria-hidden="true">|</span>
 
-            <a
-              href="/admin/login"
-              className="transition-colors hover:text-foreground"
+              <a
+              href="/admin"
+              className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-foreground"
             >
-              Admin Login
+              <LayoutDashboard className="h-4 w-4" />
+              KFM Admin Dashboard
             </a>
 
-            <span aria-hidden="true">|</span>
-
             <a
-              href="/admin/market-orders"
-              className="transition-colors hover:text-foreground"
+              href="/admin/drivers"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
             >
-              Market Orders
+              <ShieldCheck className="h-4 w-4" />
+              Driver Verification
             </a>
+  
           </div>
         </div>
       </div>
