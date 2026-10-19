@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server"
 
 const allowedTransitions: Record<string, string> = {
@@ -8,69 +9,48 @@ const allowedTransitions: Record<string, string> = {
   cancel: "cancelled",
 }
 
+const activeStatuses =
+  "requested,accepted,arrived,in_progress"
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-
-    const {
-      ride_id,
-      driver_id,
-      action,
-    } = body
-
-    console.log("KFM DRIVER ACTION RECEIVED:", {
-      ride_id,
-      driver_id,
-      action,
-    })
+    const { ride_id, driver_id, action } = body
 
     if (!ride_id || !driver_id || !action) {
       return NextResponse.json(
-        {
-          error: "Ride ID, driver ID, and action are required.",
-        },
+        { error: "Ride ID, driver ID, and action are required." },
         { status: 400 },
       )
     }
 
+    const isReject = action === "reject"
     const nextStatus = allowedTransitions[action]
 
-    if (!nextStatus) {
+    if (!nextStatus && !isReject) {
       return NextResponse.json(
-        {
-          error: "Invalid ride action.",
-        },
+        { error: "Invalid ride action." },
         { status: 400 },
       )
     }
 
     const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseServiceRoleKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const publishableKey =
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
-    console.log("KFM SUPABASE CONFIG:", {
-      hasSupabaseUrl: Boolean(supabaseUrl),
-      hasServiceRoleKey: Boolean(supabaseServiceRoleKey),
-    })
-
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
+    if (!supabaseUrl || !serviceKey || !publishableKey) {
       return NextResponse.json(
-        {
-          error:
-            "Supabase environment variables are not configured.",
-        },
+        { error: "Supabase environment variables are not configured." },
         { status: 500 },
       )
     }
 
-    // Verify the driver's authenticated Supabase session.
+    // Verify the driver's authenticated session.
     const authHeader = request.headers.get("authorization")
     const accessToken = authHeader?.startsWith("Bearer ")
       ? authHeader.slice(7)
       : null
-
-    const publishableKey =
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
     if (!accessToken) {
       return NextResponse.json(
@@ -79,21 +59,9 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!publishableKey) {
-      console.error(
-        "Supabase publishable key is not configured.",
-      )
-
-      return NextResponse.json(
-        { error: "Server authentication is not configured." },
-        { status: 500 },
-      )
-    }
-
     const authResponse = await fetch(
       `${supabaseUrl}/auth/v1/user`,
       {
-        method: "GET",
         headers: {
           apikey: publishableKey,
           Authorization: `Bearer ${accessToken}`,
@@ -104,439 +72,286 @@ export async function POST(request: Request) {
 
     if (!authResponse.ok) {
       return NextResponse.json(
-        {
-          error:
-            "Your session is invalid or expired. Please sign in again.",
-        },
+        { error: "Your session is invalid or expired. Please sign in again." },
         { status: 401 },
       )
     }
 
     const authenticatedUser = await authResponse.json()
 
-    if (
-      !authenticatedUser?.id ||
-      authenticatedUser.id !== driver_id
-    ) {
+    if (!authenticatedUser?.id || authenticatedUser.id !== driver_id) {
       return NextResponse.json(
-        {
-          error:
-            "You are not authorized to update this driver's ride.",
-        },
+        { error: "You are not authorized to update this driver's ride." },
         { status: 403 },
       )
     }
 
-    // ---------------------------------------------------------
-    // 1. Verify that this ride belongs to this driver
-    // ---------------------------------------------------------
+    const headers = {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    }
 
+    // Confirm that this ride is currently assigned to this driver.
     const rideResponse = await fetch(
       `${supabaseUrl}/rest/v1/ride_requests` +
         `?id=eq.${encodeURIComponent(ride_id)}` +
         `&driver_id=eq.${encodeURIComponent(driver_id)}` +
         `&select=id,booking_code,driver_id,ride_status`,
       {
-        method: "GET",
-        headers: {
-          apikey: supabaseServiceRoleKey,
-          Authorization: `Bearer ${supabaseServiceRoleKey}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         cache: "no-store",
       },
     )
 
     if (!rideResponse.ok) {
-      const errorText = await rideResponse.text()
-
-      console.error(
-        "KFM DRIVER RIDE LOOKUP FAILED:",
-        errorText,
-      )
-
+      console.error("KFM RIDE LOOKUP FAILED:", await rideResponse.text())
       return NextResponse.json(
-        {
-          error: "Unable to verify the assigned ride.",
-        },
+        { error: "Unable to verify the assigned ride." },
         { status: 500 },
       )
     }
 
     const rides = await rideResponse.json()
 
-    console.log("KFM DRIVER RIDE LOOKUP RESULT:", rides)
-
-    if (!rides.length) {
+    if (!Array.isArray(rides) || rides.length === 0) {
       return NextResponse.json(
-        {
-          error:
-            "This ride is not assigned to this driver.",
-        },
+        { error: "This ride is not assigned to this driver." },
         { status: 403 },
       )
     }
 
     const ride = rides[0]
-
-    const currentStatus = String(
-      ride.ride_status || "",
-    ).toLowerCase()
-
-    console.log("KFM CURRENT RIDE STATUS:", {
-      booking_code: ride.booking_code,
-      currentStatus,
-      requestedAction: action,
-      nextStatus,
-    })
-
-    // ---------------------------------------------------------
-    // 2. Validate ride transition
-    // ---------------------------------------------------------
+    const currentStatus = String(ride.ride_status || "").toLowerCase()
 
     const validAction =
       (action === "accept" && currentStatus === "requested") ||
+      (action === "reject" && currentStatus === "requested") ||
       (action === "arrive" && currentStatus === "accepted") ||
       (action === "start" && currentStatus === "arrived") ||
       (action === "complete" && currentStatus === "in_progress") ||
       (action === "cancel" &&
-        ["requested", "accepted", "arrived"].includes(
-          currentStatus,
-        ))
+        ["requested", "accepted", "arrived"].includes(currentStatus))
 
     if (!validAction) {
-      console.error(
-        "KFM INVALID RIDE ACTION:",
-        {
-          action,
-          currentStatus,
-          booking_code: ride.booking_code,
-        },
-      )
-
       return NextResponse.json(
         {
-          error:
-            `This ride cannot be ${action}ed from its current status (${currentStatus || "unknown"}).`,
+          error: `This ride cannot be ${action}ed from its current status (${currentStatus || "unknown"}).`,
         },
         { status: 409 },
       )
     }
 
-    // ---------------------------------------------------------
-    // 3. Update ride status
-    // ---------------------------------------------------------
+    let updatedRide: any = null
+    let rejectionResult: any = null
 
-    const updateResponse = await fetch(
-      `${supabaseUrl}/rest/v1/ride_requests` +
-        `?id=eq.${encodeURIComponent(ride_id)}` +
-        `&driver_id=eq.${encodeURIComponent(driver_id)}`,
-      {
-        method: "PATCH",
-        headers: {
-          apikey: supabaseServiceRoleKey,
-          Authorization: `Bearer ${supabaseServiceRoleKey}`,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify({
-          ride_status: nextStatus,
-        }),
-      },
-    )
+    // Use database functions for the race-sensitive decisions.
+    if (action === "accept" || isReject) {
+      const functionName = isReject
+        ? "kfm_reject_ride"
+        : "kfm_accept_ride"
 
-    const updatedRide = await updateResponse.json()
-
-    if (!updateResponse.ok) {
-      console.error(
-        "KFM DRIVER RIDE STATUS UPDATE FAILED:",
-        updatedRide,
-      )
-
-      return NextResponse.json(
+      const rpcResponse = await fetch(
+        `${supabaseUrl}/rest/v1/rpc/${functionName}`,
         {
-          error: "Unable to update the ride status.",
-          details: updatedRide,
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            p_ride_id: ride_id,
+            p_driver_id: driver_id,
+          }),
+          cache: "no-store",
         },
-        { status: 500 },
       )
-    }
 
-    console.log("KFM RIDE STATUS UPDATED:", {
-      booking_code: ride.booking_code,
-      previous_status: currentStatus,
-      new_status: nextStatus,
-      updatedRide,
-    })
+      const rpcText = await rpcResponse.text()
+      let rpcResult: any
 
-       // ---------------------------------------------------------
-    // 4. Update driver availability
-    //
-    // ACCEPT, COMPLETE, CANCEL:
-    // Check remaining active rides.
-    // Active rides remain -> BUSY
-    // No active rides remain -> ONLINE
-    // ---------------------------------------------------------
+      try {
+        rpcResult = rpcText ? JSON.parse(rpcText) : null
+      } catch {
+        console.error("KFM RIDE RPC INVALID RESPONSE:", rpcText)
+        return NextResponse.json(
+          { error: "The ride operation returned an invalid response." },
+          { status: 500 },
+        )
+      }
 
-    if (
-      action === "accept" ||
-      action === "complete" ||
-      action === "cancel"
-    ) {
-     
-      // Check whether this driver still has any active rides.
-      const activeRidesResponse = await fetch(
+      if (!rpcResponse.ok) {
+        console.error("KFM RIDE RPC FAILED:", rpcResult)
+        return NextResponse.json(
+          { error: "Unable to process this ride action." },
+          { status: 500 },
+        )
+      }
+
+      if (!rpcResult?.success) {
+        return NextResponse.json(
+          { error: rpcResult?.error || "This ride is no longer available." },
+          { status: 409 },
+        )
+      }
+
+      if (isReject) {
+        rejectionResult = rpcResult
+        updatedRide = rpcResult.ride
+      } else {
+        updatedRide = rpcResult.ride
+      }
+    } else {
+      // Preserve the existing status transitions for other actions.
+      const updateResponse = await fetch(
         `${supabaseUrl}/rest/v1/ride_requests` +
-          `?driver_id=eq.${encodeURIComponent(driver_id)}` +
-          `&ride_status=in.(requested,accepted,arrived,in_progress)` +
-          `&select=id&limit=1`,
-        {
-          method: "GET",
-          headers: {
-            apikey: supabaseServiceRoleKey,
-            Authorization: `Bearer ${supabaseServiceRoleKey}`,
-            "Content-Type": "application/json",
-          },
-          cache: "no-store",
-        },
-      )
-
-      if (!activeRidesResponse.ok) {
-        const errorText = await activeRidesResponse.text()
-
-        console.error(
-          "KFM ACTIVE RIDES CHECK FAILED:",
-          errorText,
-        )
-
-        return NextResponse.json(
-          {
-            error:
-              "Ride status was updated, but driver availability could not be safely checked.",
-          },
-          { status: 500 },
-        )
-      }
-
-      const activeRides = await activeRidesResponse.json()
-
-      const driverAvailability =
-        activeRides.length > 0 ? "BUSY" : "ONLINE"
-
-     console.log(
-        "KFM DRIVER AVAILABILITY UPDATE START:",
-        {
-          driver_id,
-          booking_code: ride.booking_code,
-          action,
-          requestedAvailability: driverAvailability,
-        },
-      )
-
-      // First read the current driver record.
-      const driverBeforeResponse = await fetch(
-        `${supabaseUrl}/rest/v1/drivers` +
-          `?id=eq.${encodeURIComponent(driver_id)}` +
-          `&select=id,full_name,availability`,
-        {
-          method: "GET",
-          headers: {
-            apikey: supabaseServiceRoleKey,
-            Authorization: `Bearer ${supabaseServiceRoleKey}`,
-            "Content-Type": "application/json",
-          },
-          cache: "no-store",
-        },
-      )
-
-    if (!driverBeforeResponse.ok) {
-        const errorText = await driverBeforeResponse.text()
-
-        console.error(
-          "KFM DRIVER LOOKUP BEFORE UPDATE FAILED:",
-          errorText,
-        )
-
-        return NextResponse.json(
-          {
-            error:
-              "Ride status was updated, but the driver record could not be checked.",
-          },
-          { status: 500 },
-        )
-      }
-
-        const driverBefore = await driverBeforeResponse.json()
-
-      if (
-        !Array.isArray(driverBefore) ||
-        driverBefore.length === 0
-      ) {
-        console.error(
-          "KFM DRIVER RECORD NOT FOUND:",
-          { driver_id },
-        )
-
-        return NextResponse.json(
-          {
-            error:
-              "Ride status was updated, but the driver record was not found.",
-          },
-          { status: 500 },
-        )
-      }
-
-      console.log(
-        "KFM DRIVER BEFORE AVAILABILITY UPDATE:",
-        driverBefore,
-      )
-
-      // Now attempt the actual availability update.
-      const driverResponse = await fetch(
-        `${supabaseUrl}/rest/v1/drivers` +
-          `?id=eq.${encodeURIComponent(driver_id)}`,
+          `?id=eq.${encodeURIComponent(ride_id)}` +
+          `&driver_id=eq.${encodeURIComponent(driver_id)}`,
         {
           method: "PATCH",
           headers: {
-            apikey: supabaseServiceRoleKey,
-            Authorization: `Bearer ${supabaseServiceRoleKey}`,
-            "Content-Type": "application/json",
+            ...headers,
             Prefer: "return=representation",
           },
-          body: JSON.stringify({
-            availability: driverAvailability,
-          }),
+          body: JSON.stringify({ ride_status: nextStatus }),
         },
       )
 
-      const driverResponseText =
-        await driverResponse.text()
+      const updateText = await updateResponse.text()
 
-      console.log(
-        "KFM DRIVER AVAILABILITY RAW RESPONSE:",
-        {
-          status: driverResponse.status,
-          ok: driverResponse.ok,
-          response: driverResponseText,
-        },
-      )
+      if (!updateResponse.ok) {
+        console.error("KFM RIDE UPDATE FAILED:", updateText)
+        return NextResponse.json(
+          { error: "Unable to update the ride status." },
+          { status: 500 },
+        )
+      }
 
-      let updatedDriver: any[] = []
+      let updatedRows: any
 
       try {
-        updatedDriver = driverResponseText
-          ? JSON.parse(driverResponseText)
-          : []
-      } catch (parseError) {
-        console.error(
-          "KFM DRIVER AVAILABILITY RESPONSE JSON PARSE FAILED:",
-          parseError,
-        )
-      }
-
-      if (!driverResponse.ok) {
-        console.error(
-          "KFM DRIVER AVAILABILITY UPDATE FAILED:",
-          {
-            status: driverResponse.status,
-            response: updatedDriver,
-            rawResponse: driverResponseText,
-          },
-        )
-
+        updatedRows = updateText ? JSON.parse(updateText) : []
+      } catch {
         return NextResponse.json(
-          {
-            error:
-              "Ride updated, but driver availability could not be updated.",
-            details: updatedDriver,
-          },
+          { error: "The updated ride response was invalid." },
           { status: 500 },
         )
       }
 
-      console.log(
-        "KFM DRIVER AVAILABILITY UPDATE RESULT:",
-        updatedDriver,
-      )
+      updatedRide = Array.isArray(updatedRows)
+        ? updatedRows[0]
+        : null
 
-      // -------------------------------------------------------
-      // 5. Verify the value returned by Supabase
-      // -------------------------------------------------------
-
-      const savedAvailability =
-        updatedDriver?.[0]?.availability
-
-      console.log(
-        "KFM DRIVER AVAILABILITY VERIFICATION:",
-        {
-          driver_id,
-          expected: driverAvailability,
-          saved: savedAvailability,
-          updatedDriver,
-        },
-      )
-
-      if (savedAvailability !== driverAvailability) {
-        console.error(
-          "KFM DRIVER AVAILABILITY MISMATCH:",
-          {
-            expected: driverAvailability,
-            saved: savedAvailability,
-            driver: updatedDriver,
-          },
-        )
-
+      if (!updatedRide) {
         return NextResponse.json(
-          {
-            error:
-              "Driver availability did not save with the expected value.",
-            expected_availability: driverAvailability,
-            saved_availability: savedAvailability,
-            driver: updatedDriver,
-          },
+          { error: "The ride update could not be confirmed." },
           { status: 500 },
         )
       }
-
-      console.log(
-        "KFM DRIVER AVAILABILITY UPDATE SUCCESS:",
-        {
-          driver_id,
-          availability: savedAvailability,
-        },
-      )
-    } else {
-      console.log(
-        "KFM DRIVER AVAILABILITY NOT CHANGED FOR THIS ACTION:",
-        {
-          action,
-          driver_id,
-        },
-      )
     }
 
-    // ---------------------------------------------------------
-    // 6. Final response
-    // ---------------------------------------------------------
+    // Refresh the original driver's availability after actions
+    // that can change which active rides belong to that driver.
+    if (
+      action === "accept" ||
+      action === "complete" ||
+      action === "cancel" ||
+      isReject
+    ) {
+      const activeResponse = await fetch(
+        `${supabaseUrl}/rest/v1/ride_requests` +
+          `?driver_id=eq.${encodeURIComponent(driver_id)}` +
+          `&ride_status=in.(${activeStatuses})` +
+          `&select=id&limit=1`,
+        {
+          headers,
+          cache: "no-store",
+        },
+      )
+
+      if (!activeResponse.ok) {
+        console.error(
+          "KFM ACTIVE RIDE CHECK FAILED:",
+          await activeResponse.text(),
+        )
+        return NextResponse.json(
+          {
+            error:
+              "Ride action was processed, but driver availability could not be checked.",
+          },
+          { status: 500 },
+        )
+      }
+
+      const activeRides = await activeResponse.json()
+      const availability =
+        activeRides.length > 0 ? "BUSY" : "ONLINE"
+
+      const driverUpdateResponse = await fetch(
+        `${supabaseUrl}/rest/v1/drivers?id=eq.${encodeURIComponent(driver_id)}`,
+        {
+          method: "PATCH",
+          headers: {
+            ...headers,
+            Prefer: "return=representation",
+          },
+          body: JSON.stringify({ availability }),
+        },
+      )
+
+      const driverText = await driverUpdateResponse.text()
+      let updatedDrivers: any[] = []
+
+      try {
+        updatedDrivers = driverText ? JSON.parse(driverText) : []
+      } catch {
+        console.error("KFM DRIVER UPDATE INVALID RESPONSE:", driverText)
+      }
+
+      if (!driverUpdateResponse.ok) {
+        console.error("KFM DRIVER AVAILABILITY UPDATE FAILED:", driverText)
+        return NextResponse.json(
+          { error: "Ride action was processed, but driver availability could not be updated." },
+          { status: 500 },
+        )
+      }
+
+      if (updatedDrivers?.[0]?.availability !== availability) {
+        return NextResponse.json(
+          {
+            error: "Driver availability could not be verified.",
+            expected_availability: availability,
+            saved_availability: updatedDrivers?.[0]?.availability ?? null,
+          },
+          { status: 500 },
+        )
+      }
+    }
+
+    console.log("KFM DRIVER ACTION COMPLETED:", {
+      booking_code: ride.booking_code,
+      action,
+      previous_status: currentStatus,
+      ride_status: updatedRide?.ride_status,
+      reassigned: rejectionResult?.reassigned,
+      new_driver_id: rejectionResult?.driver_id,
+    })
 
     return NextResponse.json({
       success: true,
       booking_code: ride.booking_code,
       previous_status: currentStatus,
-      ride_status: nextStatus,
-      ride: updatedRide[0] || null,
+      ride_status: updatedRide?.ride_status ?? nextStatus,
+      ride: updatedRide,
+      ...(isReject
+        ? {
+            reassigned: rejectionResult?.reassigned ?? false,
+            driver_id: rejectionResult?.driver_id ?? null,
+            message: rejectionResult?.message,
+          }
+        : {}),
     })
   } catch (error) {
-    console.error(
-      "KFM DRIVER RIDE ACTION ERROR:",
-      error,
-    )
-
+    console.error("KFM DRIVER RIDE ACTION ERROR:", error)
     return NextResponse.json(
-      {
-        error:
-          "Something went wrong while updating the ride.",
-      },
+      { error: "Something went wrong while updating the ride." },
       { status: 500 },
     )
   }
