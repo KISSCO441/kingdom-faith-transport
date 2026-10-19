@@ -100,25 +100,6 @@ export function SiteFooter() {
               <ShieldCheck className="h-4 w-4" />
               Driver Verification
             </a>
-
-            <span aria-hidden="true">|</span>
-
-              <a
-              href="/admin"
-              className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-foreground"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              KFM Admin Dashboard
-            </a>
-
-            <a
-              href="/admin/drivers"
-              className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
-            >
-              <ShieldCheck className="h-4 w-4" />
-              Driver Verification
-            </a>
-  
           </div>
         </div>
       </div>
