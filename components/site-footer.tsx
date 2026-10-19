@@ -1,4 +1,4 @@
-import { Car, MapPin, Phone, Mail } from "lucide-react"
+import { Car, MapPin, Phone, Mail, LayoutDashboard, ShieldCheck } from "lucide-react"
 
 export function SiteFooter() {
   return (
@@ -11,14 +11,17 @@ export function SiteFooter() {
                 <Car className="h-5 w-5" />
               </span>
               <span className="flex flex-col leading-tight">
-                <span className="text-sm font-bold tracking-tight">Kingdom Faith Marketplace</span>
+                <span className="text-sm font-bold tracking-tight">
+                  Kingdom Faith Marketplace
+                </span>
                 <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                   Transport App &middot; Eastern Region
                 </span>
               </span>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              Reliable car and okada rides across the Eastern Region of Ghana. Order in minutes.
+              Reliable car and okada rides across the Eastern Region of Ghana.
+              Order in minutes.
             </p>
           </div>
 
@@ -45,47 +48,79 @@ export function SiteFooter() {
             <h3 className="text-sm font-semibold">Contact</h3>
             <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                Koforidua, Eastern Region
+                <MapPin className="h-4 w-4 shrink-0 text-primary" />
+                NSAWAM-Eastern Region
               </li>
               <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-primary" />
-                024 123 4567
+                <Phone className="h-4 w-4 shrink-0 text-primary" />
+                <a href="tel:0240555688" className="hover:text-foreground">
+                  0240 555 688
+                </a>
               </li>
               <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-primary" />
-                hello@kingdomfaithtransport.com
+                <Phone className="h-4 w-4 shrink-0 text-primary" />
+                <a href="tel:0204097129" className="hover:text-foreground">
+                  020 409 7129
+                </a>
+              </li>
+              <li className="flex items-center gap-2">
+                <Mail className="h-4 w-4 shrink-0 text-primary" />
+                <a
+                  href="mailto:kingdomfaithtransport@gmail.com"
+                  className="break-all hover:text-foreground"
+                >
+                  kingdomfaithtransport@gmail.com
+                </a>
               </li>
             </ul>
           </div>
         </div>
 
-       <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-  <p>
-    &copy; {new Date().getFullYear()} Kingdom Faith Marketplace Transport App (Eastern Region). All rights
-    reserved.
-  </p>
+        <div className="mt-10 border-t border-border pt-6 text-center text-xs text-muted-foreground">
+          <p>
+            &copy; {new Date().getFullYear()} Kingdom Faith Marketplace
+            Transport App (Eastern Region). All rights reserved.
+          </p>
 
-    <p className="mt-3 flex items-center justify-center gap-4">
-    <a
-      href="/admin/login"
-      className="transition-colors hover:text-foreground"
-    >
-      Admin Login
-    </a>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
+            <a
+              href="/admin"
+              className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-foreground"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              KFM Admin Dashboard
+            </a>
 
-    <span aria-hidden="true">|</span>
+            <span aria-hidden="true">|</span>
 
-    <a
-      href="/admin/market-orders"
-      className="transition-colors hover:text-foreground"
-    >
-      Market Orders
-    </a>
-  </p>
+            <a
+              href="/admin/drivers"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Driver Verification
+            </a>
 
-</div>
- </div>
-   </footer>
+            <span aria-hidden="true">|</span>
+
+            <a
+              href="/admin/login"
+              className="transition-colors hover:text-foreground"
+            >
+              Admin Login
+            </a>
+
+            <span aria-hidden="true">|</span>
+
+            <a
+              href="/admin/market-orders"
+              className="transition-colors hover:text-foreground"
+            >
+              Market Orders
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
   )
 }
