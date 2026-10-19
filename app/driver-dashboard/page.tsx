@@ -57,6 +57,7 @@ type RideRequest = {
 
 type RideAction =
   | "accept"
+  | "reject"
   | "arrive"
   | "start"
   | "complete"
@@ -78,6 +79,14 @@ export default function DriverDashboardPage() {
 
   useEffect(() => {
     if (!driver) return
+
+    if (action === "reject") {
+  const confirmed = window.confirm(
+    "Are you sure you want to reject this ride? KFM will try to assign another eligible driver.",
+  )
+
+  if (!confirmed) return
+}
 
     loadAssignedRideRequests()
 
@@ -994,24 +1003,34 @@ const response = await fetch(
 
                   {/* Ride Actions */}
 
-                  {ride.ride_status === "requested" && (
-                    <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
-                      <Button
-                        onClick={() =>
-                          handleRideAction(
-                            ride.id,
-                            "accept",
-                          )
-                        }
-                        disabled={updatingRideId === ride.id}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        {updatingRideId === ride.id
-                          ? "Accepting..."
-                          : "Accept Ride"}
-                      </Button>
-                    </div>
-                  )}
+ {ride.ride_status === "requested" && (
+   <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+     <Button
+       onClick={() =>
+        handleRideAction(ride.id, "accept")
+      }
+      disabled={updatingRideId === ride.id}
+      className="bg-green-600 hover:bg-green-700"
+    >
+      {updatingRideId === ride.id
+        ? "Processing..."
+        : "Accept Ride"}
+    </Button>
+
+    <Button
+      variant="outline"
+      onClick={() =>
+        handleRideAction(ride.id, "reject")
+      }
+      disabled={updatingRideId === ride.id}
+      className="border-red-300 text-red-700 hover:bg-red-50"
+    >
+      {updatingRideId === ride.id
+        ? "Processing..."
+        : "Reject Ride"}
+    </Button>
+  </div>
+)}
 
                   {ride.ride_status === "accepted" && (
                     <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
