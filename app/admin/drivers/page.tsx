@@ -1,6 +1,5 @@
-
 "use client";
-
+import AdminAccessGuard from "@/components/admin/AdminAccessGuard";
 import { useEffect, useState } from "react";
 import {
   AlertCircle,
@@ -436,6 +435,7 @@ export default function AdminDriversPage() {
   );
 
   return (
+   <AdminAccessGuard>
     <main className="min-h-screen bg-slate-50 px-4 py-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 rounded-2xl bg-slate-900 p-6 text-white shadow-lg">
@@ -979,8 +979,9 @@ export default function AdminDriversPage() {
               </>
             )}
           </section>
-        </div>
+         </div>
       </div>
     </main>
+  </AdminAccessGuard>
   );
 }
