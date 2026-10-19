@@ -54,7 +54,7 @@ export default function KfmAdminLoginPage() {
         return;
       }
 
-      router.push("/admin/drivers");
+     router.push("/admin");
       router.refresh();
     } catch {
       setError("Unable to verify administrator access. Please try again.");
