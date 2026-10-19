@@ -1,5 +1,5 @@
 "use client";
-
+import AdminAccessGuard from "@/components/admin/AdminAccessGuard";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -47,6 +47,7 @@ const sections = [
 
 export default function AdminHomePage() {
   return (
+  <AdminAccessGuard>
     <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 rounded-2xl bg-slate-900 p-6 text-white shadow-lg sm:p-8">
@@ -133,8 +134,9 @@ export default function AdminHomePage() {
           >
             Admin Login
           </Link>
-        </footer>
-      </div>
+         </footer>
+       </div>
     </main>
+  </AdminAccessGuard>
   );
 }
