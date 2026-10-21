@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Admin rides API error:", error);
 
-    return NextResponse.json(
+       return NextResponse.json(
       { success: false, error: "An unexpected error occurred." },
       { status: 500 }
     );
