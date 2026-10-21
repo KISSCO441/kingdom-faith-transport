@@ -9,6 +9,7 @@ import {
   Package,
   Phone,
   RefreshCw,
+  Save,
   ShoppingBag,
   User,
 } from "lucide-react"
@@ -49,7 +50,12 @@ export default function MarketOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState("")
-
+ 
+  const [draftOrderStatus, setDraftOrderStatus] = useState("")
+  const [savingStatus, setSavingStatus] = useState(false)
+  const [statusMessage, setStatusMessage] = useState("")
+  const [statusError, setStatusError] = useState("")
+  
   async function loadOrders(showRefresh = false) {
     try {
       if (showRefresh) {
@@ -129,6 +135,15 @@ setSelectedOrderId((current) => {
     [orders, selectedOrderId],
   )
 
+useEffect(() => {
+  setDraftOrderStatus(selectedOrder?.order_status ?? "")
+}, [selectedOrder?.id, selectedOrder?.order_status])
+
+useEffect(() => {
+  setStatusMessage("")
+  setStatusError("")
+}, [selectedOrder?.id])
+  
   const selectedItems = useMemo(
     () =>
       selectedOrder
@@ -185,6 +200,65 @@ setSelectedOrderId((current) => {
 
     return "bg-amber-100 text-amber-700"
   }
+
+async function saveOrderStatus() {
+  if (!selectedOrder || !draftOrderStatus) return
+
+  if (draftOrderStatus === selectedOrder.order_status) {
+    setStatusMessage("The order already has this status.")
+    setStatusError("")
+    return
+  }
+
+  try {
+    setSavingStatus(true)
+    setStatusMessage("")
+    setStatusError("")
+
+    const { data: sessionData, error: sessionError } =
+      await supabaseClient!.auth.getSession()
+
+    const accessToken = sessionData.session?.access_token
+
+    if (sessionError || !accessToken) {
+      throw new Error("Please sign in again to update orders.")
+    }
+
+    const response = await fetch("/api/admin/market-orders", {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: selectedOrder.id,
+        order_status: draftOrderStatus,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Unable to update order status.")
+    }
+
+    setOrders((currentOrders) =>
+      currentOrders.map((order) =>
+        order.id === data.order.id ? data.order : order,
+      ),
+    )
+
+    setStatusMessage("Order status updated successfully.")
+  } catch (err) {
+    setStatusError(
+      err instanceof Error
+        ? err.message
+        : "Unable to update order status.",
+    )
+  } finally {
+    setSavingStatus(false)
+  }
+}
 
   if (loading) {
     return (
@@ -455,7 +529,79 @@ setSelectedOrderId((current) => {
                   </div>
                 </div>
 
-                {/* Customer / Delivery */}
+{/* Manage Order Status */}
+  <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5">
+    <h3 className="font-bold text-slate-900">
+      Manage Order Status
+  </h3>
+
+  <p className="mt-1 text-sm text-slate-600">
+    Update the fulfilment progress of this order.
+    Payment status is managed separately.
+  </p>
+
+  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+    <div className="flex-1">
+      <label
+        htmlFor="order-status"
+        className="mb-2 block text-sm font-semibold text-slate-700"
+      >
+        Order Status
+      </label>
+
+      <select
+        id="order-status"
+        value={draftOrderStatus}
+        onChange={(event) => {
+          setDraftOrderStatus(event.target.value)
+          setStatusMessage("")
+          setStatusError("")
+        }}
+        disabled={savingStatus}
+        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+      >
+        <option value="NEW">New</option>
+        <option value="PROCESSING">Processing</option>
+        <option value="READY">Ready</option>
+        <option value="DELIVERED">Delivered</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+    </div>
+
+    <button
+      type="button"
+      onClick={saveOrderStatus}
+      disabled={
+        savingStatus ||
+        !draftOrderStatus ||
+        draftOrderStatus === selectedOrder.order_status
+      }
+      className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {savingStatus ? (
+        <RefreshCw className="h-4 w-4 animate-spin" />
+      ) : (
+        <Save className="h-4 w-4" />
+      )}
+
+      {savingStatus ? "Saving..." : "Save Status"}
+    </button>
+  </div>
+
+  {statusMessage && (
+    <p role="status" className="mt-3 text-sm font-medium text-green-700">
+      {statusMessage}
+    </p>
+  )}
+
+  {statusError && (
+    <p role="alert" className="mt-3 text-sm font-medium text-red-700">
+      {statusError}
+    </p>
+  )}
+</div>
+
+          {/* Customer / Delivery */}
                 <div className="grid gap-4 py-6 md:grid-cols-2">
                   <div className="rounded-xl bg-slate-50 p-5">
                     <div className="mb-4 flex items-center gap-2">
