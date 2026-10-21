@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { requireKfmAdmin } from "@/lib/admin-auth";
 
@@ -12,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = auth.supabase;
 
-    // Retrieve ride bookings, including their payment details.
+    // Retrieve ride bookings, including payment details.
     const { data: rides, error: ridesError } = await supabase
       .from("ride_requests")
       .select(
@@ -28,7 +27,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Retrieve driver details separately to avoid relying on a database join.
+    // Retrieve driver details separately.
     const { data: drivers, error: driversError } = await supabase
       .from("drivers")
       .select("id, full_name, phone");
@@ -41,15 +40,52 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Retrieve rejection records for the admin audit history.
+    const { data: rejections, error: rejectionsError } = await supabase
+      .from("ride_driver_rejections")
+      .select("ride_id, driver_id, rejected_at")
+      .order("rejected_at", { ascending: false });
+
+    if (rejectionsError) {
+      console.error("Admin ride rejection history query failed:", rejectionsError);
+      return NextResponse.json(
+        { success: false, error: "Unable to load ride rejection history." },
+        { status: 500 }
+      );
+    }
+
     const driverById = new Map(
       (drivers ?? []).map((driver) => [driver.id, driver])
     );
+
+    const rejectionHistoryByRide = new Map<
+      string,
+      Array<{
+        driver_id: string;
+        driver_name: string;
+        rejected_at: string;
+      }>
+    >();
+
+    for (const rejection of rejections ?? []) {
+      const history = rejectionHistoryByRide.get(rejection.ride_id) ?? [];
+
+      history.push({
+        driver_id: rejection.driver_id,
+        driver_name:
+          driverById.get(rejection.driver_id)?.full_name ?? "Unknown driver",
+        rejected_at: rejection.rejected_at,
+      });
+
+      rejectionHistoryByRide.set(rejection.ride_id, history);
+    }
 
     const bookings = (rides ?? []).map((ride) => ({
       ...ride,
       driver: ride.driver_id
         ? driverById.get(ride.driver_id) ?? null
         : null,
+      rejection_history: rejectionHistoryByRide.get(ride.id) ?? [],
     }));
 
     return NextResponse.json({
