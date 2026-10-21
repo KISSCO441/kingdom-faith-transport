@@ -22,6 +22,12 @@ type Driver = {
   phone: string
 }
 
+type RideRejection = {
+  driver_id: string
+  driver_name: string
+  rejected_at: string
+}
+
 type Ride = {
   id: string
   created_at: string | null
@@ -45,6 +51,7 @@ type Ride = {
   payment_reference: string | null
   payment_paid_at: string | null
   driver: Driver | null
+  rejection_history: RideRejection[]
 }
 
 export default function AdminRidesPage() {
@@ -195,7 +202,7 @@ export default function AdminRidesPage() {
               KFM Administration
             </p>
             <h1 className="text-2xl font-bold sm:text-3xl">
-              Ride Bookings & Payments
+              Ride Bookings &amp; Payments
             </h1>
             <p className="mt-2 text-sm text-slate-300">
               Monitor customer rides, assigned drivers, fares and payment records.
@@ -305,10 +312,14 @@ export default function AdminRidesPage() {
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(ride.ride_status)}`}>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(ride.ride_status)}`}
+                      >
                         {ride.ride_status}
                       </span>
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(ride.payment_status)}`}>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(ride.payment_status)}`}
+                      >
                         {ride.payment_status}
                       </span>
                     </div>
@@ -344,64 +355,149 @@ export default function AdminRidesPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusClass(selectedRide.ride_status)}`}>
+                    <span
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusClass(selectedRide.ride_status)}`}
+                    >
                       RIDE: {selectedRide.ride_status}
                     </span>
-                    <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusClass(selectedRide.payment_status)}`}>
+                    <span
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusClass(selectedRide.payment_status)}`}
+                    >
                       PAYMENT: {selectedRide.payment_status}
                     </span>
                   </div>
                 </div>
 
                 <div className="grid gap-4 py-6 md:grid-cols-2">
-                  <InfoCard title="Customer Information" icon={<User className="h-5 w-5" />}>
+                  <InfoCard
+                    title="Customer Information"
+                    icon={<User className="h-5 w-5" />}
+                  >
                     <InfoRow label="Name" value={selectedRide.customer_name} />
                     <InfoRow label="Phone">
-                      <a href={`tel:${selectedRide.customer_phone}`} className="inline-flex items-center gap-2 font-semibold text-blue-600 hover:underline">
+                      <a
+                        href={`tel:${selectedRide.customer_phone}`}
+                        className="inline-flex items-center gap-2 font-semibold text-blue-600 hover:underline"
+                      >
                         <Phone className="h-4 w-4" />
                         {selectedRide.customer_phone}
                       </a>
                     </InfoRow>
-                    <InfoRow label="Email" value={selectedRide.customer_email || "Not provided"} />
+                    <InfoRow
+                      label="Email"
+                      value={selectedRide.customer_email || "Not provided"}
+                    />
                   </InfoCard>
 
-                  <InfoCard title="Ride Information" icon={<MapPin className="h-5 w-5" />}>
+                  <InfoCard
+                    title="Ride Information"
+                    icon={<MapPin className="h-5 w-5" />}
+                  >
                     <InfoRow label="Vehicle" value={selectedRide.vehicle_type} />
                     <InfoRow label="Ride option" value={selectedRide.ride_option} />
-                    <InfoRow label="Pickup" value={`${selectedRide.pickup_area}, ${selectedRide.pickup_town}`} />
-                    <InfoRow label="Destination" value={`${selectedRide.destination_area}, ${selectedRide.destination_town}`} />
+                    <InfoRow
+                      label="Pickup"
+                      value={`${selectedRide.pickup_area}, ${selectedRide.pickup_town}`}
+                    />
+                    <InfoRow
+                      label="Destination"
+                      value={`${selectedRide.destination_area}, ${selectedRide.destination_town}`}
+                    />
                     <InfoRow label="Schedule" value={selectedRide.when_option} />
-                    {selectedRide.notes && <InfoRow label="Customer notes" value={selectedRide.notes} />}
+                    {selectedRide.notes && (
+                      <InfoRow label="Customer notes" value={selectedRide.notes} />
+                    )}
                   </InfoCard>
 
-                  <InfoCard title="Assigned Driver" icon={<Phone className="h-5 w-5" />}>
+                  <InfoCard
+                    title="Assigned Driver"
+                    icon={<Phone className="h-5 w-5" />}
+                  >
                     {selectedRide.driver ? (
                       <>
-                        <InfoRow label="Name" value={selectedRide.driver.full_name} />
+                        <InfoRow
+                          label="Name"
+                          value={selectedRide.driver.full_name}
+                        />
                         <InfoRow label="Phone">
-                          <a href={`tel:${selectedRide.driver.phone}`} className="font-semibold text-blue-600 hover:underline">
+                          <a
+                            href={`tel:${selectedRide.driver.phone}`}
+                            className="font-semibold text-blue-600 hover:underline"
+                          >
                             {selectedRide.driver.phone}
                           </a>
                         </InfoRow>
                       </>
                     ) : (
-                      <p className="text-sm text-slate-500">No driver is currently assigned.</p>
+                      <p className="text-sm text-slate-500">
+                        No driver is currently assigned.
+                      </p>
                     )}
                   </InfoCard>
 
-                  <InfoCard title="Payment Information" icon={<Banknote className="h-5 w-5" />}>
-                    <InfoRow label="Fare" value={formatCurrency(selectedRide.fare_estimate)} />
-                    <InfoRow label="Payment method" value={selectedRide.payment_method} />
-                    <InfoRow label="Payment status" value={selectedRide.payment_status} />
-                    <InfoRow label="Payment reference" value={selectedRide.payment_reference || "Not recorded"} />
-                    <InfoRow label="Payment date" value={formatDate(selectedRide.payment_paid_at)} />
+                  <InfoCard
+                    title="Payment Information"
+                    icon={<Banknote className="h-5 w-5" />}
+                  >
+                    <InfoRow
+                      label="Fare"
+                      value={formatCurrency(selectedRide.fare_estimate)}
+                    />
+                    <InfoRow
+                      label="Payment method"
+                      value={selectedRide.payment_method}
+                    />
+                    <InfoRow
+                      label="Payment status"
+                      value={selectedRide.payment_status}
+                    />
+                    <InfoRow
+                      label="Payment reference"
+                      value={selectedRide.payment_reference || "Not recorded"}
+                    />
+                    <InfoRow
+                      label="Payment date"
+                      value={formatDate(selectedRide.payment_paid_at)}
+                    />
                   </InfoCard>
                 </div>
+
+                <section className="mb-6 rounded-xl border border-red-200 bg-red-50 p-5">
+                  <div className="flex items-center gap-2 text-red-800">
+                    <AlertCircle className="h-5 w-5" />
+                    <h3 className="font-bold">Driver Rejection History</h3>
+                  </div>
+
+                  {(selectedRide.rejection_history ?? []).length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-600">
+                      No driver rejections have been recorded for this booking.
+                    </p>
+                  ) : (
+                    <div className="mt-4 space-y-3">
+                      {selectedRide.rejection_history.map((rejection) => (
+                        <div
+                          key={`${rejection.driver_id}-${rejection.rejected_at}`}
+                          className="rounded-lg border border-red-100 bg-white p-4"
+                        >
+                          <p className="font-semibold text-slate-900">
+                            {rejection.driver_name}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600">
+                            Rejected on: {formatDate(rejection.rejected_at)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
 
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                   <p className="font-semibold">Payment confirmation</p>
                   <p className="mt-1">
-                    This dashboard is currently read-only. A completed ride is not automatically treated as paid. Cash receipts and Paystack transactions will require separate verification before payment records can be updated.
+                    This dashboard is currently read-only. A completed ride is
+                    not automatically treated as paid. Cash receipts and
+                    Paystack transactions will require separate verification
+                    before payment records can be updated.
                   </p>
                 </div>
               </>
