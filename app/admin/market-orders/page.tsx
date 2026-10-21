@@ -69,12 +69,20 @@ export default function MarketOrdersPage() {
  const { data: sessionData, error: sessionError } =
   await supabaseClient!.auth.getSession()
 
-const accessToken = sessionData.session?.access_token
-
-if (sessionError || !accessToken) {
-  throw new Error("Please sign in again to access market orders.")
+if (sessionError) {
+  throw new Error(
+    `Unable to read Supabase session: ${sessionError.message}`,
+  )
 }
 
+const accessToken = sessionData.session?.access_token
+
+if (!accessToken) {
+  throw new Error(
+    "No saved Supabase session was found. Please sign in again.",
+  )
+}
+      
 const response = await fetch("/api/admin/market-orders", {
   method: "GET",
   headers: {
@@ -103,16 +111,6 @@ setSelectedOrderId((current) => {
   return data.orders?.[0]?.id ?? null
 })
 
-      setOrders(data.orders ?? [])
-      setItems(data.items ?? [])
-
-      setSelectedOrderId((current) => {
-        if (current && data.orders?.some((order: MarketOrder) => order.id === current)) {
-          return current
-        }
-
-        return data.orders?.[0]?.id ?? null
-      })
     } catch (err) {
       console.error("Market orders dashboard error:", err)
       setError(
