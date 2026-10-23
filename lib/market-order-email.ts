@@ -28,18 +28,30 @@ function money(value: unknown): string {
 export async function sendMarketPaymentConfirmation(
   orderId: string,
 ): Promise<MarketOrderEmailResult> {
-  // Two independent gates: both must be explicitly enabled after the domain
-  // has been verified. The verification gate is intentionally unset by default.
+  // Preview-only test mode can send only to the account owner's fixed
+  // Resend test recipient, using Resend's onboarding sender. It can never
+  // deliver to a customer's address and is unavailable in Production.
+  const previewTestMode =
+    process.env.VERCEL_ENV === "preview" &&
+    process.env.KFM_MARKETPLACE_EMAIL_TEST_MODE === "true";
+
+  // Real customer emails require both explicit gates and a verified sender.
   if (
-    process.env.KFM_MARKETPLACE_EMAILS_ENABLED !== "true" ||
-    process.env.RESEND_DOMAIN_VERIFIED !== "true"
+    !previewTestMode &&
+    (process.env.KFM_MARKETPLACE_EMAILS_ENABLED !== "true" ||
+      process.env.RESEND_DOMAIN_VERIFIED !== "true")
   ) {
     console.info("KFM Marketplace payment email skipped: sending is disabled.");
     return { sent: false, reason: "disabled" };
   }
 
   const resendApiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  const fromEmail = previewTestMode
+    ? "KFM Test <onboarding@resend.dev>"
+    : process.env.RESEND_FROM_EMAIL;
+  const recipientEmail = previewTestMode
+    ? "11thaprilconsult@gmail.com"
+    : undefined;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -150,8 +162,9 @@ export async function sendMarketPaymentConfirmation(
       },
       body: JSON.stringify({
         from: fromEmail,
-        to: [order.customer_email],
-        subject: `KFM Marketplace payment confirmed — ${order.order_number}`,
+        // Test mode has a fixed recipient; it never uses customer_email.
+        to: [recipientEmail ?? order.customer_email],
+        subject: `${previewTestMode ? "[TEST] " : ""}KFM Marketplace payment confirmed — ${order.order_number}`,
         html,
         text: [
           "Kingdom Faith Marketplace — Payment confirmed",
