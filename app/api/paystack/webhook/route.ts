@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
+import { sendMarketPaymentConfirmation } from "@/lib/market-order-email"
 
 export const runtime = "nodejs"
 
@@ -195,8 +196,19 @@ export async function POST(request: Request) {
       )
     }
 
+    let emailResult: "sent" | "disabled" | "not_sent" = "not_sent"
+
     if (updatedOrder) {
       console.log(`KFM order ${order.order_number} marked PAID.`)
+
+      // Send only after Paystack verification and the database PAID update.
+      // Email failure must not undo a successful payment or break checkout.
+      const email = await sendMarketPaymentConfirmation(order.id)
+      emailResult = email.sent
+        ? "sent"
+        : email.reason === "disabled"
+          ? "disabled"
+          : "not_sent"
     }
 
     return NextResponse.json({
@@ -204,6 +216,7 @@ export async function POST(request: Request) {
       message: updatedOrder
         ? "Payment verified and order marked as paid."
         : "Order was already marked as paid.",
+      email: emailResult,
     })
   } catch (error) {
     console.error("KFM Paystack webhook error:", error)
