@@ -140,6 +140,8 @@ export async function sendMarketPaymentConfirmation(
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
+        // Stable per-order key prevents duplicate messages on webhook retries.
+        "Idempotency-Key": `kfm-market-payment-${order.id}`,
       },
       body: JSON.stringify({
         from: fromEmail,
