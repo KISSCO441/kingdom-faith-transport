@@ -28,7 +28,12 @@ function money(value: unknown): string {
 export async function sendMarketPaymentConfirmation(
   orderId: string,
 ): Promise<MarketOrderEmailResult> {
-  if (process.env.KFM_MARKETPLACE_EMAILS_ENABLED !== "true") {
+  // Two independent gates: both must be explicitly enabled after the domain
+  // has been verified. The verification gate is intentionally unset by default.
+  if (
+    process.env.KFM_MARKETPLACE_EMAILS_ENABLED !== "true" ||
+    process.env.RESEND_DOMAIN_VERIFIED !== "true"
+  ) {
     console.info("KFM Marketplace payment email skipped: sending is disabled.");
     return { sent: false, reason: "disabled" };
   }
