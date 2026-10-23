@@ -165,11 +165,25 @@ export async function POST(request: Request) {
       )
     }
 
-    // Do not repeat the payment update for an already-paid order.
+    // A webhook retry can also retry a failed confirmation email. The
+    // email helper uses a stable Resend idempotency key per order.
     if (order.payment_status === "PAID") {
+      const email = await sendMarketPaymentConfirmation(order.id)
+
+      if (
+        process.env.KFM_MARKETPLACE_EMAILS_ENABLED === "true" &&
+        !email.sent
+      ) {
+        return NextResponse.json(
+          { error: "Payment is recorded, but the confirmation email could not be sent." },
+          { status: 500 },
+        )
+      }
+
       return NextResponse.json({
         success: true,
         message: "Order was already marked as paid.",
+        email: email.sent ? "sent" : email.reason,
       })
     }
 
@@ -209,6 +223,17 @@ export async function POST(request: Request) {
         : email.reason === "disabled"
           ? "disabled"
           : "not_sent"
+    }
+
+    if (
+      updatedOrder &&
+      process.env.KFM_MARKETPLACE_EMAILS_ENABLED === "true" &&
+      emailResult === "not_sent"
+    ) {
+      return NextResponse.json(
+        { error: "Payment is recorded, but the confirmation email could not be sent." },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({
