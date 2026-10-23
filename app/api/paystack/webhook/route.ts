@@ -172,6 +172,7 @@ export async function POST(request: Request) {
 
       if (
         process.env.KFM_MARKETPLACE_EMAILS_ENABLED === "true" &&
+        process.env.RESEND_DOMAIN_VERIFIED === "true" &&
         !email.sent
       ) {
         return NextResponse.json(
@@ -228,6 +229,7 @@ export async function POST(request: Request) {
     if (
       updatedOrder &&
       process.env.KFM_MARKETPLACE_EMAILS_ENABLED === "true" &&
+      process.env.RESEND_DOMAIN_VERIFIED === "true" &&
       emailResult === "not_sent"
     ) {
       return NextResponse.json(
