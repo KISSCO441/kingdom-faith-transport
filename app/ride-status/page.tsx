@@ -230,7 +230,7 @@ export default function RideStatusPage() {
             />
 
             <Button
-              onClick={checkRideStatus}
+              onClick={() => checkRideStatus()}
               disabled={loading}
               className="sm:min-w-36"
             >
