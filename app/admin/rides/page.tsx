@@ -395,13 +395,15 @@ export default function AdminRidesPage() {
                     <InfoRow label="Payment status" value={selectedRide.payment_status} />
                     <InfoRow label="Payment reference" value={selectedRide.payment_reference || "Not recorded"} />
                     <InfoRow label="Payment date" value={formatDate(selectedRide.payment_paid_at)} />
+                    <InfoRow label="Receipt number" value={selectedRide.payment_status?.toUpperCase() === "PAID" ? selectedRide.booking_code.replace(/^KFM-/i, "KFM-RCP-") : "Not generated"} />
+                    <InfoRow label="Payment recording" value={selectedRide.payment_status?.toUpperCase() !== "PAID" ? "Awaiting payment" : selectedRide.payment_method?.toLowerCase() === "cash" ? "Cash — recorded at ride completion" : "Paystack — verified"} />
                   </InfoCard>
                 </div>
 
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                   <p className="font-semibold">Payment confirmation</p>
                   <p className="mt-1">
-                    This dashboard is currently read-only. A completed ride is not automatically treated as paid. Cash receipts and Paystack transactions will require separate verification before payment records can be updated.
+                    Cash rides are recorded as paid automatically when the assigned driver completes the ride. Paystack rides are recorded as paid only after successful transaction verification. Receipts are generated from the saved booking payment record.
                   </p>
                 </div>
               </>
