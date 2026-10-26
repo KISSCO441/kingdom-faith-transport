@@ -264,69 +264,6 @@ const response = await fetch(
     }
   }
 
-  async function confirmCashPayment(rideId: string) {
-    if (!driver) return
-
-    const confirmed = window.confirm(
-      "Confirm that you have actually received the cash fare for this completed ride?",
-    )
-
-    if (!confirmed) return
-
-    try {
-      setUpdatingRideId(rideId)
-      setError("")
-
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession()
-
-      if (sessionError) throw sessionError
-
-      if (!session?.access_token) {
-        throw new Error(
-          "Your session has expired. Please sign in again.",
-        )
-      }
-
-      const response = await fetch(
-        "/api/driver/rides/confirm-cash",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            ride_id: rideId,
-            driver_id: driver.id,
-          }),
-        },
-      )
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(
-          result.error || "Unable to confirm cash payment.",
-        )
-      }
-
-      await loadAssignedRideRequests()
-    } catch (err) {
-      console.error("Cash payment confirmation error:", err)
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to confirm cash payment.",
-      )
-    } finally {
-      setUpdatingRideId(null)
-    }
-  }
- 
   async function updateAvailability(
     newAvailability: "ONLINE" | "OFFLINE",
   ) {
@@ -965,19 +902,7 @@ const response = await fetch(
                           </p>
                         )}
 
-                      {ride.ride_status?.toLowerCase() === "completed" &&
-                        ride.payment_method?.toLowerCase() === "cash" &&
-                        ride.payment_status?.toLowerCase() === "unpaid" && (
-                          <Button
-                            className="mt-3 bg-green-600 hover:bg-green-700"
-                            disabled={updatingRideId === ride.id}
-                            onClick={() => confirmCashPayment(ride.id)}
-                          >
-                            {updatingRideId === ride.id
-                              ? "Confirming..."
-                              : "Confirm Cash Received"}
-                          </Button>
-                        )}
+
                     </div>
 
                    </div>
@@ -1235,9 +1160,13 @@ const response = await fetch(
                         })}
                       </p>
                     </div>
-
+                    <div className="md:col-span-2 rounded-lg bg-gray-50 p-3 text-sm">
+                      <p><strong>Payment:</strong> {ride.payment_status?.toLowerCase() === "paid" ? "PAID" : "UNPAID"}</p>
+                      <p><strong>Method:</strong> {ride.payment_method?.toLowerCase() === "cash" ? "Cash to Driver" : ride.payment_method?.toLowerCase() === "paystack" ? "Paystack" : "Not recorded"}</p>
+                      {ride.payment_status?.toLowerCase() === "paid" && <p><strong>Receipt:</strong> {ride.booking_code?.replace(/^KFM-/i, "KFM-RCP-")}</p>}
+                      {ride.payment_paid_at && <p><strong>Payment recorded:</strong> {new Date(ride.payment_paid_at).toLocaleString("en-GH", { dateStyle: "medium", timeStyle: "short" })}</p>}
+                    </div>
                   </div>
-
                 </div>
               ))
             )}
