@@ -1,5 +1,6 @@
 
 import { NextResponse } from "next/server"
+import { sendRidePaymentReceiptEmail } from "@/lib/ride-receipt-email"
 
 const allowedTransitions: Record<string, string> = {
   accept: "accepted",
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
       `${supabaseUrl}/rest/v1/ride_requests` +
         `?id=eq.${encodeURIComponent(ride_id)}` +
         `&driver_id=eq.${encodeURIComponent(driver_id)}` +
-        `&select=id,booking_code,driver_id,ride_status`,
+        `&select=id,booking_code,driver_id,ride_status,payment_method,payment_status,fare_estimate,customer_email,customer_name,pickup_town,pickup_area,destination_town,destination_area,payment_reference,payment_paid_at`,
       {
         headers,
         cache: "no-store",
@@ -210,7 +211,11 @@ export async function POST(request: Request) {
             ...headers,
             Prefer: "return=representation",
           },
-          body: JSON.stringify({ ride_status: nextStatus }),
+          body: JSON.stringify({
+            ride_status: nextStatus,
+            ...(action === "complete" && String(ride.payment_method || "").toLowerCase() === "cash" && String(ride.payment_status || "").toLowerCase() !== "paid"
+              ? { payment_status: "paid", payment_paid_at: new Date().toISOString() } : {}),
+          }),
         },
       )
 
@@ -323,6 +328,10 @@ export async function POST(request: Request) {
           { status: 500 },
         )
       }
+    }
+
+    if (action === "complete" && String(ride.payment_method || "").toLowerCase() === "cash" && String(updatedRide?.payment_status || "").toLowerCase() === "paid") {
+      await sendRidePaymentReceiptEmail({ ...ride, ...updatedRide, booking_code: ride.booking_code, payment_method: "cash" });
     }
 
     console.log("KFM DRIVER ACTION COMPLETED:", {
