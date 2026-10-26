@@ -32,9 +32,11 @@ export async function sendRidePaymentReceiptEmail(ride: RideReceiptEmail) {
   const paidAt = ride.payment_paid_at
     ? new Date(ride.payment_paid_at).toLocaleString("en-GH", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Accra" })
     : "Not recorded";
-  const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({
+  const htmlEntities: Record<string, string> = {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  })[character] || character);
+  };
+  const escapeHtml = (value: string) =>
+    value.replace(/[&<>"']/g, (character) => htmlEntities[character] || character);
 
   const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#111827">
     <h1>Kingdom Faith Transport</h1><h2>Payment Receipt</h2>
