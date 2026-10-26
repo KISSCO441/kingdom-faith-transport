@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react"
 import { Car, Bike, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { RideRouteMap } from "@/components/ride-route-map"
 
 type VehicleType = "car" | "motorbike"
 
@@ -556,6 +557,13 @@ if (
                   )}
                 </div>
               </div>
+
+              <RideRouteMap
+                pickupTown={pickupTown}
+                pickupArea={pickupArea}
+                destinationTown={isOkada ? "Nsawam" : destinationTown}
+                destinationArea={destinationArea}
+              />
 
               {isOkada && displayedOkadaFare !== null && (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
