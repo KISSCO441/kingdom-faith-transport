@@ -253,7 +253,7 @@ if (
     const bookingData = {
       customer_name: customerName,
       customer_phone: customerPhone,
-      customer_email: paymentMethod === "paystack" ? customerEmail : null,
+      customer_email: customerEmail || null,
       payment_method: paymentMethod,
       vehicle_type: vehicle,
       ride_option: isOkada ? "KFM Okada" : "KFM Car",
@@ -647,26 +647,12 @@ if (
     </button>
   </div>
 
-  {paymentMethod === "paystack" && (
-    <div className="space-y-2">
-      <label
-        htmlFor="customer_email"
-        className="block text-sm font-medium"
-      >
-        Email for payment receipt
-      </label>
-
-      <input
-        id="customer_email"
-        name="customer_email"
-        type="email"
-        autoComplete="email"
-        required
-        className={fieldClass}
-        placeholder="you@example.com"
-      />
-    </div>
-  )}
+  <div className="space-y-2">
+    <label htmlFor="customer_email" className="block text-sm font-medium">
+      Email for receipt {paymentMethod === "paystack" ? "(required)" : "(optional)"}
+    </label>
+    <input id="customer_email" name="customer_email" type="email" autoComplete="email" required={paymentMethod === "paystack"} className={fieldClass} placeholder="you@example.com" />
+  </div>
 </div>
 
       <div className="space-y-2">
