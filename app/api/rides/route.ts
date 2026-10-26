@@ -187,19 +187,12 @@ export async function POST(request: Request) {
         ? customer_email.trim().toLowerCase()
         : "";
 
-    if (
-      paymentMethod === "paystack" &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        normalizedCustomerEmail
-      )
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Please provide a valid email address for online payment.",
-        },
-        { status: 400 }
-      );
+    if (normalizedCustomerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedCustomerEmail)) {
+      return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
+    }
+
+    if (paymentMethod === "paystack" && !normalizedCustomerEmail) {
+      return NextResponse.json({ error: "Please provide a valid email address for online payment." }, { status: 400 });
     }
 
     let fareEstimate: number | null = null;
@@ -328,10 +321,7 @@ export async function POST(request: Request) {
           ride_status: "requested",
           payment_status: "unpaid",
           payment_method: paymentMethod,
-          customer_email:
-            paymentMethod === "paystack"
-              ? normalizedCustomerEmail
-              : null,
+          customer_email: normalizedCustomerEmail || null,
           payment_reference: null,
           payment_paid_at: null,
           driver_id: matchedDriverId,
