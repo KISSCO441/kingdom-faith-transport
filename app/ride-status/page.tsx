@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Search,
   CheckCircle2,
@@ -22,6 +22,10 @@ type Ride = {
   destination_area: string
   ride_status: string
   fare_estimate: number | null
+  payment_method: string | null
+  payment_status: string | null
+  payment_reference: string | null
+  payment_paid_at: string | null
   created_at: string
 }
 
@@ -98,9 +102,10 @@ export default function RideStatusPage() {
   const [driver, setDriver] = useState<Driver | null>(null)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false)
 
-  async function checkRideStatus() {
-    const code = bookingCode.trim().toUpperCase()
+  async function checkRideStatus(codeInput?: string) {
+    const code = (codeInput || bookingCode).trim().toUpperCase()
 
     if (!code) {
       setError("Please enter your KFM booking number.")
@@ -138,6 +143,43 @@ export default function RideStatusPage() {
       )
     } finally {
       setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get("booking_code")
+    const reference = params.get("reference")
+    if (code) {
+      const normalizedCode = code.trim().toUpperCase()
+      setBookingCode(normalizedCode)
+      void (async () => {
+        if (reference) {
+          await fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`, { cache: "no-store" })
+        }
+        await checkRideStatus(normalizedCode)
+      })()
+    }
+  }, [])
+
+  async function startPaystackPayment() {
+    if (!ride) return
+    try {
+      setPaymentLoading(true)
+      setError("")
+      const response = await fetch("/api/rides/paystack/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_code: ride.booking_code }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.success || !data.authorization_url) {
+        throw new Error(data.error || "Unable to start Paystack payment.")
+      }
+      window.location.href = data.authorization_url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to start payment.")
+      setPaymentLoading(false)
     }
   }
 
@@ -427,9 +469,29 @@ export default function RideStatusPage() {
               )}
             </div>
 
-            <div className="text-center text-sm text-muted-foreground">
-              Keep your booking number for reference.
-            </div>
+            <section className="rounded-2xl border bg-card p-6 shadow-sm">
+              <h3 className="text-lg font-semibold">Payment & Receipt</h3>
+              <div className="mt-4 space-y-3 text-sm">
+                <div className="flex justify-between gap-4"><span className="text-muted-foreground">Payment method</span><span className="font-medium text-right">{ride.payment_method?.toLowerCase() === "cash" ? "Cash to Driver" : ride.payment_method?.toLowerCase() === "paystack" ? "Paystack" : "Not recorded"}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-muted-foreground">Payment status</span><span className="font-semibold capitalize">{ride.payment_status || "unpaid"}</span></div>
+                {ride.payment_status?.toLowerCase() === "paid" ? (
+                  <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-4 text-green-900">
+                    <p className="font-bold">KFM Transport Payment Receipt</p>
+                    <p className="mt-1 text-xs">Receipt number</p><p className="font-semibold">{ride.booking_code.replace(/^KFM-/i, "KFM-RCP-")}</p>
+                    <p className="mt-3"><strong>Amount paid:</strong> GH₵{Number(ride.fare_estimate || 0).toFixed(2)}</p>
+                    <p><strong>Method:</strong> {ride.payment_method?.toLowerCase() === "cash" ? "Cash to Driver — recorded at ride completion" : "Paystack"}</p>
+                    <p><strong>Date:</strong> {ride.payment_paid_at ? new Date(ride.payment_paid_at).toLocaleString("en-GH", { dateStyle: "medium", timeStyle: "short" }) : "Not recorded"}</p>
+                    {ride.payment_reference && <p><strong>Transaction reference:</strong> {ride.payment_reference}</p>}
+                    <Button className="mt-4" variant="outline" onClick={() => window.print()}>Print / Save Receipt</Button>
+                  </div>
+                ) : ride.ride_status?.toLowerCase() === "completed" && ride.payment_method?.toLowerCase() === "paystack" ? (
+                  <div className="mt-4"><p className="text-muted-foreground">Your fare is awaiting online payment.</p><Button className="mt-3 w-full" onClick={startPaystackPayment} disabled={paymentLoading}>{paymentLoading ? "Connecting to Paystack..." : "Pay Fare with Paystack"}</Button></div>
+                ) : ride.ride_status?.toLowerCase() === "completed" ? (
+                  <p className="text-muted-foreground">Your cash fare is recorded at ride completion.</p>
+                ) : <p className="text-muted-foreground">Your receipt will appear here when payment is recorded.</p>}
+              </div>
+            </section>
+            <div className="text-center text-sm text-muted-foreground">Keep your booking number for reference.</div>
           </div>
         )}
       </div>
