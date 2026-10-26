@@ -34,7 +34,7 @@ export async function GET(request: Request) {
         `?booking_code=eq.${encodeURIComponent(bookingCode)}` +
         `&select=id,booking_code,customer_name,vehicle_type,` +
         `pickup_town,pickup_area,destination_town,destination_area,` +
-        `ride_status,fare_estimate,driver_id,created_at`,
+        `ride_status,fare_estimate,driver_id,created_at,payment_method,payment_status,payment_reference,payment_paid_at`,
       {
         method: "GET",
         headers: {
@@ -108,6 +108,10 @@ export async function GET(request: Request) {
         destination_area: ride.destination_area,
         ride_status: ride.ride_status,
         fare_estimate: ride.fare_estimate,
+        payment_method: ride.payment_method,
+        payment_status: ride.payment_status,
+        payment_reference: ride.payment_reference,
+        payment_paid_at: ride.payment_paid_at,
         created_at: ride.created_at,
       },
       driver,
