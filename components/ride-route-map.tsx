@@ -136,8 +136,8 @@ export function RideRouteMap({
     if (!mapReady || !mapRef.current || !routeLayerRef.current || !markersLayerRef.current) return
 
     let cancelled = false
-    const pickupQuery = `${pickupArea}, ${pickupTown}, Eastern Region, Ghana`
-    const destinationQuery = `${destinationArea}, ${destinationTown}, Eastern Region, Ghana`
+    const pickupQuery = `${pickupArea}, ${pickupTown}, Ghana`
+    const destinationQuery = `${destinationArea}, ${destinationTown}, Ghana`
 
     setLoading(true)
     setSummary(null)
