@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import {
   UserRound,
   CreditCard,
@@ -51,7 +51,7 @@ export default function AccountPage() {
     }
   }, [])
 
-  async function requestSignInLink(event: React.FormEvent<HTMLFormElement>) {
+  async function requestSignInLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError("")
     setMessage("")
