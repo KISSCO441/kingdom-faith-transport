@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server"
-import { sendRidePaymentReceiptEmail } from "@/lib/ride-receipt-email"
 
 const PAYSTACK_API_URL = "https://api.paystack.co"
 
@@ -120,7 +119,6 @@ export async function GET(request: Request) {
         if (!update.ok || !Array.isArray(updatedRows) || updatedRows.length === 0) {
           return NextResponse.json({ status: false, message: "Payment was verified but the ride record could not be updated. Please contact KFM." }, { status: 500 });
         }
-        await sendRidePaymentReceiptEmail({ ...ride, payment_method: "paystack", payment_reference: transaction.reference, payment_paid_at: paidAt });
       }
     }
 
