@@ -10,6 +10,7 @@ import {
   Navigation,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { CustomerBottomNav } from "@/components/customer-bottom-nav"
 
 type Ride = {
   id: string
@@ -188,7 +189,7 @@ export default function RideStatusPage() {
     : -1
 
   return (
-    <main className="min-h-screen bg-muted/40 px-4 py-12">
+    <main className="min-h-screen bg-muted/40 px-4 py-12 pb-28">
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">
@@ -495,6 +496,7 @@ export default function RideStatusPage() {
           </div>
         )}
       </div>
+      <CustomerBottomNav />
     </main>
   )
 }
