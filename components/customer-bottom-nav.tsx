@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 const tabs = [
   { label: "Account", href: "/account", icon: UserRound },
   { label: "Home", href: "/#book", icon: House },
-  { label: "Activity", href: "/ride-status", icon: History },
+  { label: "Activity", href: "/activity", icon: History },
 ]
 
 export function CustomerBottomNav() {
@@ -24,7 +24,7 @@ export function CustomerBottomNav() {
             label === "Home"
               ? pathname === "/"
               : label === "Activity"
-                ? pathname === "/ride-status"
+                ? pathname === "/activity" || pathname === "/ride-status"
                 : pathname === "/account"
 
           return (
