@@ -9,10 +9,11 @@ import { HowItWorks } from "@/components/how-it-works"
 import { BookingForm } from "@/components/booking-form"
 import { FAQ } from "@/components/faq"
 import { SiteFooter } from "@/components/site-footer"
+import { CustomerBottomNav } from "@/components/customer-bottom-nav"
 
 export default function Page() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background pb-20 text-foreground">
       <SiteHeader />
 
       <main>
@@ -127,6 +128,7 @@ export default function Page() {
       </main>
 
       <SiteFooter />
+      <CustomerBottomNav />
     </div>
   )
 }
