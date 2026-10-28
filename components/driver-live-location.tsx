@@ -9,12 +9,12 @@ if (!supabaseClient) {
 
 const supabase = supabaseClient;
 
-export function DriverLiveLocation({ enabled }: { enabled: boolean }) {
+export function DriverLiveLocation({ enabled, rideId }: { enabled: boolean; rideId: string | null }) {
   const lastSentAt = useRef(0);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || !rideId) {
       setMessage("");
       return;
     }
@@ -45,7 +45,7 @@ export function DriverLiveLocation({ enabled }: { enabled: boolean }) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ latitude, longitude, accuracy_m: accuracy }),
+          body: JSON.stringify({ ride_id: rideId, latitude, longitude, accuracy_m: accuracy }),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Location update failed.");
@@ -79,7 +79,7 @@ export function DriverLiveLocation({ enabled }: { enabled: boolean }) {
       cancelled = true;
       if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
     };
-  }, [enabled]);
+  }, [enabled, rideId]);
 
   if (!enabled || !message) return null;
 
