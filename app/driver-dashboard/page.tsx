@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { supabase as supabaseClient } from "@/lib/supabase"
+import { DriverLiveLocation } from "@/components/driver-live-location"
 
 if (!supabaseClient) {
   throw new Error("Supabase client is not configured.")
@@ -503,6 +504,8 @@ const response = await fetch(
             {error}
           </div>
         )}
+
+        <DriverLiveLocation enabled={isVerified && rideRequests.some((ride) => ["accepted", "arrived", "in_progress"].includes(String(ride.ride_status || "").toLowerCase()))} />
 
         {/* Profile + Verification */}
         <div className="grid gap-6 md:grid-cols-2">
