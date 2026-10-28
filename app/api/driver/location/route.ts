@@ -101,6 +101,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Live location is available only during an active assigned ride." }, { status: 403 });
     }
 
+    const activeRideId = activeRides[0].id;
+
     const saveResponse = await fetch(
       `${supabaseUrl}/rest/v1/driver_locations?on_conflict=driver_id`,
       {
@@ -108,6 +110,7 @@ export async function POST(request: Request) {
         headers: { ...headers, Prefer: "resolution=merge-duplicates,return=minimal" },
         body: JSON.stringify({
           driver_id: driver.id,
+          ride_id: activeRideId,
           latitude,
           longitude,
           accuracy_m: accuracy,
