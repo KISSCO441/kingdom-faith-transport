@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
 function normalizePhone(value: unknown) {
-  return String(value ?? "").replace(/\D/g, "");
+  const digits = String(value ?? "").replace(/\D/g, "");
+  // Treat Ghana local format (0XXXXXXXXX) and international format (+233XXXXXXXXX) alike.
+  if (digits.startsWith("233") && digits.length === 12) {
+    return `0${digits.slice(3)}`;
+  }
+  return digits;
 }
 
 export async function GET(request: Request) {
