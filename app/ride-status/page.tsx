@@ -126,12 +126,12 @@ export default function RideStatusPage() {
     }
 
     try {
-      const response = await fetch(
-        `/api/rides/status?booking_code=${encodeURIComponent(code)}&phone=${encodeURIComponent(phone)}`,
-        {
-          cache: "no-store",
-        },
-      )
+      const response = await fetch("/api/rides/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_code: code, phone }),
+        cache: "no-store",
+      })
 
       const data = await response.json()
 
