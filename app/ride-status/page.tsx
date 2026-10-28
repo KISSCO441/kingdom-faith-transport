@@ -117,7 +117,7 @@ export default function RideStatusPage() {
       return
     }
 
-    setLoading(true)
+    if (!options?.preserveCurrent) setLoading(true)
     setError("")
     if (!options?.preserveCurrent) {
       setRide(null)
@@ -151,7 +151,7 @@ export default function RideStatusPage() {
           : "Unable to check your ride status.",
       )
     } finally {
-      setLoading(false)
+      if (!options?.preserveCurrent) setLoading(false)
     }
   }
 
