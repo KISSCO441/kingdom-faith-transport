@@ -505,7 +505,7 @@ const response = await fetch(
           </div>
         )}
 
-        <DriverLiveLocation enabled={isVerified && rideRequests.some((ride) => ["accepted", "arrived", "in_progress"].includes(String(ride.ride_status || "").toLowerCase()))} />
+        <DriverLiveLocation enabled={isVerified && rideRequests.some((ride) => ["accepted", "arrived", "in_progress"].includes(String(ride.ride_status || "").toLowerCase()))} rideId={rideRequests.find((ride) => ["accepted", "arrived", "in_progress"].includes(String(ride.ride_status || "").toLowerCase()))?.id ?? null} />
 
         {/* Profile + Verification */}
         <div className="grid gap-6 md:grid-cols-2">
