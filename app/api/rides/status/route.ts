@@ -72,7 +72,7 @@ export async function GET(request: Request) {
 
       if (["accepted", "arrived", "in_progress"].includes(String(ride.ride_status || "").toLowerCase())) {
         const locationResponse = await fetch(
-          `${supabaseUrl}/rest/v1/driver_locations?driver_id=eq.${encodeURIComponent(ride.driver_id)}&select=latitude,longitude,accuracy_m,updated_at&limit=1`,
+          `${supabaseUrl}/rest/v1/driver_locations?driver_id=eq.${encodeURIComponent(ride.driver_id)}&ride_id=eq.${encodeURIComponent(ride.id)}&select=latitude,longitude,accuracy_m,updated_at&limit=1`,
           { headers, cache: "no-store" },
         );
 
