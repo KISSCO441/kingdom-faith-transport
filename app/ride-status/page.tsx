@@ -36,6 +36,13 @@ type Driver = {
   photo_url: string | null
 }
 
+type DriverLocation = {
+  latitude: number
+  longitude: number
+  accuracy_m: number | null
+  updated_at: string
+}
+
 const statusSteps = [
   {
     key: "requested",
@@ -94,27 +101,33 @@ function getStatusMessage(status: string) {
 
 export default function RideStatusPage() {
   const [bookingCode, setBookingCode] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
   const [ride, setRide] = useState<Ride | null>(null)
   const [driver, setDriver] = useState<Driver | null>(null)
+  const [location, setLocation] = useState<DriverLocation | null>(null)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  async function checkRideStatus() {
+  async function checkRideStatus(options?: { preserveCurrent?: boolean }) {
     const code = bookingCode.trim().toUpperCase()
+    const phone = customerPhone.trim()
 
-    if (!code) {
-      setError("Please enter your KFM booking number.")
+    if (!code || !phone) {
+      setError("Please enter your KFM booking number and the phone number used when booking.")
       return
     }
 
     setLoading(true)
     setError("")
-    setRide(null)
-    setDriver(null)
+    if (!options?.preserveCurrent) {
+      setRide(null)
+      setDriver(null)
+      setLocation(null)
+    }
 
     try {
       const response = await fetch(
-        `/api/rides/status?booking_code=${encodeURIComponent(code)}`,
+        `/api/rides/status?booking_code=${encodeURIComponent(code)}&phone=${encodeURIComponent(phone)}`,
         {
           cache: "no-store",
         },
@@ -130,6 +143,7 @@ export default function RideStatusPage() {
 
       setRide(data.ride || null)
       setDriver(data.driver || null)
+      setLocation(data.location || null)
     } catch (err) {
       setError(
         err instanceof Error
@@ -140,6 +154,14 @@ export default function RideStatusPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!ride || ["completed", "cancelled"].includes(String(ride.ride_status || "").toLowerCase())) return
+    const timer = window.setInterval(() => {
+      void checkRideStatus({ preserveCurrent: true })
+    }, 10000)
+    return () => window.clearInterval(timer)
+  }, [ride?.id, ride?.ride_status, bookingCode, customerPhone])
 
   const statusIndex = ride
     ? getStatusIndex(ride.ride_status)
@@ -171,7 +193,7 @@ export default function RideStatusPage() {
             KFM Booking Number
           </label>
 
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-2 flex flex-col gap-3">
             <input
               id="bookingCode"
               value={bookingCode}
@@ -187,10 +209,26 @@ export default function RideStatusPage() {
               className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
             />
 
+            <label htmlFor="customerPhone" className="text-sm font-medium">
+              Phone Number Used When Booking
+            </label>
+            <input
+              id="customerPhone"
+              type="tel"
+              autoComplete="tel"
+              value={customerPhone}
+              onChange={(event) => setCustomerPhone(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") checkRideStatus()
+              }}
+              placeholder="Enter your booking phone number"
+              className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+            />
+
             <Button
-              onClick={checkRideStatus}
+              onClick={() => checkRideStatus()}
               disabled={loading}
-              className="sm:min-w-36"
+              className="w-full sm:w-auto sm:min-w-36"
             >
               <Search className="mr-2 h-4 w-4" />
               {loading ? "Checking..." : "Check Ride"}
@@ -426,6 +464,49 @@ export default function RideStatusPage() {
                 </div>
               )}
             </div>
+
+            {["accepted", "arrived", "in_progress"].includes(String(ride.ride_status || "").toLowerCase()) && (
+              <section className="rounded-2xl border bg-card p-6 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <Navigation className="h-5 w-5 text-primary" />
+                  <div>
+                    <h3 className="font-semibold">Live Driver Location</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {location
+                        ? `Last updated ${new Date(location.updated_at).toLocaleTimeString()}`
+                        : "Waiting for your driver’s GPS location. The driver must allow location access."}
+                    </p>
+                  </div>
+                </div>
+                {location ? (
+                  <div className="mt-4 overflow-hidden rounded-xl border">
+                    <iframe
+                      title="Live KFM driver location map"
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude - 0.006}%2C${location.latitude - 0.006}%2C${location.longitude + 0.006}%2C${location.latitude + 0.006}&layer=mapnik&marker=${location.latitude}%2C${location.longitude}`}
+                      className="h-80 w-full"
+                      loading="lazy"
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
+                      <span className="text-muted-foreground">
+                        {location.accuracy_m != null ? `GPS accuracy about ${Math.round(location.accuracy_m)} m` : "GPS location received"}
+                      </span>
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${location.latitude}&mlon=${location.longitude}#map=17/${location.latitude}/${location.longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-primary underline underline-offset-4"
+                      >
+                        Open full map
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+                    This map will appear when your driver’s device shares a recent GPS position. Location sharing is limited to the active ride.
+                  </p>
+                )}
+              </section>
+            )}
 
             <div className="text-center text-sm text-muted-foreground">
               Keep your booking number for reference.
