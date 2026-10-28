@@ -9,11 +9,11 @@ function normalizePhone(value: unknown) {
   return digits;
 }
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const bookingCode = searchParams.get("booking_code")?.trim().toUpperCase();
-    const suppliedPhone = normalizePhone(searchParams.get("phone"));
+    const body = await request.json();
+    const bookingCode = String(body?.booking_code ?? "").trim().toUpperCase();
+    const suppliedPhone = normalizePhone(body?.phone);
 
     if (!bookingCode || !suppliedPhone) {
       return NextResponse.json(
