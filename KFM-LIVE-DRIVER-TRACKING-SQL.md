@@ -4,6 +4,7 @@
 
 create table if not exists public.driver_locations (
   driver_id uuid primary key references public.drivers(id) on delete cascade,
+  ride_id uuid not null references public.ride_requests(id) on delete cascade,
   latitude double precision not null check (latitude between -90 and 90),
   longitude double precision not null check (longitude between -180 and 180),
   accuracy_m double precision,
