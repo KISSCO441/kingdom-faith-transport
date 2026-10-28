@@ -41,11 +41,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    const rideId = String(body?.ride_id ?? "").trim();
     const latitude = Number(body?.latitude);
     const longitude = Number(body?.longitude);
     const accuracy = body?.accuracy_m == null ? null : Number(body.accuracy_m);
 
     if (
+      !rideId ||
       !Number.isFinite(latitude) ||
       !Number.isFinite(longitude) ||
       latitude < -90 ||
@@ -87,7 +89,7 @@ export async function POST(request: Request) {
     }
 
     const activeRideResponse = await fetch(
-      `${supabaseUrl}/rest/v1/ride_requests?driver_id=eq.${encodeURIComponent(driver.id)}&ride_status=in.(${activeStatuses.join(",")})&select=id&limit=1`,
+      `${supabaseUrl}/rest/v1/ride_requests?id=eq.${encodeURIComponent(rideId)}&driver_id=eq.${encodeURIComponent(driver.id)}&ride_status=in.(${activeStatuses.join(",")})&select=id&limit=1`,
       { headers, cache: "no-store" },
     );
 
