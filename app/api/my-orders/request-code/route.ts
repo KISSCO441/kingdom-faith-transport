@@ -10,6 +10,14 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const resendApiKey = process.env.RESEND_API_KEY;
 const resendFromEmail = process.env.RESEND_FROM_EMAIL;
 
+// Customer emails remain disabled unless explicitly enabled.
+// Test mode can send only to the single configured test inbox.
+const emailTestMode = process.env.KFM_MARKETPLACE_EMAIL_TEST_MODE === "true";
+const customerEmailsEnabled =
+  process.env.KFM_MARKETPLACE_CUSTOMER_EMAILS_ENABLED === "true";
+const testRecipient =
+  process.env.KFM_MARKETPLACE_EMAIL_TEST_TO?.trim().toLowerCase() || "";
+
 if (!supabaseUrl || !serviceKey) {
   throw new Error("Missing Supabase environment variables");
 }
@@ -64,24 +72,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: genericMessage });
     }
 
-    // Do not reveal whether the email has existing orders.
-    const { data: existingOrder, error: orderError } = await supabase
-      .from("market_orders")
-      .select("id")
-      .eq("customer_email", email)
-      .limit(1)
-      .maybeSingle();
-
-    if (orderError) {
-      console.error("Unable to check customer orders.");
+    // Enforce the send gate before creating or sending a code.
+    // Test mode is restricted to one inbox controlled by the project owner.
+    if (emailTestMode) {
+      if (!testRecipient || email !== testRecipient) {
+        return NextResponse.json(
+          { error: "Email verification is in test mode and only the configured test address can receive a code." },
+          { status: 403 },
+        );
+      }
+    } else if (!customerEmailsEnabled) {
       return NextResponse.json(
-        { error: "Unable to process your request right now." },
-        { status: 500 },
+        { error: "Email verification is temporarily unavailable." },
+        { status: 503 },
       );
     }
 
-    if (!existingOrder) {
-      return NextResponse.json({ message: genericMessage });
+    // In test mode, allow the configured test inbox even if it has no orders.
+    // In customer mode, do not reveal whether the email has existing orders.
+    if (!emailTestMode) {
+      const { data: existingOrder, error: orderError } = await supabase
+        .from("market_orders")
+        .select("id")
+        .eq("customer_email", email)
+        .limit(1)
+        .maybeSingle();
+
+      if (orderError) {
+        console.error("Unable to check customer orders.");
+        return NextResponse.json(
+          { error: "Unable to process your request right now." },
+          { status: 500 },
+        );
+      }
+
+      if (!existingOrder) {
+        return NextResponse.json({ message: genericMessage });
+      }
     }
 
     // Do not store or log the plain-text verification code.
