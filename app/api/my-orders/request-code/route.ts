@@ -51,6 +51,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // Enforce the send gate before creating or sending a code.
+    // Test mode is restricted to one inbox controlled by the project owner.
+    if (emailTestMode) {
+      if (!testRecipient || email !== testRecipient) {
+        return NextResponse.json(
+          { error: "Email verification is in test mode and only the configured test address can receive a code." },
+          { status: 403 },
+        );
+      }
+    } else if (!customerEmailsEnabled) {
+      return NextResponse.json(
+        { error: "Email verification is temporarily unavailable." },
+        { status: 503 },
+      );
+    }
+
     // Limit requests for each email address.
     const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
@@ -70,22 +86,6 @@ export async function POST(request: Request) {
 
     if ((count ?? 0) >= 3) {
       return NextResponse.json({ message: genericMessage });
-    }
-
-    // Enforce the send gate before creating or sending a code.
-    // Test mode is restricted to one inbox controlled by the project owner.
-    if (emailTestMode) {
-      if (!testRecipient || email !== testRecipient) {
-        return NextResponse.json(
-          { error: "Email verification is in test mode and only the configured test address can receive a code." },
-          { status: 403 },
-        );
-      }
-    } else if (!customerEmailsEnabled) {
-      return NextResponse.json(
-        { error: "Email verification is temporarily unavailable." },
-        { status: 503 },
-      );
     }
 
     // In test mode, allow the configured test inbox even if it has no orders.
