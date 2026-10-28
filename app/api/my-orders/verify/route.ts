@@ -55,6 +55,28 @@ export async function POST(request: Request) {
       );
     }
 
+    // Apply the same send gate to verification so old or unexpected codes
+    // cannot be used while customer email verification is disabled.
+    const emailTestMode = process.env.KFM_MARKETPLACE_EMAIL_TEST_MODE === "true";
+    const customerEmailsEnabled =
+      process.env.KFM_MARKETPLACE_CUSTOMER_EMAILS_ENABLED === "true";
+    const testRecipient =
+      process.env.KFM_MARKETPLACE_EMAIL_TEST_TO?.trim().toLowerCase() || "";
+
+    if (emailTestMode) {
+      if (!testRecipient || email !== testRecipient) {
+        return NextResponse.json(
+          { error: "Email verification is in test mode and only the configured test address can be verified." },
+          { status: 403 }
+        );
+      }
+    } else if (!customerEmailsEnabled) {
+      return NextResponse.json(
+        { error: "Email verification is temporarily unavailable." },
+        { status: 503 }
+      );
+    }
+
     const { data: verification, error: lookupError } =
       await supabase
         .from("market_order_verification_codes")
