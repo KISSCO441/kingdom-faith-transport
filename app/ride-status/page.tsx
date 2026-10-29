@@ -180,8 +180,7 @@ export default function RideStatusPage() {
           </h1>
 
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Enter your KFM booking number to see your ride
-            status and driver information.
+            Enter your KFM booking number and the phone number used when booking to securely check your ride status and driver information.
           </p>
         </div>
 
@@ -206,6 +205,8 @@ export default function RideStatusPage() {
                 }
               }}
               placeholder="KFM-243731"
+              required
+              autoComplete="off"
               className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
             />
 
@@ -222,6 +223,7 @@ export default function RideStatusPage() {
                 if (event.key === "Enter") checkRideStatus()
               }}
               placeholder="Enter your booking phone number"
+              required
               className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
             />
 
@@ -371,7 +373,7 @@ export default function RideStatusPage() {
                 </div>
               </div>
 
-              {driver && ride.ride_status !== "requested" ? (
+              {driver ? (
                 <div className="rounded-2xl border bg-card p-6 shadow-sm">
                   <div className="flex items-center gap-3">
                     <Navigation className="h-5 w-5 text-primary" />
@@ -399,6 +401,11 @@ export default function RideStatusPage() {
     <p className="mt-1 text-lg font-semibold">
       {driver.full_name || "KFM Driver"}
     </p>
+    {ride.ride_status === "requested" && (
+      <p className="mt-2 text-sm text-muted-foreground">
+        Your driver is assigned to this booking. The ride is waiting for the driver to accept.
+      </p>
+    )}
   </div>
 
                     {driver.vehicle_name && (
