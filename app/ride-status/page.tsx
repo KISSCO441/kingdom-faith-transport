@@ -107,6 +107,8 @@ export default function RideStatusPage() {
   const [location, setLocation] = useState<DriverLocation | null>(null)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelFeedback, setCancelFeedback] = useState("")
 
   async function checkRideStatus(options?: { preserveCurrent?: boolean }) {
     const code = bookingCode.trim().toUpperCase()
@@ -152,6 +154,44 @@ export default function RideStatusPage() {
       )
     } finally {
       if (!options?.preserveCurrent) setLoading(false)
+    }
+  }
+
+  async function cancelRide() {
+    if (!ride || !["requested", "accepted"].includes(ride.ride_status)) return
+
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this KFM ride? This cannot be undone."
+    )
+    if (!confirmed) return
+
+    setCancelling(true)
+    setCancelFeedback("")
+    setError("")
+
+    try {
+      const response = await fetch("/api/rides/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          booking_code: bookingCode.trim().toUpperCase(),
+          phone: customerPhone.trim(),
+        }),
+        cache: "no-store",
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to cancel this ride.")
+      }
+
+      setRide((current) => current ? { ...current, ride_status: "cancelled" } : current)
+      setLocation(null)
+      setCancelFeedback("Your ride has been cancelled.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to cancel this ride.")
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -266,6 +306,27 @@ export default function RideStatusPage() {
               <p className="mt-5 text-sm text-muted-foreground">
                 {getStatusMessage(ride.ride_status)}
               </p>
+
+              {cancelFeedback && (
+                <p role="status" className="mt-3 rounded-lg border border-green-600/30 bg-green-600/5 px-4 py-3 text-sm">
+                  {cancelFeedback}
+                </p>
+              )}
+
+              {["requested", "accepted"].includes(ride.ride_status) && (
+                <div className="mt-5">
+                  <Button
+                    variant="destructive"
+                    onClick={cancelRide}
+                    disabled={cancelling}
+                  >
+                    {cancelling ? "Cancelling ride..." : "Cancel Ride"}
+                  </Button>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Cancellation is available before the driver arrives. Once the ride is underway, please contact KFM support.
+                  </p>
+                </div>
+              )}
 
               {ride.ride_status !== "cancelled" && (
                 <div className="mt-8">
