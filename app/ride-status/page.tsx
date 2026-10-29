@@ -278,20 +278,28 @@ export default function RideStatusPage() {
                       return (
                         <div
                           key={step.key}
-                          className="flex items-start gap-4"
+                          className="relative flex items-start gap-4"
                         >
+                          {index < statusSteps.length - 1 && (
+                            <span
+                              aria-hidden="true"
+                              className={`absolute left-[17px] top-9 h-7 w-0.5 ${
+                                index < statusIndex ? "bg-primary" : "bg-border"
+                              }`}
+                            />
+                          )}
                           <div
-                            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                            className={`relative z-10 mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
                               completed
                                 ? "bg-primary text-primary-foreground"
                                 : "border border-border bg-background text-muted-foreground"
                             }`}
                           >
-                        {completed ? (
-  <CheckCircle2 className="h-5 w-5" />
-) : (
-  <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
-)}
+                            {completed ? (
+                              <CheckCircle2 className="h-5 w-5" />
+                            ) : (
+                              <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
+                            )}
                           </div>
 
                           <div>
@@ -472,48 +480,72 @@ export default function RideStatusPage() {
               )}
             </div>
 
-            {["accepted", "arrived", "in_progress"].includes(String(ride.ride_status || "").toLowerCase()) && (
-              <section className="rounded-2xl border bg-card p-6 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <Navigation className="h-5 w-5 text-primary" />
-                  <div>
-                    <h3 className="font-semibold">Live Driver Location</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {location
-                        ? `Last updated ${new Date(location.updated_at).toLocaleTimeString()}`
-                        : "Waiting for your driver’s GPS location. The driver must allow location access."}
-                    </p>
+            <section className="rounded-2xl border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <Navigation className="h-5 w-5 text-primary" />
+                <div>
+                  <h3 className="font-semibold">
+                    {location ? "Live Driver Location" : "Trip Map & Route"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {location
+                      ? `Driver GPS last updated ${new Date(location.updated_at).toLocaleTimeString()}`
+                      : "Map and route preview. Live driver GPS appears when the ride is active and a recent location is available."}
+                  </p>
+                </div>
+              </div>
+
+              {location ? (
+                <div className="mt-4 overflow-hidden rounded-xl border">
+                  <iframe
+                    title="Live KFM driver location map"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude - 0.006}%2C${location.latitude - 0.006}%2C${location.longitude + 0.006}%2C${location.latitude + 0.006}&layer=mapnik&marker=${location.latitude}%2C${location.longitude}`}
+                    className="h-80 w-full"
+                    loading="lazy"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
+                    <span className="text-muted-foreground">
+                      {location.accuracy_m != null ? `GPS accuracy about ${Math.round(location.accuracy_m)} m` : "GPS location received"}
+                    </span>
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${location.latitude}&mlon=${location.longitude}#map=17/${location.latitude}/${location.longitude}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-primary underline underline-offset-4"
+                    >
+                      Open full live map
+                    </a>
                   </div>
                 </div>
-                {location ? (
+              ) : (
+                <>
                   <div className="mt-4 overflow-hidden rounded-xl border">
                     <iframe
-                      title="Live KFM driver location map"
-                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude - 0.006}%2C${location.latitude - 0.006}%2C${location.longitude + 0.006}%2C${location.latitude + 0.006}&layer=mapnik&marker=${location.latitude}%2C${location.longitude}`}
+                      title="KFM trip route preview"
+                      src={`https://maps.google.com/maps?saddr=${encodeURIComponent(`${ride.pickup_town}, ${ride.pickup_area}`)}&daddr=${encodeURIComponent(`${ride.destination_town}, ${ride.destination_area}`)}&output=embed`}
                       className="h-80 w-full"
                       loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
                     />
-                    <div className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
-                      <span className="text-muted-foreground">
-                        {location.accuracy_m != null ? `GPS accuracy about ${Math.round(location.accuracy_m)} m` : "GPS location received"}
-                      </span>
-                      <a
-                        href={`https://www.openstreetmap.org/?mlat=${location.latitude}&mlon=${location.longitude}#map=17/${location.latitude}/${location.longitude}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium text-primary underline underline-offset-4"
-                      >
-                        Open full map
-                      </a>
-                    </div>
                   </div>
-                ) : (
-                  <p className="mt-4 rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
-                    This map will appear when your driver’s device shares a recent GPS position. Location sharing is limited to the active ride.
-                  </p>
-                )}
-              </section>
-            )}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-muted-foreground">
+                      {["accepted", "arrived", "in_progress"].includes(String(ride.ride_status || "").toLowerCase())
+                        ? "Waiting for a recent GPS position from your driver. This is the route preview, not live tracking."
+                        : "This is a route preview. Live driver tracking starts when the ride is active and GPS is available."}
+                    </p>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${ride.pickup_town}, ${ride.pickup_area}`)}&destination=${encodeURIComponent(`${ride.destination_town}, ${ride.destination_area}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 font-medium text-primary underline underline-offset-4"
+                    >
+                      Open route in Maps
+                    </a>
+                  </div>
+                </>
+              )}
+            </section>
 
             <div className="text-center text-sm text-muted-foreground">
               Keep your booking number for reference.
