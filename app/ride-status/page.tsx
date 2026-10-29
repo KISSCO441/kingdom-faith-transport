@@ -522,7 +522,7 @@ export default function RideStatusPage() {
                   <div className="mt-4 overflow-hidden rounded-xl border">
                     <iframe
                       title="KFM trip route preview"
-                      src={`https://maps.google.com/maps?saddr=${encodeURIComponent(`${ride.pickup_town}, ${ride.pickup_area}`)}&daddr=${encodeURIComponent(`${ride.destination_town}, ${ride.destination_area}`)}&output=embed`}
+                      src={`https://www.google.com/maps?output=embed&saddr=${encodeURIComponent(`${ride.pickup_town}, ${ride.pickup_area}`)}&daddr=${encodeURIComponent(`${ride.destination_town}, ${ride.destination_area}`)}`}
                       className="h-80 w-full"
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
