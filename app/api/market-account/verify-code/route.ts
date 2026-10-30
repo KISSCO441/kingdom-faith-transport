@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const { data: verification, error } = await supabase
       .from("market_account_verification_codes")
-      .select("id, code_hash, expires_at, attempts")
+      .select("id, code_hash, expires_at, attempts, requested_account_type, requested_display_name, requested_phone")
       .eq("email", email)
       .is("consumed_at", null)
       .order("created_at", { ascending: false })
@@ -64,13 +64,39 @@ export async function POST(request: Request) {
       .maybeSingle();
     if (consumeError || !consumed) return NextResponse.json({ error: "This code has already been used." }, { status: 400 });
 
-    const { data: account, error: accountError } = await supabase
+    const { data: existingAccount, error: lookupAccountError } = await supabase
       .from("market_accounts")
-      .update({ email_verified_at: now, updated_at: now })
-      .eq("email", email)
-      .select("id, account_type, display_name, email")
-      .single();
-    if (accountError || !account) return NextResponse.json({ error: "Seller account could not be found." }, { status: 404 });
+      .select("id, account_type")
+      .ilike("email", email)
+      .maybeSingle();
+    if (lookupAccountError) return NextResponse.json({ error: "Seller account could not be loaded." }, { status: 500 });
+
+    const requestedType = verification.requested_account_type;
+    const wantsVendor = requestedType === "vendor" || requestedType === "vendor_and_seller" ||
+      existingAccount?.account_type === "vendor" || existingAccount?.account_type === "vendor_and_seller";
+    const wantsClassified = requestedType === "classified_seller" || requestedType === "vendor_and_seller" ||
+      existingAccount?.account_type === "classified_seller" || existingAccount?.account_type === "vendor_and_seller";
+    const accountType = wantsVendor && wantsClassified
+      ? "vendor_and_seller"
+      : wantsVendor ? "vendor" : "classified_seller";
+
+    const accountPayload = {
+      email,
+      account_type: accountType,
+      display_name: verification.requested_display_name,
+      phone: verification.requested_phone,
+      email_verified_at: now,
+      updated_at: now,
+    };
+
+    const accountResult = existingAccount
+      ? await supabase.from("market_accounts").update(accountPayload).eq("id", existingAccount.id)
+          .select("id, account_type, display_name, email").single()
+      : await supabase.from("market_accounts").insert(accountPayload)
+          .select("id, account_type, display_name, email").single();
+
+    const account = accountResult.data;
+    if (accountResult.error || !account) return NextResponse.json({ error: "Seller account could not be created." }, { status: 500 });
 
     const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
