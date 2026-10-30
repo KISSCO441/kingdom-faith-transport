@@ -29,6 +29,7 @@ export default async function ClassifiedAdvertPage({ params }: Props) {
       <SiteHeader />
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <a href="/classifieds" className="text-sm font-semibold text-primary hover:underline">← Back to KFM Classifieds</a>
+        <div className="mt-5"><BuyerSafetyNotice /></div>
         <article className="mt-5 overflow-hidden rounded-2xl border bg-card">
           {advert.image_urls?.length ? (
             <div className="grid gap-2 p-3 sm:grid-cols-2">
@@ -51,7 +52,6 @@ export default async function ClassifiedAdvertPage({ params }: Props) {
             </div>
           </div>
         </article>
-        <div className="mt-6"><BuyerSafetyNotice /></div>
         <div className="mt-6"><ReportAdvertForm advertId={advert.id} /></div>
       </main>
       <SiteFooter />
