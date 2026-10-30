@@ -6,6 +6,7 @@ import {
   CarFront,
   Users,
   ShoppingBag,
+  Store,
   Wallet,
   UserRoundSearch,
   ArrowRight,
@@ -36,6 +37,12 @@ const sections = [
     description: "Open the existing KFM Marketplace order-management page.",
     href: "/admin/market-orders",
     icon: ShoppingBag,
+  },
+  {
+    title: "Marketplace Review",
+    description: "Approve vendor applications and review product submissions before they can be published.",
+    href: "/admin/marketplace-review",
+    icon: Store,
   },
   {
     title: "Ride Payments",
