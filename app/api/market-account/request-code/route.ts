@@ -71,10 +71,13 @@ export async function POST(request: Request) {
       .maybeSingle();
     if (accountLookupError) return NextResponse.json({ error: "Unable to access seller account." }, { status: 500 });
 
-    const types = new Set([accountType, existing?.account_type]);
-    const mergedType = types.has("vendor") && types.has("classified_seller")
+    const wantsVendor = accountType === "vendor" || accountType === "vendor_and_seller" ||
+      existing?.account_type === "vendor" || existing?.account_type === "vendor_and_seller";
+    const wantsClassified = accountType === "classified_seller" || accountType === "vendor_and_seller" ||
+      existing?.account_type === "classified_seller" || existing?.account_type === "vendor_and_seller";
+    const mergedType = wantsVendor && wantsClassified
       ? "vendor_and_seller"
-      : accountType;
+      : wantsVendor ? "vendor" : "classified_seller";
 
     let accountId = existing?.id;
     if (existing) {
