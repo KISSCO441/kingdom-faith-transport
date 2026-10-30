@@ -5,14 +5,14 @@ import { Car, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const navLinks = [
-  { label: "HOME", href: "#" },
-  { label: "RIDE", href: "#rides" },
+  { label: "HOME", href: "/" },
+  { label: "RIDE", href: "/#rides" },
   { label: "TRACK RIDE", href: "/ride-status" },
   { label: "KFM MARKET", href: "/market" },
   { label: "BECOME A DRIVER", href: "/driver-registration" },
-  { label: "ABOUT", href: "#features" },
+  { label: "ABOUT", href: "/#features" },
   { label: "DRIVER PORTAL", href: "/driver-dashboard" },
-  { label: "CONTACT", href: "#contact" },
+  { label: "CONTACT", href: "/#contact" },
 ]
 
 export function SiteHeader() {
@@ -23,7 +23,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* KFM Brand */}
         <a
-          href="#"
+          href="/"
           className="flex shrink-0 items-center gap-2"
           onClick={() => setMobileMenuOpen(false)}
         >
@@ -58,7 +58,7 @@ export function SiteHeader() {
         {/* Desktop Book a Ride */}
         <div className="hidden items-center lg:flex">
           <Button asChild size="sm" className="font-bold tracking-wide">
-            <a href="#book">BOOK A RIDE</a>
+            <a href="/#book">BOOK A RIDE</a>
           </Button>
         </div>
 
