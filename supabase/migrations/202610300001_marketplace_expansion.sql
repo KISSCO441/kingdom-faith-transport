@@ -23,6 +23,9 @@ create table if not exists public.market_account_verification_codes (
   code_hash text not null,
   expires_at timestamptz not null,
   attempts integer not null default 0 check (attempts between 0 and 5),
+  requested_account_type text not null check (requested_account_type in ('vendor', 'classified_seller', 'vendor_and_seller')),
+  requested_display_name text,
+  requested_phone text,
   consumed_at timestamptz,
   created_at timestamptz not null default now()
 );
