@@ -64,6 +64,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: genericMessage });
     }
 
+    // Keep real customer email delivery disabled until the Resend domain is verified
+    // and KFM explicitly enables customer emails.
+    if (
+      process.env.RESEND_DOMAIN_VERIFIED !== "true" ||
+      process.env.KFM_MARKETPLACE_CUSTOMER_EMAILS_ENABLED !== "true" ||
+      !resendApiKey ||
+      !resendFromEmail
+    ) {
+      return NextResponse.json(
+        { error: "Email verification is temporarily unavailable." },
+        { status: 503 },
+      );
+    }
+
     // Do not reveal whether the email has existing orders.
     const { data: existingOrder, error: orderError } = await supabase
       .from("market_orders")
