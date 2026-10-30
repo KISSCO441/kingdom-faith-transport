@@ -16,12 +16,6 @@ const marketplaceLinks = [
   { label: "Classifieds", href: "/classifieds" },
 ]
 
-const simpleLinks = [
-  { label: "Home", href: "/" },
-  { label: "About", href: "/#features" },
-  { label: "Contact", href: "/#contact" },
-]
-
 function DropdownLinks({
   label,
   links,
@@ -81,26 +75,14 @@ export function SiteHeader() {
         </a>
 
         <nav aria-label="Main navigation" className="hidden items-center gap-1 xl:flex">
-          {simpleLinks.slice(0, 1).map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="rounded-md px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-foreground/75 transition-colors hover:bg-muted hover:text-primary"
-            >
-              {link.label}
-            </a>
-          ))}
+          <a
+            href="/"
+            className="rounded-md px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-foreground/75 transition-colors hover:bg-muted hover:text-primary"
+          >
+            Home
+          </a>
           <DropdownLinks label="Transport" links={transportLinks} />
           <DropdownLinks label="Marketplace" links={marketplaceLinks} />
-          {simpleLinks.slice(1).map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="rounded-md px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-foreground/75 transition-colors hover:bg-muted hover:text-primary"
-            >
-              {link.label}
-            </a>
-          ))}
         </nav>
 
         <div className="hidden shrink-0 xl:block">
@@ -130,16 +112,13 @@ export function SiteHeader() {
       {mobileMenuOpen && (
         <div id="mobile-site-navigation" className="border-t border-border bg-background xl:hidden">
           <nav aria-label="Mobile navigation" className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6">
-            {simpleLinks.slice(0, 1).map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={closeMobileMenu}
-                className="rounded-lg px-3 py-3 text-sm font-bold text-foreground hover:bg-muted"
-              >
-                {link.label}
-              </a>
-            ))}
+            <a
+              href="/"
+              onClick={closeMobileMenu}
+              className="rounded-lg px-3 py-3 text-sm font-bold text-foreground hover:bg-muted"
+            >
+              Home
+            </a>
             <div className="rounded-xl bg-muted/50 p-3">
               <p className="px-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
                 Transport
@@ -170,16 +149,6 @@ export function SiteHeader() {
                 </a>
               ))}
             </div>
-            {simpleLinks.slice(1).map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={closeMobileMenu}
-                className="rounded-lg px-3 py-3 text-sm font-bold text-foreground hover:bg-muted"
-              >
-                {link.label}
-              </a>
-            ))}
             <Button asChild className="mt-2 h-11 w-full rounded-lg font-extrabold tracking-wide">
               <a href="/#book" onClick={closeMobileMenu}>
                 BOOK A RIDE
