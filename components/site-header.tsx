@@ -9,6 +9,7 @@ const navLinks = [
   { label: "RIDE", href: "/#rides" },
   { label: "TRACK RIDE", href: "/ride-status" },
   { label: "KFM MARKET", href: "/market" },
+  { label: "CLASSIFIEDS", href: "/classifieds" },
   { label: "BECOME A DRIVER", href: "/driver-registration" },
   { label: "ABOUT", href: "/#features" },
   { label: "DRIVER PORTAL", href: "/driver-dashboard" },
