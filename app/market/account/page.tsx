@@ -118,7 +118,10 @@ export default function MarketAccountPage() {
             <p className="font-semibold">Email successfully verified.</p>
             <p className="mt-1 text-sm text-muted-foreground">Your seller sign-in session has started. Choose the next step below.</p>
             {(accountType === "vendor" || accountType === "vendor_and_seller") && (
-              <a href="/market/become-a-vendor" className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground">Complete vendor application</a>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <a href="/vendor/dashboard" className="inline-flex rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground">Open vendor dashboard</a>
+                <a href="/market/become-a-vendor" className="inline-flex rounded-lg border px-4 py-2 font-semibold">Vendor application</a>
+              </div>
             )}
             {(accountType === "classified_seller" || accountType === "vendor_and_seller") && (
               <p className="mt-3 text-sm text-muted-foreground">Classified advert submission is the next stage of development.</p>
