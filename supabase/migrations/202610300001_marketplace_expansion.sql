@@ -9,6 +9,7 @@ create table if not exists public.market_accounts (
   account_type text not null check (account_type in ('vendor', 'classified_seller', 'vendor_and_seller')),
   display_name text,
   phone text,
+  email_verified_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
