@@ -22,16 +22,18 @@ type Advert = {
   category: string
 }
 
-async function getActiveAdverts(): Promise<Advert[]> {
+async function getActiveAdverts(category?: string): Promise<Advert[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return []
   try {
     const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
-    const { data, error } = await supabase
+    let query = supabase
       .from("classified_ads")
       .select("id, title, description, asking_price, location, image_urls, category")
       .eq("advert_status", "active")
+    if (category && categories.some((item) => item.id === category)) query = query.eq("category", category)
+    const { data, error } = await query
       .order("published_at", { ascending: false })
       .limit(48)
     if (error) {
@@ -44,8 +46,10 @@ async function getActiveAdverts(): Promise<Advert[]> {
   }
 }
 
-export default async function ClassifiedsPage() {
-  const adverts = await getActiveAdverts()
+export default async function ClassifiedsPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
+  const { category } = await searchParams
+  const selectedCategory = categories.some((item) => item.id === category) ? category : undefined
+  const adverts = await getActiveAdverts(selectedCategory)
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />
@@ -71,7 +75,7 @@ export default async function ClassifiedsPage() {
           <p className="mt-2 text-sm text-muted-foreground">Choose the type of item you are looking for.</p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {categories.map((category) => (
-              <a key={category.id} href={`#category-${category.id}`} className="rounded-2xl border bg-card p-5 transition hover:border-primary hover:shadow-sm">
+              <a key={category.id} href={`/classifieds?category=${category.id}`} className="rounded-2xl border bg-card p-5 transition hover:border-primary hover:shadow-sm">
                 <h3 className="font-bold">{category.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
               </a>
@@ -80,8 +84,8 @@ export default async function ClassifiedsPage() {
         </section>
 
         <section className="mt-10" aria-labelledby="classified-listings">
-          <h2 id="classified-listings" className="text-2xl font-extrabold">Latest approved adverts</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Only adverts approved by KFM are displayed here.</p>
+          <h2 id="classified-listings" className="text-2xl font-extrabold">{selectedCategory ? categories.find((item) => item.id === selectedCategory)?.title : "Latest approved adverts"}</h2>
+          <div className="mt-2 flex flex-wrap items-center gap-3"><p className="text-sm text-muted-foreground">Only adverts approved by KFM are displayed here.</p>{selectedCategory && <a href="/classifieds" className="text-sm font-semibold text-primary underline">Show all categories</a>}</div>
           {adverts.length === 0 ? (
             <div className="mt-5 rounded-2xl border border-dashed p-8 text-center">
               <h3 className="font-bold">No approved adverts are available yet</h3>
