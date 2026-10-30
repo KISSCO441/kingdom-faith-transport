@@ -9,6 +9,7 @@ const transportLinks = [
   { label: "Track a Ride", href: "/ride-status" },
   { label: "Become a Driver", href: "/driver-registration" },
   { label: "Driver Portal", href: "/driver-dashboard" },
+  { label: "Find a Mechanic", href: "/find-a-mechanic" },
 ]
 
 const marketplaceLinks = [
