@@ -89,7 +89,6 @@ function MarketplaceReviewContent() {
   }
 
   const pendingVendors = vendors.filter(v => v.approval_status === "pending");
-  const reviewProducts = products.filter(p => ["pending_review", "rejected"].includes(p.listing_status));
 
   return (
     <main className="min-h-screen bg-slate-50">
