@@ -52,6 +52,7 @@ export default function MarketAccountPage() {
       if (!response.ok) throw new Error(result.error || "Code verification failed.");
       setStep("complete");
       setMessage(`Email verified. Signed in as ${result.account?.email || email}.`);
+      setAccountType(result.account?.accountType || accountType);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Code verification failed.");
     } finally {
@@ -115,7 +116,13 @@ export default function MarketAccountPage() {
         {step === "complete" && (
           <div className="mt-6 rounded-xl border p-4">
             <p className="font-semibold">Email successfully verified.</p>
-            <p className="mt-1 text-sm text-muted-foreground">Your seller sign-in session has started. Vendor registration, advert submission and dashboards will be enabled after their review and approval workflows are completed.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Your seller sign-in session has started. Choose the next step below.</p>
+            {(accountType === "vendor" || accountType === "vendor_and_seller") && (
+              <a href="/market/become-a-vendor" className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground">Complete vendor application</a>
+            )}
+            {(accountType === "classified_seller" || accountType === "vendor_and_seller") && (
+              <p className="mt-3 text-sm text-muted-foreground">Classified advert submission is the next stage of development.</p>
+            )}
           </div>
         )}
 
