@@ -54,6 +54,10 @@ export async function POST(request: Request) {
     if (!["vendor", "classified_seller", "vendor_and_seller"].includes(accountType)) {
       return NextResponse.json({ error: "Choose a valid seller account type." }, { status: 400 });
     }
+    if (mode === "preview-test" &&
+      email !== process.env.KFM_MARKET_ACCOUNT_EMAIL_TEST_TO!.trim().toLowerCase()) {
+      return NextResponse.json({ error: "Preview email testing is restricted to the configured test recipient." }, { status: 403 });
+    }
 
     const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const { count, error: rateError } = await supabase
@@ -63,37 +67,6 @@ export async function POST(request: Request) {
       .gte("created_at", since);
     if (rateError) return NextResponse.json({ error: "Unable to process sign-in." }, { status: 500 });
     if ((count ?? 0) >= 3) return NextResponse.json({ message: "If verification is available, a code will be sent." });
-
-    const { data: existing, error: accountLookupError } = await supabase
-      .from("market_accounts")
-      .select("id, account_type")
-      .ilike("email", email)
-      .maybeSingle();
-    if (accountLookupError) return NextResponse.json({ error: "Unable to access seller account." }, { status: 500 });
-
-    const wantsVendor = accountType === "vendor" || accountType === "vendor_and_seller" ||
-      existing?.account_type === "vendor" || existing?.account_type === "vendor_and_seller";
-    const wantsClassified = accountType === "classified_seller" || accountType === "vendor_and_seller" ||
-      existing?.account_type === "classified_seller" || existing?.account_type === "vendor_and_seller";
-    const mergedType = wantsVendor && wantsClassified
-      ? "vendor_and_seller"
-      : wantsVendor ? "vendor" : "classified_seller";
-
-    let accountId = existing?.id;
-    if (existing) {
-      const { error } = await supabase.from("market_accounts").update({
-        account_type: mergedType,
-        ...(displayName ? { display_name: displayName } : {}),
-        ...(phone ? { phone } : {}),
-      }).eq("id", existing.id);
-      if (error) return NextResponse.json({ error: "Unable to update seller account." }, { status: 500 });
-    } else {
-      const { data, error } = await supabase.from("market_accounts").insert({
-        email, account_type: accountType, display_name: displayName, phone,
-      }).select("id").single();
-      if (error || !data) return NextResponse.json({ error: "Unable to create seller account." }, { status: 500 });
-      accountId = data.id;
-    }
 
     const now = new Date().toISOString();
     const { error: invalidateError } = await supabase
@@ -111,6 +84,9 @@ export async function POST(request: Request) {
         code_hash: hashCode(email, code),
         expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         attempts: 0,
+        requested_account_type: accountType,
+        requested_display_name: displayName,
+        requested_phone: phone,
       })
       .select("id")
       .single();
