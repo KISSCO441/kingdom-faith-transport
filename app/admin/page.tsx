@@ -7,6 +7,7 @@ import {
   Users,
   ShoppingBag,
   Store,
+  ShieldCheck as ClassifiedsIcon,
   Wallet,
   UserRoundSearch,
   ArrowRight,
@@ -43,6 +44,12 @@ const sections = [
     description: "Approve vendor applications and review product submissions before they can be published.",
     href: "/admin/marketplace-review",
     icon: Store,
+  },
+  {
+    title: "Classifieds Review",
+    description: "Review paid classified adverts, publish or pause adverts, and handle buyer fraud reports.",
+    href: "/admin/classifieds-review",
+    icon: ClassifiedsIcon,
   },
   {
     title: "Ride Payments",
