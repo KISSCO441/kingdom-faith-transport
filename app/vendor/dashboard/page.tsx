@@ -153,7 +153,28 @@ export default function VendorDashboardPage() {
                 {vendor.approval_status !== "approved" && <p className="mt-4 text-sm text-muted-foreground">Product listing tools unlock after KFM approves your vendor application. You can refresh this page to check for a decision.</p>}
               </section>
 
-              {vendor.approval_status === "approved" && (
+              <nav aria-label="Vendor platform sections" className="mt-6 flex flex-wrap gap-2 border-b pb-3">
+                <button type="button" aria-pressed={activeTab === "products"} onClick={() => setActiveTab("products")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === "products" ? "bg-primary text-primary-foreground" : "border hover:bg-muted"}`}>My Products</button>
+                <button type="button" aria-pressed={activeTab === "adverts"} onClick={() => setActiveTab("adverts")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === "adverts" ? "bg-primary text-primary-foreground" : "border hover:bg-muted"}`}>My Adverts</button>
+              </nav>
+              {activeTab === "adverts" && (
+                <section className="mt-6 rounded-2xl border bg-card p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div><h2 className="text-xl font-semibold">My Adverts</h2><p className="mt-1 text-sm text-muted-foreground">Your classified adverts and their KFM review/payment status.</p></div>
+                    <Link href="/market/account/classifieds/new" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Create an advert</Link>
+                  </div>
+                  {adverts.length === 0 ? <p className="mt-5 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">You have not submitted any classified adverts yet.</p> : (
+                    <div className="mt-5 space-y-3">{adverts.map(advert => (
+                      <article key={advert.id} className="rounded-xl border p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">{advert.title}</h3><p className="mt-1 text-xs text-muted-foreground">{advert.category.replaceAll("_", " ")} · {advert.location}</p><p className="mt-2 font-semibold">GH₵{Number(advert.asking_price).toFixed(2)}</p></div><span className="rounded-full border px-3 py-1 text-xs font-semibold">{statusText[advert.advert_status] || advert.advert_status.replaceAll("_", " ")}</span></div>
+                        {advert.admin_notes && <p className="mt-3 text-sm text-muted-foreground">KFM note: {advert.admin_notes}</p>}
+                        <p className="mt-2 text-xs text-muted-foreground">Submitted {new Date(advert.created_at).toLocaleDateString()}</p>
+                      </article>
+                    ))}</div>
+                  )}
+                </section>
+              )}
+              {vendor.approval_status === "approved" && activeTab === "products" && (
                 <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
                   <form onSubmit={saveProduct} className="h-fit space-y-4 rounded-2xl border bg-card p-6">
                     <h2 className="text-xl font-semibold">{editingId ? "Edit product" : "Add a product"}</h2>
