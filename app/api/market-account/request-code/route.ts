@@ -62,13 +62,27 @@ export async function POST(request: Request) {
       const { data: account, error: accountError } = await supabase
         .from("market_accounts").select("id, account_type").ilike("email", email).maybeSingle();
       if (accountError) return NextResponse.json({ error: "Unable to process sign-in." }, { status: 500 });
-      if (!account || !["vendor", "vendor_and_seller"].includes(account.account_type)) {
+      if (!account || !["vendor", "classified_seller", "vendor_and_seller"].includes(account.account_type)) {
         return NextResponse.json({ message: "If verification is available, a code will be sent." });
       }
-      const { data: vendor, error: vendorError } = await supabase
-        .from("market_vendors").select("id").eq("account_id", account.id).maybeSingle();
-      if (vendorError) return NextResponse.json({ error: "Unable to process sign-in." }, { status: 500 });
-      if (!vendor) return NextResponse.json({ message: "If verification is available, a code will be sent." });
+
+      let hasSavedSellerRecord = false;
+      if (account.account_type === "vendor" || account.account_type === "vendor_and_seller") {
+        const { data: vendor, error: vendorError } = await supabase
+          .from("market_vendors").select("id").eq("account_id", account.id).maybeSingle();
+        if (vendorError) return NextResponse.json({ error: "Unable to process sign-in." }, { status: 500 });
+        hasSavedSellerRecord = Boolean(vendor);
+      }
+      if (!hasSavedSellerRecord && (account.account_type === "classified_seller" || account.account_type === "vendor_and_seller")) {
+        const { data: advert, error: advertError } = await supabase
+          .from("classified_ads").select("id").eq("seller_account_id", account.id).limit(1).maybeSingle();
+        if (advertError) return NextResponse.json({ error: "Unable to process sign-in." }, { status: 500 });
+        hasSavedSellerRecord = Boolean(advert);
+      }
+      if (!hasSavedSellerRecord) {
+        return NextResponse.json({ message: "If verification is available, a code will be sent." });
+      }
+      returningAccountType = account.account_type;
     }
 
     const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
@@ -92,7 +106,7 @@ export async function POST(request: Request) {
         code_hash: hashCode(email, code),
         expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         attempts: 0,
-        requested_account_type: accountType,
+        requested_account_type: returningAccountType ?? accountType,
         requested_display_name: displayName,
         requested_phone: phone,
       }).select("id").single();
