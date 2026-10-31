@@ -10,6 +10,7 @@ type Vendor = {
   business_location: string;
   admin_notes: string | null;
 };
+type Advert = { id: string; title: string; category: string; asking_price: number; location: string; advert_status: string; admin_notes: string | null; created_at: string };
 type Product = {
   id: string;
   title: string;
@@ -36,6 +37,8 @@ const statusText: Record<string, string> = {
 export default function VendorDashboardPage() {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [adverts, setAdverts] = useState<Advert[]>([]);
+  const [activeTab, setActiveTab] = useState<"products" | "adverts">("products");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -56,6 +59,10 @@ export default function VendorDashboardPage() {
       if (!response.ok) throw new Error(result.error || "Unable to load your vendor dashboard.");
       setVendor(result.vendor);
       setProducts(result.products || []);
+      const advertsResponse = await fetch("/api/market-account/my-adverts", { cache: "no-store" });
+      const advertsResult = await advertsResponse.json();
+      if (!advertsResponse.ok) throw new Error(advertsResult.error || "Unable to load your adverts.");
+      setAdverts(advertsResult.adverts || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load your vendor dashboard.");
     } finally {
