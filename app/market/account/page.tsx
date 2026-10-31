@@ -3,8 +3,10 @@
 import { useState } from "react";
 
 type AccountType = "vendor" | "classified_seller" | "vendor_and_seller";
+type AccessMode = "choose" | "new" | "returning";
 
 export default function MarketAccountPage() {
+  const [accessMode, setAccessMode] = useState<AccessMode>("choose");
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
@@ -24,7 +26,12 @@ export default function MarketAccountPage() {
       const response = await fetch("/api/market-account/request-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, displayName, phone, accountType }),
+        body: JSON.stringify({
+          email,
+          accountType: accessMode === "returning" ? "returning_vendor" : accountType,
+          displayName: accessMode === "new" ? displayName : null,
+          phone: accessMode === "new" ? phone : null,
+        }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not request a sign-in code.");
@@ -60,35 +67,69 @@ export default function MarketAccountPage() {
     }
   }
 
+  function changeAccessDetails() {
+    setStep("details");
+    setCode("");
+    setMessage("");
+    setError("");
+  }
+
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-xl items-center px-4 py-12">
       <section className="w-full rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-wider text-primary">NSAWAM MARKET</p>
         <h1 className="mt-2 text-2xl font-bold">Seller account access</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Use your email address and a one-time verification code. No password is required.
+          Choose whether you are registering a new business or returning to manage an existing vendor account.
         </p>
 
-        {step === "details" && (
+        {accessMode === "choose" && (
+          <div className="mt-6 space-y-3">
+            <button type="button" onClick={() => setAccessMode("new")} className="w-full rounded-xl border p-4 text-left hover:bg-muted">
+              <span className="block font-semibold">New Vendor</span>
+              <span className="mt-1 block text-sm text-muted-foreground">Register your business and create a seller account.</span>
+            </button>
+            <button type="button" onClick={() => setAccessMode("returning")} className="w-full rounded-xl border p-4 text-left hover:bg-muted">
+              <span className="block font-semibold">Returning Vendor</span>
+              <span className="mt-1 block text-sm text-muted-foreground">Access your existing business profile and product listings.</span>
+            </button>
+            <p className="pt-2 text-xs text-muted-foreground">Already have a vendor account? Choose Returning Vendor. Do not register again.</p>
+          </div>
+        )}
+
+        {accessMode !== "choose" && step === "details" && (
           <form className="mt-6 space-y-4" onSubmit={requestCode}>
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-semibold">{accessMode === "new" ? "New Vendor Registration" : "Returning Vendor Sign-in"}</p>
+              <button type="button" className="text-sm text-primary underline" onClick={() => { setAccessMode("choose"); changeAccessDetails(); }}>Change option</button>
+            </div>
+            {accessMode === "new" && (
+              <>
+                <label className="block text-sm font-medium">
+                  I want to
+                  <select required className="mt-1 w-full rounded-lg border bg-background px-3 py-2" value={accountType} onChange={(event) => setAccountType(event.target.value as AccountType)}>
+                    <option value="vendor">Become a marketplace vendor</option>
+                    <option value="classified_seller">Advertise a car, appliance or item</option>
+                    <option value="vendor_and_seller">Use both services</option>
+                  </select>
+                </label>
+                <label className="block text-sm font-medium">
+                  Your name or business name
+                  <input required className="mt-1 w-full rounded-lg border bg-background px-3 py-2" value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={120} />
+                </label>
+                <label className="block text-sm font-medium">
+                  Phone number
+                  <input required className="mt-1 w-full rounded-lg border bg-background px-3 py-2" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={40} />
+                </label>
+              </>
+            )}
+            {accessMode === "returning" && (
+              <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                Enter the email address already registered to your vendor business. Your saved business profile and products will be loaded after verification.
+              </p>
+            )}
             <label className="block text-sm font-medium">
-              I want to
-              <select className="mt-1 w-full rounded-lg border bg-background px-3 py-2" value={accountType} onChange={(event) => setAccountType(event.target.value as AccountType)}>
-                <option value="vendor">Become a marketplace vendor</option>
-                <option value="classified_seller">Advertise a car, appliance or item</option>
-                <option value="vendor_and_seller">Use both services</option>
-              </select>
-            </label>
-            <label className="block text-sm font-medium">
-              Your name or business name
-              <input className="mt-1 w-full rounded-lg border bg-background px-3 py-2" value={displayName} onChange={(event) => setDisplayName(event.target.value)} maxLength={120} />
-            </label>
-            <label className="block text-sm font-medium">
-              Phone number
-              <input className="mt-1 w-full rounded-lg border bg-background px-3 py-2" value={phone} onChange={(event) => setPhone(event.target.value)} maxLength={40} />
-            </label>
-            <label className="block text-sm font-medium">
-              Email address
+              {accessMode === "new" ? "Email address" : "Registered vendor email"}
               <input className="mt-1 w-full rounded-lg border bg-background px-3 py-2" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
             </label>
             <button className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60" disabled={busy}>
@@ -107,7 +148,7 @@ export default function MarketAccountPage() {
             <button className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60" disabled={busy || code.length !== 6}>
               {busy ? "Verifying..." : "Verify and sign in"}
             </button>
-            <button type="button" className="w-full rounded-lg border px-4 py-3 text-sm" onClick={() => { setStep("details"); setCode(""); setMessage(""); }}>
+            <button type="button" className="w-full rounded-lg border px-4 py-3 text-sm" onClick={changeAccessDetails}>
               Change email or account details
             </button>
           </form>
@@ -116,7 +157,7 @@ export default function MarketAccountPage() {
         {step === "complete" && (
           <div className="mt-6 rounded-xl border p-4">
             <p className="font-semibold">Email successfully verified.</p>
-            <p className="mt-1 text-sm text-muted-foreground">Your seller sign-in session has started. Choose the next step below.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Your seller sign-in session has started. Your existing vendor profile and listings remain linked to your account.</p>
             {(accountType === "vendor" || accountType === "vendor_and_seller") && (
               <div className="mt-4 flex flex-wrap gap-3">
                 <a href="/vendor/dashboard" className="inline-flex rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground">Open vendor dashboard</a>
