@@ -80,7 +80,7 @@ export default function MarketAccountPage() {
         <p className="text-sm font-semibold uppercase tracking-wider text-primary">NSAWAM MARKET</p>
         <h1 className="mt-2 text-2xl font-bold">Seller account access</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Choose whether you are registering a new business or returning to manage an existing vendor account.
+          Choose whether you are registering as a new seller or returning to manage your existing products and adverts.
         </p>
 
         {accessMode === "choose" && (
@@ -91,7 +91,7 @@ export default function MarketAccountPage() {
             </button>
             <button type="button" onClick={() => setAccessMode("returning")} className="w-full rounded-xl border p-4 text-left hover:bg-muted">
               <span className="block font-semibold">Returning Vendor</span>
-              <span className="mt-1 block text-sm text-muted-foreground">Access your existing business profile and product listings.</span>
+              <span className="mt-1 block text-sm text-muted-foreground">Access your existing seller profile, product listings and classified adverts.</span>
             </button>
             <p className="pt-2 text-xs text-muted-foreground">Already have a vendor account? Choose Returning Vendor. Do not register again.</p>
           </div>
@@ -125,11 +125,11 @@ export default function MarketAccountPage() {
             )}
             {accessMode === "returning" && (
               <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                Enter the email address already registered to your vendor business. Your saved business profile and products will be loaded after verification.
+                Enter the email address you used when registering or advertising on KFM. We will match it to your saved seller profile or adverts.
               </p>
             )}
             <label className="block text-sm font-medium">
-              {accessMode === "new" ? "Email address" : "Registered vendor email"}
+              {accessMode === "new" ? "Email address" : "Registered seller email"}
               <input className="mt-1 w-full rounded-lg border bg-background px-3 py-2" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
             </label>
             <button className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60" disabled={busy}>
@@ -157,7 +157,7 @@ export default function MarketAccountPage() {
         {step === "complete" && (
           <div className="mt-6 rounded-xl border p-4">
             <p className="font-semibold">Email successfully verified.</p>
-            <p className="mt-1 text-sm text-muted-foreground">Your seller sign-in session has started. Your existing vendor profile and listings remain linked to your account.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Your seller sign-in session has started. Your existing seller profile, products and adverts remain linked to the same account.</p>
             {(accountType === "vendor" || accountType === "vendor_and_seller") && (
               <div className="mt-4 flex flex-wrap gap-3">
                 <a href="/vendor/dashboard" className="inline-flex rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground">Open vendor dashboard</a>
@@ -165,7 +165,7 @@ export default function MarketAccountPage() {
               </div>
             )}
             {(accountType === "classified_seller" || accountType === "vendor_and_seller") && (
-              <a href="/market/account/classifieds/new" className="mt-3 inline-flex rounded-lg border px-4 py-2 font-semibold">Create a classified advert</a>
+              <div className="mt-3 flex flex-wrap gap-3"><a href="/market/account/my-adverts" className="inline-flex rounded-lg border px-4 py-2 font-semibold">View My Adverts</a><a href="/market/account/classifieds/new" className="inline-flex rounded-lg border px-4 py-2 font-semibold">Create a classified advert</a></div>
             )}
           </div>
         )}
