@@ -59,15 +59,29 @@ export async function POST(request: Request) {
       .ilike("email", email).maybeSingle();
     if (lookupAccountError) return NextResponse.json({ error: "Seller account could not be loaded." }, { status: 500 });
 
-    const returningVendor = verification.requested_account_type === "returning_vendor";
+    // Returning access is marked by the absence of new-registration profile fields.
+    // This avoids adding a new enum value to the existing verification table constraint.
+    const returningVendor = verification.requested_display_name === null && verification.requested_phone === null;
     if (returningVendor) {
-      if (!existingAccount || !["vendor", "vendor_and_seller"].includes(existingAccount.account_type)) {
-        return NextResponse.json({ error: "No existing vendor account was found for this email. Please choose New Vendor if you are registering for the first time." }, { status: 404 });
+      if (!existingAccount || !["vendor", "classified_seller", "vendor_and_seller"].includes(existingAccount.account_type) ||
+          existingAccount.account_type !== verification.requested_account_type) {
+        return NextResponse.json({ error: "No matching existing seller account was found. Please check your registered email." }, { status: 404 });
       }
-      const { data: vendor, error: vendorError } = await supabase
-        .from("market_vendors").select("id").eq("account_id", existingAccount.id).maybeSingle();
-      if (vendorError) return NextResponse.json({ error: "Vendor account could not be loaded." }, { status: 500 });
-      if (!vendor) return NextResponse.json({ error: "No existing vendor profile was found for this email." }, { status: 404 });
+
+      let hasExistingListings = false;
+      if (existingAccount.account_type === "vendor" || existingAccount.account_type === "vendor_and_seller") {
+        const { data: vendor, error: vendorError } = await supabase
+          .from("market_vendors").select("id").eq("account_id", existingAccount.id).maybeSingle();
+        if (vendorError) return NextResponse.json({ error: "Seller profile could not be loaded." }, { status: 500 });
+        hasExistingListings = Boolean(vendor);
+      }
+      if (!hasExistingListings && (existingAccount.account_type === "classified_seller" || existingAccount.account_type === "vendor_and_seller")) {
+        const { data: advert, error: advertError } = await supabase
+          .from("classified_ads").select("id").eq("seller_account_id", existingAccount.id).limit(1).maybeSingle();
+        if (advertError) return NextResponse.json({ error: "Advert history could not be loaded." }, { status: 500 });
+        hasExistingListings = Boolean(advert);
+      }
+      if (!hasExistingListings) return NextResponse.json({ error: "No saved seller profile or advert was found for this email." }, { status: 404 });
     }
 
     const requestedType = verification.requested_account_type;
