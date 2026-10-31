@@ -57,6 +57,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Preview email testing is restricted to the configured test recipient." }, { status: 403 });
     }
 
+    let returningAccountType: string | null = null;
     if (returningVendor) {
       const { data: account, error: accountError } = await supabase
         .from("market_accounts").select("id, account_type").ilike("email", email).maybeSingle();
