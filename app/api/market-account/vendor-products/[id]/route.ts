@@ -40,9 +40,16 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       return NextResponse.json({ error: "Only approved vendors can edit product listings." }, { status: 403 });
     }
 
+    const imageUrls = Array.isArray(body?.imageUrls) ? body.imageUrls : [];
+    const publicPrefix = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL) + "/storage/v1/object/public/vendor-product-images/" + vendor.id + "/";
+    if (imageUrls.length > 5 || imageUrls.some((url: unknown) => typeof url !== "string" || !url.startsWith(publicPrefix))) {
+      return NextResponse.json({ error: "Invalid product photos. Select up to five photos using the upload control." }, { status: 400 });
+    }
+
     const { data: updated, error } = await supabase
       .from("vendor_products")
       .update({
+        image_urls: imageUrls,
         title,
         description,
         category,
