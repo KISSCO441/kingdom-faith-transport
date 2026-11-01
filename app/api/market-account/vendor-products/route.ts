@@ -45,9 +45,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Product listing is available after KFM approves your vendor application." }, { status: 403 });
     }
 
+    const imageUrls = Array.isArray(body?.imageUrls) ? body.imageUrls : [];
+    const publicPrefix = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL) + "/storage/v1/object/public/vendor-product-images/" + vendor.id + "/";
+    if (imageUrls.length > 5 || imageUrls.some((url: unknown) => typeof url !== "string" || !url.startsWith(publicPrefix))) {
+      return NextResponse.json({ error: "Invalid product photos. Select up to five photos using the upload control." }, { status: 400 });
+    }
+
     const { data: created, error } = await supabase
       .from("vendor_products")
-      .insert({ vendor_id: vendor.id, ...product, image_urls: [], listing_status: "pending_review" })
+      .insert({ vendor_id: vendor.id, ...product, image_urls: imageUrls, listing_status: "pending_review" })
       .select("id, title, category, price, stock_quantity, listing_status, created_at")
       .single();
 
