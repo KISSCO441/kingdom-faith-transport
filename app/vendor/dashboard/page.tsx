@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type Vendor = {
   id: string;
@@ -52,6 +52,8 @@ export default function VendorDashboardPage() {
   const [stockQuantity, setStockQuantity] = useState("1");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  const selectedImagePreviews = useMemo(() => selectedImages.map(file => URL.createObjectURL(file)), [selectedImages]);
+  useEffect(() => () => selectedImagePreviews.forEach(url => URL.revokeObjectURL(url)), [selectedImagePreviews]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -232,7 +234,7 @@ export default function VendorDashboardPage() {
                       <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={chooseImages} className="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border file:bg-muted file:px-3 file:py-2" />
                       <span className="mt-1 block text-xs text-muted-foreground">JPEG, PNG or WebP · maximum 5 MB each · {existingImages.length + selectedImages.length}/5 selected</span>
                     </label>
-                    {(existingImages.length > 0 || selectedImages.length > 0) && <div className="grid grid-cols-3 gap-2">{existingImages.map((url, index) => <div key={`saved-${url}`} className="overflow-hidden rounded-lg border"><img src={url} alt={`Saved product photo ${index + 1}`} className="h-24 w-full object-cover" /></div>)}{selectedImages.map((file, index) => <div key={`${file.name}-${index}`} className="overflow-hidden rounded-lg border"><img src={URL.createObjectURL(file)} alt={`New product photo ${index + 1}`} className="h-24 w-full object-cover" /></div>)}</div>}
+                    {(existingImages.length > 0 || selectedImages.length > 0) && <div className="grid grid-cols-3 gap-2">{existingImages.map((url, index) => <div key={`saved-${url}`} className="overflow-hidden rounded-lg border"><img src={url} alt={`Saved product photo ${index + 1}`} className="h-24 w-full object-cover" /></div>)}{selectedImages.map((file, index) => <div key={`${file.name}-${index}`} className="overflow-hidden rounded-lg border"><img src={selectedImagePreviews[index]} alt={`New product photo ${index + 1}`} className="h-24 w-full object-cover" /></div>)}</div>}
                     <p className="text-xs text-muted-foreground">Every new or edited listing is sent to KFM for review before it can appear to customers.</p>
                     <button disabled={busy} className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60">{busy ? "Saving…" : editingId ? "Submit changes for review" : "Submit product for review"}</button>
                     {editingId && <button type="button" onClick={resetForm} className="w-full rounded-lg border px-4 py-3 text-sm">Cancel editing</button>}
