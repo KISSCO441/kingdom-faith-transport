@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
 
 type Vendor = {
   id: string;
@@ -20,6 +20,7 @@ type Product = {
   stock_quantity: number;
   listing_status: string;
   admin_notes?: string | null;
+  image_urls?: string[] | null;
 };
 
 const statusText: Record<string, string> = {
@@ -49,6 +50,8 @@ export default function VendorDashboardPage() {
   const [category, setCategory] = useState("Groceries");
   const [price, setPrice] = useState("");
   const [stockQuantity, setStockQuantity] = useState("1");
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -79,6 +82,8 @@ export default function VendorDashboardPage() {
     setCategory(product.category);
     setPrice(String(product.price));
     setStockQuantity(String(product.stock_quantity));
+    setExistingImages(product.image_urls || []);
+    setSelectedImages([]);
     setMessage("");
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -91,6 +96,25 @@ export default function VendorDashboardPage() {
     setCategory("Groceries");
     setPrice("");
     setStockQuantity("1");
+    setSelectedImages([]);
+    setExistingImages([]);
+  }
+
+  function chooseImages(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || []);
+    if (existingImages.length + files.length > 5) {
+      setError("You can add a maximum of five product photos in total.");
+      event.target.value = "";
+      return;
+    }
+    const invalid = files.find(file => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024);
+    if (invalid) {
+      setError("Each photo must be JPEG, PNG or WebP and no larger than 5 MB.");
+      event.target.value = "";
+      return;
+    }
+    setError("");
+    setSelectedImages(files);
   }
 
   async function saveProduct(event: FormEvent<HTMLFormElement>) {
@@ -99,10 +123,19 @@ export default function VendorDashboardPage() {
     setError("");
     setMessage("");
     try {
+      let imageUrls = [...existingImages];
+      if (selectedImages.length) {
+        const uploadForm = new FormData();
+        selectedImages.forEach(file => uploadForm.append("files", file));
+        const uploadResponse = await fetch("/api/market-account/vendor-product-images", { method: "POST", body: uploadForm });
+        const uploadResult = await uploadResponse.json();
+        if (!uploadResponse.ok) throw new Error(uploadResult.error || "Unable to upload product photos.");
+        imageUrls = [...imageUrls, ...(uploadResult.imageUrls || [])];
+      }
       const response = await fetch(editingId ? `/api/market-account/vendor-products/${editingId}` : "/api/market-account/vendor-products", {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, category, price, stockQuantity: Number(stockQuantity) }),
+        body: JSON.stringify({ title, description, category, price, stockQuantity: Number(stockQuantity), imageUrls }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to save product.");
@@ -195,7 +228,12 @@ export default function VendorDashboardPage() {
                         <input required type="number" min="0" step="1" max="1000000" value={stockQuantity} onChange={e => setStockQuantity(e.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-3" />
                       </label>
                     </div>
-                    <p className="text-xs text-muted-foreground">Product photos and customer checkout integration will be enabled in a later stage. Every new or edited listing is sent to KFM for review.</p>
+                    <label className="block text-sm font-medium">Product photos (up to 5)
+                      <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={chooseImages} className="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border file:bg-muted file:px-3 file:py-2" />
+                      <span className="mt-1 block text-xs text-muted-foreground">JPEG, PNG or WebP · maximum 5 MB each · {existingImages.length + selectedImages.length}/5 selected</span>
+                    </label>
+                    {(existingImages.length > 0 || selectedImages.length > 0) && <div className="grid grid-cols-3 gap-2">{existingImages.map((url, index) => <div key={`saved-${url}`} className="overflow-hidden rounded-lg border"><img src={url} alt={`Saved product photo ${index + 1}`} className="h-24 w-full object-cover" /></div>)}{selectedImages.map((file, index) => <div key={`${file.name}-${index}`} className="overflow-hidden rounded-lg border"><img src={URL.createObjectURL(file)} alt={`New product photo ${index + 1}`} className="h-24 w-full object-cover" /></div>)}</div>}
+                    <p className="text-xs text-muted-foreground">Every new or edited listing is sent to KFM for review before it can appear to customers.</p>
                     <button disabled={busy} className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60">{busy ? "Saving…" : editingId ? "Submit changes for review" : "Submit product for review"}</button>
                     {editingId && <button type="button" onClick={resetForm} className="w-full rounded-lg border px-4 py-3 text-sm">Cancel editing</button>}
                   </form>
@@ -210,6 +248,7 @@ export default function VendorDashboardPage() {
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <h3 className="font-semibold">{product.title}</h3>
+                                {product.image_urls?.length ? <div className="mt-2 flex gap-2 overflow-x-auto">{product.image_urls.map((url, index) => <img key={`${url}-${index}`} src={url} alt={`${product.title} photo ${index + 1}`} className="h-16 w-16 rounded-md border object-cover" />)}</div> : null}
                                 <p className="mt-1 text-xs text-muted-foreground">{product.category} · Stock: {product.stock_quantity}</p>
                                 <p className="mt-2 font-semibold">GH₵{Number(product.price).toFixed(2)}</p>
                               </div>
