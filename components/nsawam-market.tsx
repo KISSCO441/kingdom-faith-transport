@@ -508,6 +508,7 @@ async function prepareOrder() {
   }
 
   return (
+    <>
     {expandedImage && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4" role="dialog" aria-modal="true" aria-label="Expanded product photo" onClick={() => setExpandedImage(null)}>
         <button type="button" onClick={() => setExpandedImage(null)} className="absolute right-4 top-4 z-10 rounded-full bg-white/15 p-3 text-white hover:bg-white/25" aria-label="Close enlarged photo"><X className="h-6 w-6" /></button>
@@ -1401,5 +1402,6 @@ async function prepareOrder() {
         </div>
       </div>
     </section>
+    </>
   )
 }
