@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import {
   Clock3,
@@ -24,6 +24,12 @@ type Product = {
   category: string
   image: string
   amountOptions: number[]
+  description?: string
+  vendorName?: string
+  vendorPhone?: string
+  vendorLocation?: string
+  isVendorProduct?: boolean
+  stockQuantity?: number
 }
 
 type CartItem = {
@@ -165,6 +171,37 @@ const KFM_PHONE_2 = "020 409 7129"
 export function NsawamMarket() {
   const [activeCategory, setActiveCategory] = useState("All")
   const [cart, setCart] = useState<Record<string, CartItem>>({})
+  const [vendorProducts, setVendorProducts] = useState<Product[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/market-products", { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) throw new Error("Unable to load vendor products")
+        return response.json()
+      })
+      .then((data) => {
+        if (cancelled || !Array.isArray(data?.products)) return
+        const mapped = data.products.map((item: any): Product => {
+          const price = Number(item.price)
+          const photos = Array.isArray(item.image_urls) ? item.image_urls : []
+          return {
+            id: `vendor-${item.id}`, name: item.title, unit: "Vendor product", price,
+            category: item.category || "Other", image: photos[0] || "/placeholder.svg",
+            amountOptions: [price], description: item.description || "",
+            vendorName: item.vendor_name || "", vendorPhone: item.vendor_phone || "",
+            vendorLocation: item.vendor_location || "", isVendorProduct: true,
+            stockQuantity: Number(item.stock_quantity) || 0,
+          }
+        }).filter((item: Product) => item.stockQuantity! > 0 && Number.isFinite(item.price) && item.price > 0)
+        setVendorProducts(mapped)
+      })
+      .catch((error) => console.error("KFM vendor products could not be loaded:", error))
+    return () => { cancelled = true }
+  }, [])
+
+  const allProducts = useMemo(() => [...products, ...vendorProducts], [vendorProducts])
+  const allCategories = useMemo(() => [...categories, ...Array.from(new Set(vendorProducts.map((product) => product.category).filter((category) => !categories.includes(category))))], [vendorProducts])
 
   const [customerName, setCustomerName] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
@@ -177,18 +214,17 @@ export function NsawamMarket() {
   const [orderError, setOrderError] = useState("")
 
   const visibleProducts = useMemo(
-    () =>
-      activeCategory === "All"
-        ? products
-        : products.filter((product) => product.category === activeCategory),
-    [activeCategory],
+    () => activeCategory === "All"
+      ? allProducts
+      : allProducts.filter((product) => product.category === activeCategory),
+    [activeCategory, allProducts],
   )
 
   const cartItems = useMemo(
     () =>
       Object.values(cart)
         .map((item) => {
-          const product = products.find((p) => p.id === item.productId)
+          const product = allProducts.find((p) => p.id === item.productId)
 
           if (!product) return null
 
@@ -208,7 +244,7 @@ export function NsawamMarket() {
           total: number
         }
       >,
-    [cart],
+    [cart, allProducts],
   )
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total, 0)
@@ -386,6 +422,7 @@ async function prepareOrder() {
             quantity,
             unitAmount: unitPrice,
             lineTotal: total,
+            ...(product.isVendorProduct ? { vendorProductId: product.id.replace(/^vendor-/, "") } : {}),
           }),
         ),
       }),
@@ -725,7 +762,7 @@ async function prepareOrder() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
+              {allCategories.map((cat) => (
                 <button
                   key={cat}
                   type="button"
@@ -753,13 +790,11 @@ async function prepareOrder() {
                   className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
                 >
                   <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
-                    <Image
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    />
+                    {product.isVendorProduct ? (
+                      <img src={product.image} alt={product.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    ) : (
+                      <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" />
+                    )}
 
                     {quantity > 0 && (
                       <div className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow">
@@ -774,8 +809,17 @@ async function prepareOrder() {
                     </h4>
 
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {product.unit}
+                      {product.isVendorProduct ? product.category : product.unit}
                     </p>
+                    {product.isVendorProduct && (
+                      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {product.description && <p>{product.description}</p>}
+                        {product.vendorName && <p>Seller: {product.vendorName}</p>}
+                        {product.vendorLocation && <p>Location: {product.vendorLocation}</p>}
+                        {product.vendorPhone && <p>Contact: <a className="font-semibold text-primary underline" href={`tel:${product.vendorPhone.replace(/\\s/g, "")}`}>{product.vendorPhone}</a></p>}
+                        <p>Available stock: {product.stockQuantity}</p>
+                      </div>
+                    )}
 
                     <div className="mt-4">
                       <label
