@@ -26,6 +26,7 @@ type MarketOrderItem = {
   quantity: number;
   unitAmount: number;
   lineTotal: number;
+  vendorProductId?: string;
 };
 
 type MarketOrderRequest = {
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
         item.quantity < 1 ||
         !Number.isFinite(item.unitAmount) ||
         item.unitAmount <= 0 ||
-        Math.round(item.unitAmount * 100) !== item.unitAmount * 100
+        Math.abs(Math.round(item.unitAmount * 100) / 100 - item.unitAmount) > 0.000001
       ) {
         return NextResponse.json(
           { error: "One or more order items are invalid." },
@@ -181,7 +182,7 @@ export async function POST(request: Request) {
     ) * 100) / 100;
 
     if (
-      !Number.isSafeInteger(productSubtotal) ||
+      !Number.isSafeInteger(Math.round(productSubtotal * 100)) ||
       productSubtotal < MARKET_MINIMUM_ORDER
     ) {
       return NextResponse.json(
@@ -193,7 +194,7 @@ export async function POST(request: Request) {
     const deliveryFee = MARKET_DELIVERY_FEE;
     const totalAmount = productSubtotal + deliveryFee;
 
-    if (!Number.isSafeInteger(totalAmount)) {
+    if (!Number.isSafeInteger(Math.round(totalAmount * 100))) {
       return NextResponse.json(
         { error: "The order total is invalid." },
         { status: 400 },
