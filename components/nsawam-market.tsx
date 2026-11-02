@@ -28,6 +28,7 @@ type Product = {
   vendorName?: string
   vendorPhone?: string
   vendorLocation?: string
+  itemCondition?: string | null
   isVendorProduct?: boolean
   stockQuantity?: number
   imageUrls?: string[]
