@@ -73,7 +73,11 @@ export async function POST(request: Request) {
         if (vendorError) return NextResponse.json({ error: "Unable to process sign-in." }, { status: 500 });
         hasSavedSellerRecord = Boolean(vendor);
       }
-      if (!hasSavedSellerRecord && (account.account_type === "classified_seller" || account.account_type === "vendor_and_seller")) {
+      if (account.account_type === "classified_seller") {
+        // A verified classified seller account is valid even before the first advert is created.
+        hasSavedSellerRecord = true;
+      }
+      if (!hasSavedSellerRecord && account.account_type === "vendor_and_seller") {
         const { data: advert, error: advertError } = await supabase
           .from("classified_ads").select("id").eq("seller_account_id", account.id).limit(1).maybeSingle();
         if (advertError) return NextResponse.json({ error: "Unable to process sign-in." }, { status: 500 });
