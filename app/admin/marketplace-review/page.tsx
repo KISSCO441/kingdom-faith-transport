@@ -21,6 +21,7 @@ type Product = {
   title: string;
   description: string;
   category: string;
+  item_condition: "Brand New" | "Used" | null;
   price: number;
   stock_quantity: number;
   listing_status: string;
@@ -184,6 +185,7 @@ function MarketplaceReviewContent() {
                         <span className="rounded-full border px-3 py-1 text-xs font-semibold">{product.listing_status.replaceAll("_", " ")}</span>
                       </div>
                       <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{product.description}</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-700">Condition: {product.item_condition || "Not yet specified (existing listing)"}</p>
                       <p className="mt-3 text-sm font-semibold text-slate-900">GH₵{Number(product.price).toFixed(2)} · Stock: {product.stock_quantity}</p>
                       <label className="mt-4 block text-xs font-semibold text-slate-600">KFM review note
                         <textarea value={notes[product.id] ?? product.admin_notes ?? ""} onChange={e => setNotes(s => ({ ...s, [product.id]: e.target.value }))} rows={2} maxLength={1000} className="mt-1 w-full rounded-lg border p-3 text-sm" placeholder="Optional feedback for the vendor" />
