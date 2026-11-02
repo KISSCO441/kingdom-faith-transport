@@ -173,38 +173,7 @@ const KFM_PHONE_2 = "020 409 7129"
 export function NsawamMarket() {
   const [activeCategory, setActiveCategory] = useState("All")
   const [cart, setCart] = useState<Record<string, CartItem>>({})
-  const [vendorProducts, setVendorProducts] = useState<Product[]>([])
   const [expandedImage, setExpandedImage] = useState<{ src: string; alt: string } | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    fetch("/api/market-products", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error("Unable to load vendor products")
-        return response.json()
-      })
-      .then((data) => {
-        if (cancelled || !Array.isArray(data?.products)) return
-        const mapped = data.products.map((item: any): Product => {
-          const price = Number(item.price)
-          const photos = Array.isArray(item.image_urls) ? item.image_urls : []
-          return {
-            id: `vendor-${item.id}`, name: item.title, unit: "Vendor product", price,
-            category: item.category || "Other", image: photos[0] || "/placeholder.svg",
-            amountOptions: [price], imageUrls: photos, description: item.description || "",
-            vendorName: item.vendor_name || "", vendorPhone: item.vendor_phone || "",
-            vendorLocation: item.vendor_location || "", isVendorProduct: true,
-            stockQuantity: Number(item.stock_quantity) || 0,
-          }
-        }).filter((item: Product) => item.stockQuantity! > 0 && Number.isFinite(item.price) && item.price > 0)
-        setVendorProducts(mapped)
-      })
-      .catch((error) => console.error("KFM vendor products could not be loaded:", error))
-    return () => { cancelled = true }
-  }, [])
-
-  const allProducts = useMemo(() => [...products, ...vendorProducts], [vendorProducts])
-  const allCategories = useMemo(() => [...categories, ...Array.from(new Set(vendorProducts.map((product) => product.category).filter((category) => !categories.includes(category))))], [vendorProducts])
 
   const [customerName, setCustomerName] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
@@ -218,16 +187,16 @@ export function NsawamMarket() {
 
   const visibleProducts = useMemo(
     () => activeCategory === "All"
-      ? allProducts
-      : allProducts.filter((product) => product.category === activeCategory),
-    [activeCategory, allProducts],
+      ? products
+      : products.filter((product) => product.category === activeCategory),
+    [activeCategory],
   )
 
   const cartItems = useMemo(
     () =>
       Object.values(cart)
         .map((item) => {
-          const product = allProducts.find((p) => p.id === item.productId)
+          const product = products.find((p) => p.id === item.productId)
 
           if (!product) return null
 
@@ -247,7 +216,7 @@ export function NsawamMarket() {
           total: number
         }
       >,
-    [cart, allProducts],
+    [cart],
   )
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.total, 0)
