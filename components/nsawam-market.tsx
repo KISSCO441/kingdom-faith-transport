@@ -742,7 +742,7 @@ async function prepareOrder() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {allCategories.map((cat) => (
+              {categories.map((cat) => (
                 <button
                   key={cat}
                   type="button"
