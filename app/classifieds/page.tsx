@@ -107,7 +107,7 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
         const has = (...terms: string[]) => terms.some((term) => categoryText.includes(term))
         let mappedCategory = "general_items"
         if (has("car", "cars", "vehicle", "vehicles", "motorbike", "motorcycle", "okada", "truck", "van", "automobile", "toyota", "yaris", "honda", "nissan", "hyundai", "kia", "mercedes", "benz", "bmw", "lexus", "suzuki", "mitsubishi", "ford")) mappedCategory = "cars_vehicles"
-        else if (has("appliance", "electronic", "phone", "computer", "laptop", "television", " tv", "fridge", "refrigerator", "freezer", "washing machine", "fan", "air conditioner", "speaker")) mappedCategory = "appliances_electronics"
+        else if (has("appliance", "appliances", "home appliance", "electronic", "electronics", "phone", "computer", "laptop", "television", " tv", "fridge", "refrigerator", "freezer", "deep freezer", "deep-freeze", "deepfreeze", "frizer", "freeza", "washing machine", "fan", "air conditioner", "speaker")) mappedCategory = "appliances_electronics"
         else if (has("furniture", "household", "sofa", "chair", "table", "bed", "wardrobe", "mattress", "cabinet", "kitchenware", "home decor")) mappedCategory = "furniture_household"
         return mappedCategory === selectedCategory
       })
@@ -194,18 +194,34 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
             ) : (
               <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {vendorProducts.map((product) => (
-                  <article key={product.id} className="overflow-hidden rounded-2xl border bg-card">
-                    {product.image_urls?.[0] ? <img src={product.image_urls[0]} alt={product.title} className="h-52 w-full object-cover" loading="lazy" /> : <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>}
-                    <div className="p-4">
-                      <h3 className="font-bold">{product.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{product.vendor_location}</p>
-                      <p className="mt-3 text-lg font-extrabold text-primary">GH₵{product.price.toFixed(2)}</p>
-                      {product.item_condition && <p className="mt-1 text-sm font-semibold">Condition: {product.item_condition}</p>}
+                  <details key={product.id} className="group overflow-hidden rounded-2xl border bg-card">
+                    <summary className="cursor-pointer list-none">
+                      {product.image_urls?.length ? (
+                        <div className="grid h-52 grid-cols-3 gap-1 bg-muted">
+                          {product.image_urls.slice(0, 3).map((image, index) => (
+                            <div key={index} className="relative min-w-0 overflow-hidden">
+                              <img src={image} alt={`${product.title} photo ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
+                              {index === 2 && product.image_urls && product.image_urls.length > 3 && <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-bold text-white">+{product.image_urls.length - 3}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      ) : <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>}
+                      <div className="p-4">
+                        <h3 className="font-bold">{product.title}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">{product.vendor_location}</p>
+                        <p className="mt-3 text-lg font-extrabold text-primary">GH₵{product.price.toFixed(2)}</p>
+                        <span className="mt-3 inline-block text-sm font-bold text-primary group-open:hidden">View details +</span>
+                        <span className="mt-3 hidden text-sm font-bold text-primary group-open:inline-block">Hide details −</span>
+                      </div>
+                    </summary>
+                    <div className="border-t p-4">
+                      {product.image_urls && product.image_urls.length > 3 && <div className="mb-4 grid grid-cols-2 gap-2">{product.image_urls.slice(3).map((image, index) => <img key={index} src={image} alt={`${product.title} photo ${index + 4}`} className="h-40 w-full rounded-lg object-cover" loading="lazy" />)}</div>}
+                      {product.item_condition && <p className="text-sm font-semibold">Condition: {product.item_condition}</p>}
                       {product.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{product.description}</p>}
                       <p className="mt-3 text-sm">Seller: {product.vendor_name}</p>
                       {product.vendor_phone && <p className="mt-2 text-sm font-semibold">Contact number: <span className="text-primary">{product.vendor_phone}</span></p>}
                     </div>
-                  </article>
+                  </details>
                 ))}
               </div>
             )}
