@@ -807,7 +807,7 @@ async function prepareOrder() {
                     ) : (
                       <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" />
                     )}
-                    {quantity > 0 && <div className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow">{quantity} in basket</div>}
+                    {!product.isVendorProduct && quantity > 0 && <div className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow">{quantity} in basket</div>}
                   </div>
                   {product.isVendorProduct && product.imageUrls && product.imageUrls.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto px-3 pt-3">
@@ -843,16 +843,18 @@ async function prepareOrder() {
                         <p className="mt-1 text-2xl font-extrabold">GH₵{product.price.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         <p className="mt-1 text-xs text-muted-foreground">Contact the seller directly to discuss or negotiate this price.</p>
                         {product.vendorPhone && <a href={`tel:${product.vendorPhone.replace(/\s/g, "")}`} className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><Phone className="h-4 w-4" /> Call seller: {product.vendorPhone}</a>}
-                        {quantity === 0 ? (
-                          <Button type="button" className="mt-3 w-full" onClick={() => addItem(product)}>Add to basket</Button>
-                        ) : (
-                          <div className="mt-3 flex items-center justify-between">
-                            <span className="text-sm font-semibold">In basket: {quantity}</span>
-                            <div className="flex items-center gap-2">
-                              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => removeItemQuantity(product.id)} aria-label={`Remove one ${product.name}`}><Minus className="h-4 w-4" /></Button>
-                              <Button size="icon" className="h-8 w-8" disabled={quantity >= (product.stockQuantity ?? 0)} onClick={() => addItem(product)} aria-label={`Add another ${product.name}`}><Plus className="h-4 w-4" /></Button>
-                            </div>
-                          </div>
+                        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                          Inspect this item before agreeing to buy. Ask the seller whether it is brand new or used, check its condition, and agree on the final price and collection or delivery arrangements.
+                        </div>
+                        {product.vendorPhone && (
+                          <a
+                            href={`https://wa.me/${product.vendorPhone.replace(/\\D/g, "")}?text=${encodeURIComponent(`Hello, I am interested in your ${product.name} listed on NSAWAM MARKET. I would like to arrange a time to inspect it before deciding to buy. Please confirm whether it is brand new or used, its condition, and your final price.`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                          >
+                            <MessageCircle className="mr-2 h-4 w-4" /> Message seller to arrange inspection
+                          </a>
                         )}
                       </div>
                     ) : (
