@@ -20,10 +20,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const title = typeof body?.title === "string" ? body.title.trim() : "";
     const description = typeof body?.description === "string" ? body.description.trim() : "";
     const category = typeof body?.category === "string" ? body.category.trim() : "";
+    const itemCondition = body?.itemCondition;
     const price = Number(body?.price);
     const stockQuantity = Number(body?.stockQuantity);
 
-    if (!title || title.length > 140 || !description || description.length > 3000 ||
+    if (!["Brand New", "Used"].includes(itemCondition) ||
+        !title || title.length > 140 || !description || description.length > 3000 ||
         !category || category.length > 80 || !Number.isFinite(price) || price <= 0 ||
         price > 10000000 || !Number.isInteger(stockQuantity) || stockQuantity < 0 || stockQuantity > 1000000) {
       return NextResponse.json({ error: "Check the product details, price and stock quantity." }, { status: 400 });
@@ -53,6 +55,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
         title,
         description,
         category,
+        item_condition: itemCondition,
         price: Math.round(price * 100) / 100,
         stock_quantity: stockQuantity,
         listing_status: "pending_review",
