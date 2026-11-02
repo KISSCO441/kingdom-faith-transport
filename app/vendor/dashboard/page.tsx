@@ -104,19 +104,20 @@ export default function VendorDashboardPage() {
 
   function chooseImages(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
-    if (existingImages.length + files.length > 5) {
-      setError("You can add a maximum of five product photos in total.");
+    if (existingImages.length + selectedImages.length + files.length > 5) {
+      setError("You can add a maximum of five product photos in total. Remove a photo first if you need to replace it.");
       event.target.value = "";
       return;
     }
-    const invalid = files.find(file => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024);
+    const invalid = files.find(file => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size <= 0 || file.size > 5 * 1024 * 1024);
     if (invalid) {
       setError("Each photo must be JPEG, PNG or WebP and no larger than 5 MB.");
       event.target.value = "";
       return;
     }
     setError("");
-    setSelectedImages(files);
+    setSelectedImages(current => [...current, ...files]);
+    event.target.value = "";
   }
 
   async function saveProduct(event: FormEvent<HTMLFormElement>) {
@@ -234,7 +235,7 @@ export default function VendorDashboardPage() {
                       <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={chooseImages} className="mt-2 block w-full text-sm file:mr-3 file:rounded-lg file:border file:bg-muted file:px-3 file:py-2" />
                       <span className="mt-1 block text-xs text-muted-foreground">JPEG, PNG or WebP · maximum 5 MB each · {existingImages.length + selectedImages.length}/5 selected</span>
                     </label>
-                    {(existingImages.length > 0 || selectedImages.length > 0) && <div className="grid grid-cols-3 gap-2">{existingImages.map((url, index) => <div key={`saved-${url}`} className="overflow-hidden rounded-lg border"><img src={url} alt={`Saved product photo ${index + 1}`} className="h-24 w-full object-cover" /></div>)}{selectedImages.map((file, index) => <div key={`${file.name}-${index}`} className="overflow-hidden rounded-lg border"><img src={selectedImagePreviews[index]} alt={`New product photo ${index + 1}`} className="h-24 w-full object-cover" /></div>)}</div>}
+                    {(existingImages.length > 0 || selectedImages.length > 0) && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{existingImages.map((url, index) => <div key={`saved-${url}`} className="overflow-hidden rounded-lg border"><img src={url} alt={`Saved product photo ${index + 1}`} className="h-24 w-full object-cover" /><button type="button" onClick={() => setExistingImages(current => current.filter((_, imageIndex) => imageIndex !== index))} className="w-full border-t px-2 py-1 text-xs font-medium">Remove saved photo</button></div>)}{selectedImages.map((file, index) => <div key={`${file.name}-${index}`} className="overflow-hidden rounded-lg border"><img src={selectedImagePreviews[index]} alt={`New product photo ${index + 1}`} className="h-24 w-full object-cover" /><button type="button" onClick={() => setSelectedImages(current => current.filter((_, imageIndex) => imageIndex !== index))} className="w-full border-t px-2 py-1 text-xs font-medium">Remove photo</button></div>)}</div>}
                     <p className="text-xs text-muted-foreground">Every new or edited listing is sent to KFM for review before it can appear to customers.</p>
                     <button disabled={busy} className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60">{busy ? "Saving…" : editingId ? "Submit changes for review" : "Submit product for review"}</button>
                     {editingId && <button type="button" onClick={resetForm} className="w-full rounded-lg border px-4 py-3 text-sm">Cancel editing</button>}
