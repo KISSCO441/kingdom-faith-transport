@@ -162,7 +162,6 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
               {adverts.map((ad) => (
                 <a key={ad.id} href={`/classifieds/${ad.id}`} className="overflow-hidden rounded-2xl border bg-card transition hover:border-primary hover:shadow-sm">
                   {ad.image_urls?.[0] ? (
-                    // Advert images are seller-submitted URLs; render only standard image sources.
                     <img src={ad.image_urls[0]} alt={ad.title} className="h-52 w-full object-cover" loading="lazy" />
                   ) : (
                     <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>
@@ -180,7 +179,7 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
         {selectedCategory && (
           <section className="mt-10" aria-labelledby="vendor-classified-listings">
             <h2 id="vendor-classified-listings" className="text-2xl font-extrabold">More approved vendor listings</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Approved products listed by registered KFM vendors. Contact the seller directly to arrange inspection and collection.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Approved products listed by registered KFM vendors. Contact sellers directly to arrange inspection and collection.</p>
             {vendorProducts.length === 0 ? (
               <p className="mt-4 rounded-xl border border-dashed p-5 text-sm text-muted-foreground">No approved vendor products in this category yet.</p>
             ) : (
@@ -195,7 +194,7 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
                       {product.item_condition && <p className="mt-1 text-sm font-semibold">Condition: {product.item_condition}</p>}
                       {product.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{product.description}</p>}
                       <p className="mt-3 text-sm">Seller: {product.vendor_name}</p>
-                      {product.vendor_phone && <a href={`https://wa.me/${product.vendor_phone.replace(/\\D/g, "")}?text=${encodeURIComponent(`Hello, I am interested in your listing: ${product.title}. Can I arrange an inspection?`)}`} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-10 items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white">Contact seller to inspect</a>}
+                      {product.vendor_phone && <p className="mt-2 text-sm font-semibold">Contact number: <span className="text-primary">{product.vendor_phone}</span></p>}
                     </div>
                   </article>
                 ))}
