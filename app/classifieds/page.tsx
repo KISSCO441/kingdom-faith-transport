@@ -22,6 +22,57 @@ type Advert = {
   category: string
 }
 
+type VendorProduct = {
+  id: string
+  title: string
+  description: string | null
+  category: string | null
+  item_condition: string | null
+  price: number
+  image_urls: string[] | null
+  vendor_name: string
+  vendor_phone: string
+  vendor_location: string
+}
+
+async function getApprovedVendorProducts(): Promise<VendorProduct[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return []
+  try {
+    const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+    const { data, error } = await supabase
+      .from("vendor_products")
+      .select("id, title, description, category, item_condition, price, image_urls, market_vendors!inner(business_name, contact_phone, business_location, approval_status)")
+      .eq("listing_status", "approved")
+      .eq("market_vendors.approval_status", "approved")
+      .gt("stock_quantity", 0)
+      .order("created_at", { ascending: false })
+      .limit(48)
+    if (error) {
+      console.error("KFM approved vendor products unavailable in classifieds:", error.message)
+      return []
+    }
+    return (data ?? []).map((item: any) => {
+      const vendor = Array.isArray(item.market_vendors) ? item.market_vendors[0] : item.market_vendors
+      return {
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        category: item.category,
+        item_condition: item.item_condition,
+        price: Number(item.price),
+        image_urls: item.image_urls ?? [],
+        vendor_name: vendor?.business_name ?? "",
+        vendor_phone: vendor?.contact_phone ?? "",
+        vendor_location: vendor?.business_location ?? "",
+      }
+    }).filter((item: VendorProduct) => Number.isFinite(item.price) && item.price > 0)
+  } catch {
+    return []
+  }
+}
+
 async function getActiveAdverts(category?: string): Promise<Advert[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -50,6 +101,12 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
   const { category } = await searchParams
   const selectedCategory = categories.some((item) => item.id === category) ? category : undefined
   const adverts = await getActiveAdverts(selectedCategory)
+  const vendorProducts = selectedCategory === "appliances_electronics"
+    ? (await getApprovedVendorProducts()).filter((item) => {
+        const categoryText = (item.category || "").toLowerCase()
+        return categoryText.includes("appliance") || categoryText.includes("electronic") || categoryText.includes("phone") || categoryText.includes("computer")
+      })
+    : []
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />
@@ -110,6 +167,33 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
               ))}
             </div>
           )}
+
+        {selectedCategory === "appliances_electronics" && (
+          <section className="mt-10" aria-labelledby="vendor-appliance-listings">
+            <h2 id="vendor-appliance-listings" className="text-2xl font-extrabold">Vendor home appliances & electronics</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Approved products listed by registered KFM vendors. Contact the seller directly to arrange inspection and collection.</p>
+            {vendorProducts.length === 0 ? (
+              <p className="mt-4 rounded-xl border border-dashed p-5 text-sm text-muted-foreground">No approved vendor products in this category yet.</p>
+            ) : (
+              <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {vendorProducts.map((product) => (
+                  <article key={product.id} className="overflow-hidden rounded-2xl border bg-card">
+                    {product.image_urls?.[0] ? <img src={product.image_urls[0]} alt={product.title} className="h-52 w-full object-cover" loading="lazy" /> : <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>}
+                    <div className="p-4">
+                      <h3 className="font-bold">{product.title}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">{product.vendor_location}</p>
+                      <p className="mt-3 text-lg font-extrabold text-primary">GH₵{product.price.toFixed(2)}</p>
+                      {product.item_condition && <p className="mt-1 text-sm font-semibold">Condition: {product.item_condition}</p>}
+                      {product.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{product.description}</p>}
+                      <p className="mt-3 text-sm">Seller: {product.vendor_name}</p>
+                      {product.vendor_phone && <a href={`https://wa.me/${product.vendor_phone.replace(/\\D/g, "")}?text=${encodeURIComponent(`Hello, I am interested in your listing: ${product.title}. Can I arrange an inspection?`)}`} target="_blank" rel="noreferrer" className="mt-4 inline-flex min-h-10 items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white">Contact seller to inspect</a>}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
         </section>
       </main>
       <SiteFooter />
