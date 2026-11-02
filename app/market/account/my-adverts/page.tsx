@@ -38,6 +38,24 @@ export default function MyAdvertsPage() {
     return () => { cancelled = true; };
   }, []);
 
+  async function deleteAdvert(id: string, title: string) {
+    if (!window.confirm(`Permanently delete "${title}" from your adverts? Payment records will be retained.`)) return;
+    setBusy(id); setError(""); setMessage("");
+    try {
+      const response = await fetch("/api/market-account/my-adverts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to delete advert.");
+      setAdverts(current => current.filter(ad => ad.id !== id));
+      setMessage("Your advert has been deleted.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete advert.");
+    } finally { setBusy(""); }
+  }
+
   return (
     <main className="mx-auto min-h-screen max-w-4xl px-4 py-10">
       <Link href="/market" className="text-sm font-medium text-primary hover:underline">← Back to NSAWAM MARKET</Link>
@@ -49,7 +67,8 @@ export default function MyAdvertsPage() {
         </div>
         <Link href="/market/account/classifieds/new" className="rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground">Create advert</Link>
       </div>
-      {message && <p role="status" className="mt-5 rounded-lg border p-4 text-sm">{message}</p>}\n      {loading && <p className="mt-8 rounded-xl border p-5">Loading your adverts…</p>}
+      {message && <p role="status" className="mt-5 rounded-lg border p-4 text-sm">{message}</p>}
+      {loading && <p className="mt-8 rounded-xl border p-5">Loading your adverts…</p>}
       {error && <p role="alert" className="mt-8 rounded-lg border border-destructive/40 p-4 text-sm text-destructive">{error}</p>}
       {!loading && !error && adverts.length === 0 && (
         <section className="mt-8 rounded-xl border p-6">
@@ -69,7 +88,8 @@ export default function MyAdvertsPage() {
             </div>
             <p className="mt-3 font-semibold">GH₵ {Number(advert.asking_price).toLocaleString("en-GH", { minimumFractionDigits: 2 })}</p>
             {advert.admin_notes && <p className="mt-3 rounded-lg bg-muted p-3 text-sm">KFM note: {advert.admin_notes}</p>}
-            <div className="mt-4 flex justify-end"><button type="button" disabled={busy === advert.id} onClick={() => void deleteAdvert(advert.id, advert.title)} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">{busy === advert.id ? "Deleting…" : "Delete advert"}</button></div>\n            <p className="mt-3 text-xs text-muted-foreground">Submitted {new Date(advert.created_at).toLocaleDateString("en-GH")}</p>
+            <div className="mt-4 flex justify-end"><button type="button" disabled={busy === advert.id} onClick={() => void deleteAdvert(advert.id, advert.title)} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">{busy === advert.id ? "Deleting…" : "Delete advert"}</button></div>
+            <p className="mt-3 text-xs text-muted-foreground">Submitted {new Date(advert.created_at).toLocaleDateString("en-GH")}</p>
           </article>
         ))}
       </div>
