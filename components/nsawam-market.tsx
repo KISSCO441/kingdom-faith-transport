@@ -824,7 +824,7 @@ async function prepareOrder() {
                         {product.description && <p>{product.description}</p>}
                         {product.vendorName && <p>Seller: {product.vendorName}</p>}
                         {product.vendorLocation && <p>Location: {product.vendorLocation}</p>}
-                        {product.vendorPhone && <p>Contact: <a className="font-semibold text-primary underline" href={`tel:${product.vendorPhone.replace(/\\s/g, "")}`}>{product.vendorPhone}</a></p>}
+                        {product.vendorPhone && <p>Contact: <a className="font-semibold text-primary underline" href={`tel:${product.vendorPhone.replace(/\s/g, "")}`}>{product.vendorPhone}</a></p>}
                         <p>Available stock: {product.stockQuantity}</p>
                       </div>
                     )}
