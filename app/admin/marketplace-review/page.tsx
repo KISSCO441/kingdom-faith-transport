@@ -88,6 +88,35 @@ function MarketplaceReviewContent() {
     }
   }
 
+  async function deleteRecord(entity: "vendor" | "product", id: string, label: string) {
+    const warning = entity === "vendor"
+      ? `Permanently delete vendor "${label}" and all its product listings and photos? Seller login, classifieds, customer orders, payments and settlements will not be deleted. Vendors with settlement history cannot be deleted.`
+      : `Permanently delete product "${label}" and its associated photos?`;
+    if (!window.confirm(warning)) return;
+    setBusyId(id);
+    setError("");
+    setMessage("");
+    try {
+      if (!supabase) throw new Error("Administrator sign-in is not configured.");
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (sessionError || !token) throw new Error("Please sign in again.");
+      const response = await fetch("/api/admin/marketplace-review", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ entity, id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to delete this record.");
+      setMessage(result.message || "Record deleted.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete this record.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
   const pendingVendors = vendors.filter(v => v.approval_status === "pending");
 
   return (
@@ -130,6 +159,7 @@ function MarketplaceReviewContent() {
                         <button disabled={busyId === vendor.id || vendor.approval_status === "approved"} onClick={() => void decide("vendor", vendor.id, "approved")} className="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Approve vendor</button>
                         <button disabled={busyId === vendor.id} onClick={() => void decide("vendor", vendor.id, "rejected")} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">Reject</button>
                         <button disabled={busyId === vendor.id} onClick={() => void decide("vendor", vendor.id, "suspended")} className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50">Suspend</button>
+                        <button disabled={busyId === vendor.id} onClick={() => void deleteRecord("vendor", vendor.id, vendor.business_name)} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">Permanently delete vendor</button>
                       </div>
                     </article>
                   ))}
@@ -162,6 +192,7 @@ function MarketplaceReviewContent() {
                         <button disabled={busyId === product.id || product.market_vendors?.approval_status !== "approved"} onClick={() => void decide("product", product.id, "approved")} className="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Approve product</button>
                         <button disabled={busyId === product.id} onClick={() => void decide("product", product.id, "rejected")} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">Request changes / reject</button>
                         {product.listing_status === "approved" && <button disabled={busyId === product.id} onClick={() => void decide("product", product.id, "paused")} className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50">Pause listing</button>}
+                        <button disabled={busyId === product.id} onClick={() => void deleteRecord("product", product.id, product.title)} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">Permanently delete product</button>
                       </div>
                       {product.market_vendors?.approval_status !== "approved" && <p className="mt-3 text-xs text-amber-700">This product cannot be approved until its vendor is approved.</p>}
                     </article>
