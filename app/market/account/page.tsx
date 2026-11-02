@@ -1,12 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type AccountType = "vendor" | "classified_seller" | "vendor_and_seller";
 type AccessMode = "choose" | "new" | "returning";
 
 export default function MarketAccountPage() {
   const [accessMode, setAccessMode] = useState<AccessMode>("choose");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  useEffect(() => {
+    const value = new URLSearchParams(window.location.search).get("category") || "";
+    if (["cars_vehicles", "appliances_electronics", "furniture_household", "general_items"].includes(value)) {
+      setSelectedCategory(value);
+      setAccountType("classified_seller");
+      setAccessMode("new");
+    }
+  }, []);
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [phone, setPhone] = useState("");
@@ -28,7 +37,7 @@ export default function MarketAccountPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          accountType: accessMode === "returning" ? "returning_vendor" : accountType,
+          accountType: accessMode === "returning" ? "returning_vendor" : selectedCategory ? "classified_seller" : accountType,
           displayName: accessMode === "new" ? displayName : null,
           phone: accessMode === "new" ? phone : null,
         }),
@@ -103,11 +112,12 @@ export default function MarketAccountPage() {
               <p className="font-semibold">{accessMode === "new" ? "New Vendor Registration" : "Returning Vendor Sign-in"}</p>
               <button type="button" className="text-sm text-primary underline" onClick={() => { setAccessMode("choose"); changeAccessDetails(); }}>Change option</button>
             </div>
+            {selectedCategory && accessMode === "new" && <p className="rounded-lg bg-muted p-3 text-sm font-semibold">You are registering to advertise under: {({ cars_vehicles: "Cars & Vehicles", appliances_electronics: "Home Appliances & Electronics", furniture_household: "Furniture & Household Items", general_items: "Other General Items" } as Record<string, string>)[selectedCategory]}</p>}
             {accessMode === "new" && (
               <>
                 <label className="block text-sm font-medium">
                   I want to
-                  <select required className="mt-1 w-full rounded-lg border bg-background px-3 py-2" value={accountType} onChange={(event) => setAccountType(event.target.value as AccountType)}>
+                  <select required disabled={Boolean(selectedCategory)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2" value={selectedCategory ? "classified_seller" : accountType} onChange={(event) => setAccountType(event.target.value as AccountType)}>
                     <option value="vendor">Become a marketplace vendor</option>
                     <option value="classified_seller">Advertise a car, appliance or item</option>
                     <option value="vendor_and_seller">Use both services</option>
@@ -165,7 +175,7 @@ export default function MarketAccountPage() {
               </div>
             )}
             {(accountType === "classified_seller" || accountType === "vendor_and_seller") && (
-              <div className="mt-3 flex flex-wrap gap-3"><a href="/market/account/my-adverts" className="inline-flex rounded-lg border px-4 py-2 font-semibold">View My Adverts</a><a href="/market/account/classifieds/new" className="inline-flex rounded-lg border px-4 py-2 font-semibold">Create a classified advert</a></div>
+              <div className="mt-3 flex flex-wrap gap-3"><a href="/market/account/my-adverts" className="inline-flex rounded-lg border px-4 py-2 font-semibold">View My Adverts</a><a href={`/market/account/classifieds/new${selectedCategory ? `?category=${selectedCategory}` : ""}`} className="inline-flex rounded-lg border px-4 py-2 font-semibold">Create a classified advert</a></div>
             )}
           </div>
         )}
