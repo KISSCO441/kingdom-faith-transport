@@ -67,7 +67,7 @@ export async function POST(request: Request) {
       !deliveryLocation.trim() ||
       !Array.isArray(items) ||
       items.length === 0 ||
-      items.length > MARKET_PRODUCTS.length
+      items.length > 100
     ) {
       return NextResponse.json(
         { error: "Please provide all required order information." },
@@ -99,7 +99,9 @@ export async function POST(request: Request) {
         typeof item.productName !== "string" ||
         !Number.isSafeInteger(item.quantity) ||
         item.quantity < 1 ||
-        !Number.isSafeInteger(item.unitAmount)
+        !Number.isFinite(item.unitAmount) ||
+        item.unitAmount <= 0 ||
+        Math.round(item.unitAmount * 100) !== item.unitAmount * 100
       ) {
         return NextResponse.json(
           { error: "One or more order items are invalid." },
@@ -107,27 +109,57 @@ export async function POST(request: Request) {
         );
       }
 
-      const product = MARKET_PRODUCTS.find(
-        (candidate) =>
-          candidate.name.toLowerCase() === item.productName.trim().toLowerCase(),
-      );
+      let verifiedName = "";
+      let verifiedCategory = "";
+      let verifiedPrice = 0;
 
-      if (
-        !product ||
-        !product.allowedAmounts.includes(item.unitAmount)
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "A selected product or amount is invalid. Please refresh the market and try again.",
-          },
-          { status: 400 },
+      if (typeof (item as any).vendorProductId === "string") {
+        const vendorProductId = (item as any).vendorProductId;
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(vendorProductId)) {
+          return NextResponse.json({ error: "A vendor product reference is invalid." }, { status: 400 });
+        }
+
+        const { data: vendorProduct, error: vendorProductError } = await supabase
+          .from("vendor_products")
+          .select("id, title, category, price, stock_quantity, listing_status, market_vendors!inner(approval_status)")
+          .eq("id", vendorProductId)
+          .eq("listing_status", "approved")
+          .eq("market_vendors.approval_status", "approved")
+          .gte("stock_quantity", item.quantity)
+          .maybeSingle();
+
+        if (vendorProductError || !vendorProduct) {
+          return NextResponse.json({ error: "This vendor product is no longer available in the requested quantity." }, { status: 409 });
+        }
+
+        verifiedName = vendorProduct.title;
+        verifiedCategory = vendorProduct.category;
+        verifiedPrice = Number(vendorProduct.price);
+      } else {
+        const product = MARKET_PRODUCTS.find(
+          (candidate) =>
+            candidate.name.toLowerCase() === item.productName.trim().toLowerCase(),
         );
+
+        if (!product || !product.allowedAmounts.includes(item.unitAmount)) {
+          return NextResponse.json(
+            { error: "A selected product or amount is invalid. Please refresh the market and try again." },
+            { status: 400 },
+          );
+        }
+
+        verifiedName = product.name;
+        verifiedCategory = product.category;
+        verifiedPrice = item.unitAmount;
       }
 
-      const lineTotal = item.quantity * item.unitAmount;
+      if (Math.round(verifiedPrice * 100) !== Math.round(item.unitAmount * 100)) {
+        return NextResponse.json({ error: "The product price has changed. Please refresh the market before ordering." }, { status: 409 });
+      }
 
-      if (!Number.isSafeInteger(lineTotal)) {
+      const lineTotal = Math.round(item.quantity * verifiedPrice * 100) / 100;
+
+      if (!Number.isFinite(lineTotal) || lineTotal <= 0) {
         return NextResponse.json(
           { error: "An order item total is invalid." },
           { status: 400 },
@@ -135,18 +167,18 @@ export async function POST(request: Request) {
       }
 
       verifiedItems.push({
-        product_name: product.name,
-        category: product.category,
+        product_name: verifiedName,
+        category: verifiedCategory,
         quantity: item.quantity,
-        unit_amount: item.unitAmount,
+        unit_amount: verifiedPrice,
         line_total: lineTotal,
       });
     }
 
-    const productSubtotal = verifiedItems.reduce(
+    const productSubtotal = Math.round(verifiedItems.reduce(
       (sum, item) => sum + item.line_total,
       0,
-    );
+    ) * 100) / 100;
 
     if (
       !Number.isSafeInteger(productSubtotal) ||
