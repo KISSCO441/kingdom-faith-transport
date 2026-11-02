@@ -101,10 +101,15 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
   const { category } = await searchParams
   const selectedCategory = categories.some((item) => item.id === category) ? category : undefined
   const adverts = await getActiveAdverts(selectedCategory)
-  const vendorProducts = selectedCategory === "appliances_electronics"
+  const vendorProducts = selectedCategory
     ? (await getApprovedVendorProducts()).filter((item) => {
-        const categoryText = (item.category || "").toLowerCase()
-        return categoryText.includes("appliance") || categoryText.includes("electronic") || categoryText.includes("phone") || categoryText.includes("computer")
+        const categoryText = `${item.category || ""} ${item.title || ""}`.toLowerCase()
+        const has = (...terms: string[]) => terms.some((term) => categoryText.includes(term))
+        let mappedCategory = "general_items"
+        if (has("car", "vehicle", "motorbike", "motorcycle", "okada", "truck", "van")) mappedCategory = "cars_vehicles"
+        else if (has("appliance", "electronic", "phone", "computer", "laptop", "television", "tv", "fridge", "refrigerator", "freezer", "washing machine", "fan", "air conditioner", "speaker")) mappedCategory = "appliances_electronics"
+        else if (has("furniture", "household", "sofa", "chair", "table", "bed", "wardrobe", "mattress", "cabinet", "kitchenware", "home decor")) mappedCategory = "furniture_household"
+        return mappedCategory === selectedCategory
       })
     : []
   return (
@@ -168,8 +173,8 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
             </div>
           )}
 
-        {selectedCategory === "appliances_electronics" && (
-          <section className="mt-10" aria-labelledby="vendor-appliance-listings">
+        {selectedCategory && (
+          <section className="mt-10" aria-labelledby="vendor-classified-listings">
             <h2 id="vendor-appliance-listings" className="text-2xl font-extrabold">Vendor home appliances & electronics</h2>
             <p className="mt-2 text-sm text-muted-foreground">Approved products listed by registered KFM vendors. Contact the seller directly to arrange inspection and collection.</p>
             {vendorProducts.length === 0 ? (
