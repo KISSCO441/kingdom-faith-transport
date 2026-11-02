@@ -841,6 +841,7 @@ async function prepareOrder() {
                       <div className="mt-4 rounded-xl bg-muted/50 p-3">
                         <p className="text-xs font-medium text-muted-foreground">Seller's asking price</p>
                         <p className="mt-1 text-2xl font-extrabold">GH₵{product.price.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        {product.itemCondition && <p className="mt-2 text-sm font-semibold text-slate-700">Condition: {product.itemCondition}</p>}
                         <p className="mt-1 text-xs text-muted-foreground">Contact the seller directly to discuss or negotiate this price.</p>
                         {product.vendorPhone && <a href={`tel:${product.vendorPhone.replace(/\s/g, "")}`} className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><Phone className="h-4 w-4" /> Call seller: {product.vendorPhone}</a>}
                         <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
