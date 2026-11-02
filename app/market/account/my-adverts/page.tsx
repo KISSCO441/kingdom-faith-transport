@@ -17,6 +17,8 @@ export default function MyAdvertsPage() {
   const [adverts, setAdverts] = useState<Advert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +49,7 @@ export default function MyAdvertsPage() {
         </div>
         <Link href="/market/account/classifieds/new" className="rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground">Create advert</Link>
       </div>
-      {loading && <p className="mt-8 rounded-xl border p-5">Loading your adverts…</p>}
+      {message && <p role="status" className="mt-5 rounded-lg border p-4 text-sm">{message}</p>}\n      {loading && <p className="mt-8 rounded-xl border p-5">Loading your adverts…</p>}
       {error && <p role="alert" className="mt-8 rounded-lg border border-destructive/40 p-4 text-sm text-destructive">{error}</p>}
       {!loading && !error && adverts.length === 0 && (
         <section className="mt-8 rounded-xl border p-6">
@@ -67,7 +69,7 @@ export default function MyAdvertsPage() {
             </div>
             <p className="mt-3 font-semibold">GH₵ {Number(advert.asking_price).toLocaleString("en-GH", { minimumFractionDigits: 2 })}</p>
             {advert.admin_notes && <p className="mt-3 rounded-lg bg-muted p-3 text-sm">KFM note: {advert.admin_notes}</p>}
-            <p className="mt-3 text-xs text-muted-foreground">Submitted {new Date(advert.created_at).toLocaleDateString("en-GH")}</p>
+            <div className="mt-4 flex justify-end"><button type="button" disabled={busy === advert.id} onClick={() => void deleteAdvert(advert.id, advert.title)} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">{busy === advert.id ? "Deleting…" : "Delete advert"}</button></div>\n            <p className="mt-3 text-xs text-muted-foreground">Submitted {new Date(advert.created_at).toLocaleDateString("en-GH")}</p>
           </article>
         ))}
       </div>
