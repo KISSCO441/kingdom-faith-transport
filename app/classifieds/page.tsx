@@ -134,12 +134,14 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
 
         <section className="mt-10" aria-labelledby="classified-categories">
           <h2 id="classified-categories" className="text-2xl font-extrabold">Browse by category</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Choose the type of item you are looking for.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Choose a category to register or sign in and advertise your item. You can also browse existing adverts.</p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {categories.map((category) => (
-              <a key={category.id} href={`/classifieds?category=${category.id}`} className="rounded-2xl border bg-card p-5 transition hover:border-primary hover:shadow-sm">
+              <a key={category.id} href={`/market/account?category=${category.id}`} className="rounded-2xl border bg-card p-5 transition hover:border-primary hover:shadow-sm">
                 <h3 className="font-bold">{category.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
+                <span className="mt-4 block text-sm font-bold text-primary">Advertise in this category →</span>
+                <span className="mt-2 block text-xs text-muted-foreground underline">Browse listings</span>
               </a>
             ))}
           </div>
