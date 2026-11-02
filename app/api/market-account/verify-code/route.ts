@@ -75,7 +75,11 @@ export async function POST(request: Request) {
         if (vendorError) return NextResponse.json({ error: "Seller profile could not be loaded." }, { status: 500 });
         hasExistingListings = Boolean(vendor);
       }
-      if (!hasExistingListings && (existingAccount.account_type === "classified_seller" || existingAccount.account_type === "vendor_and_seller")) {
+      if (existingAccount.account_type === "classified_seller") {
+        // Classified seller accounts can sign in before they have published or submitted an advert.
+        hasExistingListings = true;
+      }
+      if (!hasExistingListings && existingAccount.account_type === "vendor_and_seller") {
         const { data: advert, error: advertError } = await supabase
           .from("classified_ads").select("id").eq("seller_account_id", existingAccount.id).limit(1).maybeSingle();
         if (advertError) return NextResponse.json({ error: "Advert history could not be loaded." }, { status: 500 });
