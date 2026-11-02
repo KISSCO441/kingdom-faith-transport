@@ -161,8 +161,17 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
             <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {adverts.map((ad) => (
                 <a key={ad.id} href={`/classifieds/${ad.id}`} className="overflow-hidden rounded-2xl border bg-card transition hover:border-primary hover:shadow-sm">
-                  {ad.image_urls?.[0] ? (
-                    <img src={ad.image_urls[0]} alt={ad.title} className="h-52 w-full object-cover" loading="lazy" />
+                  {ad.image_urls?.length ? (
+                    <div className="grid h-52 grid-cols-3 gap-1 bg-muted">
+                      {ad.image_urls.slice(0, 3).map((image, index) => (
+                        <div key={index} className="relative min-w-0 overflow-hidden">
+                          <img src={image} alt={`${ad.title} photo ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
+                          {index === 2 && ad.image_urls && ad.image_urls.length > 3 && (
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-bold text-white">+{ad.image_urls.length - 3}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>
                   )}
