@@ -16,6 +16,7 @@ type Product = {
   title: string;
   description?: string;
   category: string;
+  item_condition: "Brand New" | "Used" | null;
   price: number;
   stock_quantity: number;
   listing_status: string;
@@ -48,6 +49,7 @@ export default function VendorDashboardPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Groceries");
+  const [itemCondition, setItemCondition] = useState<"Brand New" | "Used" | "">("");
   const [price, setPrice] = useState("");
   const [stockQuantity, setStockQuantity] = useState("1");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -82,6 +84,7 @@ export default function VendorDashboardPage() {
     setTitle(product.title);
     setDescription(product.description || "");
     setCategory(product.category);
+    setItemCondition(product.item_condition || "");
     setPrice(String(product.price));
     setStockQuantity(String(product.stock_quantity));
     setExistingImages(product.image_urls || []);
@@ -96,6 +99,7 @@ export default function VendorDashboardPage() {
     setTitle("");
     setDescription("");
     setCategory("Groceries");
+    setItemCondition("");
     setPrice("");
     setStockQuantity("1");
     setSelectedImages([]);
@@ -138,7 +142,7 @@ export default function VendorDashboardPage() {
       const response = await fetch(editingId ? `/api/market-account/vendor-products/${editingId}` : "/api/market-account/vendor-products", {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, category, price, stockQuantity: Number(stockQuantity), imageUrls }),
+        body: JSON.stringify({ title, description, category, itemCondition, price, stockQuantity: Number(stockQuantity), imageUrls }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to save product.");
@@ -220,6 +224,13 @@ export default function VendorDashboardPage() {
                     <label className="block text-sm font-medium">Category
                       <input required maxLength={80} value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Groceries, Books, Home & Lifestyle" className="mt-1 w-full rounded-lg border bg-background px-3 py-3" />
                     </label>
+                    <label className="block text-sm font-medium">Item condition
+                      <select required value={itemCondition} onChange={e => setItemCondition(e.target.value as "Brand New" | "Used" | "")} className="mt-1 w-full rounded-lg border bg-background px-3 py-3">
+                        <option value="">Select condition</option>
+                        <option value="Brand New">Brand New</option>
+                        <option value="Used">Used</option>
+                      </select>
+                    </label>
                     <label className="block text-sm font-medium">Description
                       <textarea required rows={4} maxLength={3000} value={description} onChange={e => setDescription(e.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-3" />
                     </label>
@@ -252,7 +263,7 @@ export default function VendorDashboardPage() {
                               <div className="min-w-0">
                                 <h3 className="font-semibold">{product.title}</h3>
                                 {product.image_urls?.length ? <div className="mt-2 flex gap-2 overflow-x-auto">{product.image_urls.map((url, index) => <img key={`${url}-${index}`} src={url} alt={`${product.title} photo ${index + 1}`} className="h-16 w-16 rounded-md border object-cover" />)}</div> : null}
-                                <p className="mt-1 text-xs text-muted-foreground">{product.category} · Stock: {product.stock_quantity}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">{product.category} · {product.item_condition || "Condition not set"} · Stock: {product.stock_quantity}</p>
                                 <p className="mt-2 font-semibold">GH₵{Number(product.price).toFixed(2)}</p>
                               </div>
                               <span className="rounded-full border px-3 py-1 text-xs font-semibold">{statusText[product.listing_status] || product.listing_status.replaceAll("_", " ")}</span>
