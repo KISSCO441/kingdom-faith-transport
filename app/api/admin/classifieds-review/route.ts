@@ -104,3 +104,31 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Invalid moderation request." }, { status: 400 })
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const auth = await requireKfmAdmin(request)
+  if (!auth.ok) return auth.response
+  try {
+    const body = await request.json()
+    const id = typeof body?.id === "string" ? body.id : ""
+    const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 1000) : ""
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+      return NextResponse.json({ error: "Invalid advert." }, { status: 400 })
+    }
+    if (!reason) return NextResponse.json({ error: "Enter a reason for permanent deletion." }, { status: 400 })
+    const { error } = await auth.supabase.rpc("kfm_delete_classified_ad", {
+      p_advert_id: id,
+      p_action: "admin_deleted",
+      p_actor_account_id: null,
+      p_actor_email: auth.user.email,
+      p_reason: reason,
+    })
+    if (error) {
+      console.error("KFM admin advert deletion failed:", error)
+      return NextResponse.json({ error: error.message.includes("Advert not found") ? "Advert not found." : "Unable to permanently delete this advert. Confirm the deletion audit migration has been applied." }, { status: error.message.includes("Advert not found") ? 404 : 503 })
+    }
+    return NextResponse.json({ success: true })
+  } catch {
+    return NextResponse.json({ error: "Invalid deletion request." }, { status: 400 })
+  }
+}
