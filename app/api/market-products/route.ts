@@ -17,7 +17,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("vendor_products")
-    .select("id, title, description, category, price, stock_quantity, image_urls, market_vendors!inner(business_name, contact_phone, business_location, approval_status)")
+    .select("id, title, description, category, item_condition, price, stock_quantity, image_urls, market_vendors!inner(business_name, contact_phone, business_location, approval_status)")
     .eq("listing_status", "approved")
     .eq("market_vendors.approval_status", "approved")
     .gt("stock_quantity", 0)
@@ -38,6 +38,7 @@ export async function GET() {
       title: product.title,
       description: product.description,
       category: product.category,
+      item_condition: product.item_condition,
       price: Number(product.price),
       stock_quantity: product.stock_quantity,
       image_urls: product.image_urls ?? [],
