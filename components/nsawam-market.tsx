@@ -30,6 +30,7 @@ type Product = {
   vendorLocation?: string
   isVendorProduct?: boolean
   stockQuantity?: number
+  imageUrls?: string[]
 }
 
 type CartItem = {
@@ -188,7 +189,7 @@ export function NsawamMarket() {
           return {
             id: `vendor-${item.id}`, name: item.title, unit: "Vendor product", price,
             category: item.category || "Other", image: photos[0] || "/placeholder.svg",
-            amountOptions: [price], description: item.description || "",
+            amountOptions: [price], imageUrls: photos, description: item.description || "",
             vendorName: item.vendor_name || "", vendorPhone: item.vendor_phone || "",
             vendorLocation: item.vendor_location || "", isVendorProduct: true,
             stockQuantity: Number(item.stock_quantity) || 0,
@@ -315,6 +316,7 @@ function startLiveMarketOrder() {
   function addItem(product: Product) {
     setCart((current) => {
       const existing = current[product.id]
+      if (product.isVendorProduct && existing && existing.quantity >= (product.stockQuantity ?? 0)) return current
 
       return {
         ...current,
@@ -794,6 +796,13 @@ async function prepareOrder() {
                       <img src={product.image} alt={product.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     ) : (
                       <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" />
+                    )}
+                    {product.isVendorProduct && product.imageUrls && product.imageUrls.length > 1 && (
+                      <div className="flex gap-2 overflow-x-auto p-3">
+                        {product.imageUrls.slice(1).map((photo, index) => (
+                          <img key={photo} src={photo} alt={`${product.name} photo ${index + 2}`} className="h-14 w-14 shrink-0 rounded-lg border object-cover" />
+                        ))}
+                      </div>
                     )}
 
                     {quantity > 0 && (
