@@ -7,10 +7,12 @@ function validateProduct(body: any) {
   const title = typeof body?.title === "string" ? body.title.trim() : "";
   const description = typeof body?.description === "string" ? body.description.trim() : "";
   const category = typeof body?.category === "string" ? body.category.trim() : "";
+  const itemCondition = body?.itemCondition;
   const price = Number(body?.price);
   const stockQuantity = Number(body?.stockQuantity);
 
-  if (!title || title.length > 140 ||
+  if (!["Brand New", "Used"].includes(itemCondition) ||
+      !title || title.length > 140 ||
       !description || description.length > 3000 ||
       !category || category.length > 80 ||
       !Number.isFinite(price) || price <= 0 || price > 10000000 ||
@@ -18,7 +20,7 @@ function validateProduct(body: any) {
     return null;
   }
 
-  return { title, description, category, price: Math.round(price * 100) / 100, stock_quantity: stockQuantity };
+  return { title, description, category, item_condition: itemCondition, price: Math.round(price * 100) / 100, stock_quantity: stockQuantity };
 }
 
 export async function POST(request: NextRequest) {
