@@ -106,8 +106,8 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
         const categoryText = `${item.category || ""} ${item.title || ""}`.toLowerCase()
         const has = (...terms: string[]) => terms.some((term) => categoryText.includes(term))
         let mappedCategory = "general_items"
-        if (has("car", "vehicle", "motorbike", "motorcycle", "okada", "truck", "van")) mappedCategory = "cars_vehicles"
-        else if (has("appliance", "electronic", "phone", "computer", "laptop", "television", "tv", "fridge", "refrigerator", "freezer", "washing machine", "fan", "air conditioner", "speaker")) mappedCategory = "appliances_electronics"
+        if (has("car", "cars", "vehicle", "vehicles", "motorbike", "motorcycle", "okada", "truck", "van", "automobile", "toyota", "yaris", "honda", "nissan", "hyundai", "kia", "mercedes", "benz", "bmw", "lexus", "suzuki", "mitsubishi", "ford")) mappedCategory = "cars_vehicles"
+        else if (has("appliance", "electronic", "phone", "computer", "laptop", "television", " tv", "fridge", "refrigerator", "freezer", "washing machine", "fan", "air conditioner", "speaker")) mappedCategory = "appliances_electronics"
         else if (has("furniture", "household", "sofa", "chair", "table", "bed", "wardrobe", "mattress", "cabinet", "kitchenware", "home decor")) mappedCategory = "furniture_household"
         return mappedCategory === selectedCategory
       })
@@ -123,8 +123,8 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
             Discover cars, appliances, furniture and other items advertised by sellers.
             Contact sellers directly and make careful checks before you buy.
           </p>
-          <a href="/market/account" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-lg bg-orange-500 px-5 py-3 text-sm font-bold text-white hover:bg-orange-600">
-            Create a seller account
+          <a href={selectedCategory ? `/market/account?category=${selectedCategory}` : "/market/account"} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-lg bg-orange-500 px-5 py-3 text-sm font-bold text-white hover:bg-orange-600">
+            Add your advert
           </a>
         </section>
 
@@ -134,15 +134,17 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
 
         <section className="mt-10" aria-labelledby="classified-categories">
           <h2 id="classified-categories" className="text-2xl font-extrabold">Browse by category</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Choose a category to register or sign in and advertise your item. You can also browse existing adverts.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Choose a category to browse approved listings from sellers. You can add your own advert from inside that category.</p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {categories.map((category) => (
-              <a key={category.id} href={`/market/account?category=${category.id}`} className="rounded-2xl border bg-card p-5 transition hover:border-primary hover:shadow-sm">
-                <h3 className="font-bold">{category.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
-                <span className="mt-4 block text-sm font-bold text-primary">Advertise in this category →</span>
-                <span className="mt-2 block text-xs text-muted-foreground underline">Browse listings</span>
-              </a>
+              <div key={category.id} className="rounded-2xl border bg-card p-5 transition hover:border-primary hover:shadow-sm">
+                <a href={`/classifieds?category=${category.id}`} className="block">
+                  <h3 className="font-bold">{category.title}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
+                  <span className="mt-4 block text-sm font-bold text-primary">Browse listings →</span>
+                </a>
+                <a href={`/market/account?category=${category.id}`} className="mt-3 inline-flex min-h-10 items-center rounded-lg border border-orange-500 px-3 py-2 text-sm font-bold text-orange-600 hover:bg-orange-50">Add your advert</a>
+              </div>
             ))}
           </div>
         </section>
@@ -177,7 +179,7 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
 
         {selectedCategory && (
           <section className="mt-10" aria-labelledby="vendor-classified-listings">
-            <h2 id="vendor-appliance-listings" className="text-2xl font-extrabold">Vendor home appliances & electronics</h2>
+            <h2 id="vendor-classified-listings" className="text-2xl font-extrabold">More approved vendor listings</h2>
             <p className="mt-2 text-sm text-muted-foreground">Approved products listed by registered KFM vendors. Contact the seller directly to arrange inspection and collection.</p>
             {vendorProducts.length === 0 ? (
               <p className="mt-4 rounded-xl border border-dashed p-5 text-sm text-muted-foreground">No approved vendor products in this category yet.</p>
