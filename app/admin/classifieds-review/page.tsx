@@ -62,6 +62,29 @@ function ReviewContent() {
     finally { setBusy("") }
   }
 
+  async function permanentlyDeleteAdvert(id: string, title: string) {
+    if (!window.confirm(`Permanently delete "${title}"? This removes the advert from public listings while preserving payment and moderation audit records.`)) return;
+    const reason = window.prompt("Enter the KFM policy reason for permanent deletion:");
+    if (!reason?.trim()) return;
+    setBusy(id); setError(""); setMessage("");
+    try {
+      if (!supabase) throw new Error("Administrator sign-in is not configured.");
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (sessionError || !token) throw new Error("Please sign in again.");
+      const response = await fetch("/api/admin/classifieds-review", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ id, reason }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to permanently delete advert.");
+      setMessage("Advert permanently deleted. Payment and moderation audit records are retained.");
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Unable to delete advert."); }
+    finally { setBusy(""); }
+  }
+
   return <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
     <div className="mx-auto max-w-7xl">
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-950 p-6 text-white">
@@ -87,6 +110,7 @@ function ReviewContent() {
                   <button disabled={!paid || busy === ad.id || ad.advert_status === "active"} onClick={() => void decide("advert", ad.id, "active")} className="rounded-lg bg-green-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">Approve & publish</button>
                   <button disabled={busy === ad.id} onClick={() => void decide("advert", ad.id, "rejected")} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-bold text-red-700 disabled:opacity-40">Reject</button>
                   {ad.advert_status === "active" && <button disabled={busy === ad.id} onClick={() => void decide("advert", ad.id, "paused")} className="rounded-lg border px-4 py-2 text-sm font-bold disabled:opacity-40">Pause advert</button>}
+                  <button disabled={busy === ad.id} onClick={() => void permanentlyDeleteAdvert(ad.id, ad.title)} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-bold text-red-700 disabled:opacity-40">Permanently delete</button>
                 </div>
               </article>
             })}
