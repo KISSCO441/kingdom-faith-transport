@@ -60,6 +60,9 @@ export async function PATCH(request: NextRequest) {
       if (!["active", "rejected", "paused"].includes(status)) {
         return NextResponse.json({ error: "Invalid advert decision." }, { status: 400 })
       }
+      if (status === "rejected" && !notes) {
+        return NextResponse.json({ error: "Enter the reason for rejecting this advert so the seller can see what needs to change." }, { status: 400 })
+      }
       const { data: advert, error: lookupError } = await auth.supabase
         .from("classified_ads")
         .select("id, advert_status")
