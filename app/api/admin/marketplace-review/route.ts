@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false }),
     auth.supabase
       .from("vendor_products")
-      .select("id, vendor_id, title, description, category, price, stock_quantity, listing_status, admin_notes, created_at, reviewed_at, market_vendors!inner(business_name, approval_status)")
+      .select("id, vendor_id, title, description, category, item_condition, price, stock_quantity, listing_status, admin_notes, created_at, reviewed_at, market_vendors!inner(business_name, approval_status)")
       .order("created_at", { ascending: false }),
   ]);
 
