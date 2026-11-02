@@ -173,6 +173,7 @@ export function NsawamMarket() {
   const [activeCategory, setActiveCategory] = useState("All")
   const [cart, setCart] = useState<Record<string, CartItem>>({})
   const [vendorProducts, setVendorProducts] = useState<Product[]>([])
+  const [expandedImage, setExpandedImage] = useState<{ src: string; alt: string } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -507,6 +508,12 @@ async function prepareOrder() {
   }
 
   return (
+    {expandedImage && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4" role="dialog" aria-modal="true" aria-label="Expanded product photo" onClick={() => setExpandedImage(null)}>
+        <button type="button" onClick={() => setExpandedImage(null)} className="absolute right-4 top-4 z-10 rounded-full bg-white/15 p-3 text-white hover:bg-white/25" aria-label="Close enlarged photo"><X className="h-6 w-6" /></button>
+        <img src={expandedImage.src} alt={expandedImage.alt} onClick={(event) => event.stopPropagation()} className="max-h-[90vh] max-w-[95vw] rounded-lg object-contain" />
+      </div>
+    )}
     <section
       id="nsawam-market"
       className="border-t border-border bg-background"
@@ -793,20 +800,20 @@ async function prepareOrder() {
                 >
                   <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
                     {product.isVendorProduct ? (
-                      <img src={product.image} alt={product.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      <button type="button" className="h-full w-full cursor-zoom-in" onClick={() => setExpandedImage({ src: product.image, alt: product.name })} aria-label={`Enlarge photo of ${product.name}`}>
+                        <img src={product.image} alt={product.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      </button>
                     ) : (
                       <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" />
                     )}
-                    {quantity > 0 && (
-                      <div className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow">
-                        {quantity} in basket
-                      </div>
-                    )}
+                    {quantity > 0 && <div className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow">{quantity} in basket</div>}
                   </div>
                   {product.isVendorProduct && product.imageUrls && product.imageUrls.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto px-3 pt-3">
                       {product.imageUrls.slice(1).map((photo, index) => (
-                        <img key={photo} src={photo} alt={`${product.name} photo ${index + 2}`} className="h-14 w-14 shrink-0 rounded-lg border object-cover" />
+                        <button key={photo} type="button" onClick={() => setExpandedImage({ src: photo, alt: `${product.name} photo ${index + 2}` })} className="shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={`Enlarge ${product.name} photo ${index + 2}`}>
+                          <img src={photo} alt={`${product.name} photo ${index + 2}`} className="h-14 w-14 rounded-lg border object-cover" />
+                        </button>
                       ))}
                     </div>
                   )}
@@ -829,39 +836,35 @@ async function prepareOrder() {
                       </div>
                     )}
 
-                    <div className="mt-4">
-                      <label
-                        htmlFor={`${product.id}-amount`}
-                        className="text-xs font-medium"
-                      >
-                        Choose amount
-                      </label>
+                    {product.isVendorProduct ? (
+                      <div className="mt-4 rounded-xl bg-muted/50 p-3">
+                        <p className="text-xs font-medium text-muted-foreground">Seller's asking price</p>
+                        <p className="mt-1 text-2xl font-extrabold">GH₵{product.price.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Contact the seller directly to discuss or negotiate this price.</p>
+                        {product.vendorPhone && <a href={`tel:${product.vendorPhone.replace(/\s/g, "")}`} className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><Phone className="h-4 w-4" /> Call seller: {product.vendorPhone}</a>}
+                        {quantity === 0 ? (
+                          <Button type="button" className="mt-3 w-full" onClick={() => addItem(product)}>Add to basket</Button>
+                        ) : (
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="text-sm font-semibold">In basket: {quantity}</span>
+                            <div className="flex items-center gap-2">
+                              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => removeItemQuantity(product.id)} aria-label={`Remove one ${product.name}`}><Minus className="h-4 w-4" /></Button>
+                              <Button size="icon" className="h-8 w-8" disabled={quantity >= (product.stockQuantity ?? 0)} onClick={() => addItem(product)} aria-label={`Add another ${product.name}`}><Plus className="h-4 w-4" /></Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-4">
+                        <label htmlFor={`${product.id}-amount`} className="text-xs font-medium">Choose amount</label>
+                        <select id={`${product.id}-amount`} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40" value={cartItem?.selectedAmount ?? ""} onChange={(event) => { const amount = Number(event.target.value); if (amount) selectAmount(product, amount) }}>
+                          <option value="">Select GH₵ amount</option>
+                          {product.amountOptions.map((amount) => <option key={amount} value={amount}>GH₵{amount}</option>)}
+                        </select>
+                      </div>
+                    )}
 
-                      <select
-                        id={`${product.id}-amount`}
-                        className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
-                        value={cartItem?.selectedAmount ?? ""}
-                        onChange={(event) => {
-                          const amount = Number(event.target.value)
-
-                          if (!amount) return
-
-                          selectAmount(product, amount)
-                        }}
-                      >
-                        <option value="">
-                          Select GH₵ amount
-                        </option>
-
-                        {product.amountOptions.map((amount) => (
-                          <option key={amount} value={amount}>
-                            GH₵{amount}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {quantity > 0 && cartItem?.selectedAmount ? (
+                    {!product.isVendorProduct && quantity > 0 && cartItem?.selectedAmount ? (
                       <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 p-3">
                         <div>
                           <p className="text-xs text-muted-foreground">
