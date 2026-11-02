@@ -797,20 +797,19 @@ async function prepareOrder() {
                     ) : (
                       <Image src={product.image || "/placeholder.svg"} alt={product.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" />
                     )}
-                    {product.isVendorProduct && product.imageUrls && product.imageUrls.length > 1 && (
-                      <div className="flex gap-2 overflow-x-auto p-3">
-                        {product.imageUrls.slice(1).map((photo, index) => (
-                          <img key={photo} src={photo} alt={`${product.name} photo ${index + 2}`} className="h-14 w-14 shrink-0 rounded-lg border object-cover" />
-                        ))}
-                      </div>
-                    )}
-
                     {quantity > 0 && (
                       <div className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow">
                         {quantity} in basket
                       </div>
                     )}
                   </div>
+                  {product.isVendorProduct && product.imageUrls && product.imageUrls.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto px-3 pt-3">
+                      {product.imageUrls.slice(1).map((photo, index) => (
+                        <img key={photo} src={photo} alt={`${product.name} photo ${index + 2}`} className="h-14 w-14 shrink-0 rounded-lg border object-cover" />
+                      ))}
+                    </div>
+                  )}
 
                   <div className="flex flex-1 flex-col p-5">
                     <h4 className="text-base font-semibold">
