@@ -25,7 +25,7 @@ function BooksAdmin() {
     if (!session?.access_token) return;
     const response = await fetch("/api/admin/books",{headers:{Authorization:`Bearer ${session.access_token}`},cache:"no-store"});
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Could not load books.");
+    if (!response.ok) throw new Error(result.diagnostic ? `${result.error || "Could not load books."} — ${JSON.stringify(result.diagnostic)}` : (result.error || "Could not load books."));
     setBooks(result.books || []);
   },[]);
 
@@ -43,7 +43,7 @@ function BooksAdmin() {
       if (cover) form.set("cover",cover);
       const response = await fetch("/api/admin/books",{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`},body:form});
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not save this book.");
+      if (!response.ok) throw new Error(result.diagnostic ? `${result.error || "Could not save this book."} — ${JSON.stringify(result.diagnostic)}` : (result.error || "Could not save this book."));
       setNotice("Book added and published. It is now visible on the Books & Publications page.");
       setTitle(""); setDescription(""); setPrice(""); setPdf(null); setCover(null);
       const formElement = event.currentTarget;
