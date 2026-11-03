@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { ClassifiedPhotoGallery } from "@/components/classifieds/classified-photo-gallery"
 
 type VendorProduct = {
   id: string
@@ -28,14 +29,7 @@ export function VendorProductCard({ product }: { product: VendorProduct }) {
         className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
       >
         {photos.length ? (
-          <div className="grid h-52 grid-cols-3 gap-1 bg-muted">
-            {photos.slice(0, 3).map((image, index) => (
-              <div key={index} className="relative min-w-0 overflow-hidden">
-                <img src={image} alt={`${product.title} photo ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
-                {index === 2 && photos.length > 3 && <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-bold text-white">+{photos.length - 3}</span>}
-              </div>
-            ))}
-          </div>
+          <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}><ClassifiedPhotoGallery title={product.title} photos={photos} /></div>
         ) : <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>}
         <div className="p-4">
           <h3 className="font-bold">{product.title}</h3>
