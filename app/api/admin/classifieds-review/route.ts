@@ -91,7 +91,7 @@ export async function PATCH(request: NextRequest) {
           advert_status: status,
           admin_notes: notes || null,
           reviewed_at: now,
-          ...(status === "active" ? { published_at: now, expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), expired_at: null } : {}),
+          ...(status === "active" ? { published_at: now, expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString() } : {}),
           updated_at: now,
         })
         .eq("id", id)
