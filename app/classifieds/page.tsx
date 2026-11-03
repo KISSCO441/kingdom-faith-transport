@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { BuyerSafetyNotice } from "@/components/classifieds/buyer-safety-notice"
+import { VendorProductCard } from "@/components/classifieds/vendor-product-card"
 
 export const dynamic = "force-dynamic"
 
@@ -193,17 +194,7 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
               <p className="mt-4 rounded-xl border border-dashed p-5 text-sm text-muted-foreground">No approved vendor products in this category yet.</p>
             ) : (
               <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {vendorProducts.map((product) => (
-                  <details key={product.id} className="group overflow-hidden rounded-2xl border bg-card">
-                    <summary className="cursor-pointer list-none">
-                      {product.image_urls?.length ? (
-                        <div className="grid h-52 grid-cols-3 gap-1 bg-muted">
-                          {product.image_urls.slice(0, 3).map((image, index) => (
-                            <div key={index} className="relative min-w-0 overflow-hidden">
-                              <img src={image} alt={`${product.title} photo ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
-                              {index === 2 && product.image_urls && product.image_urls.length > 3 && <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-bold text-white">+{product.image_urls.length - 3}</span>}
-                            </div>
-                          ))}
+                {vendorProducts.map((product) => <VendorProductCard key={product.id} product={product} />)}
                         </div>
                       ) : <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>}
                       <div className="p-4">
