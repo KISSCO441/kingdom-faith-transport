@@ -65,7 +65,7 @@ export function SiteHeader() {
 
         <nav aria-label="Main navigation" className="hidden items-center gap-3 xl:flex">
           <a href="/" className={navLinkClass}>HOME</a>
-          <a href="/#book" className={navLinkClass}>BOOKING</a>
+          <a href="/#book" className={navLinkClass}>BOOK A RIDE</a>
           <a href="/classifieds" className={navLinkClass}>CLASSIFIEDS</a>
           <MarketplaceDropdown />
         </nav>
@@ -92,7 +92,7 @@ export function SiteHeader() {
             className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 py-4 sm:px-6"
           >
             <a href="/" onClick={closeMobileMenu} className={navLinkClass}>HOME</a>
-            <a href="/#book" onClick={closeMobileMenu} className={navLinkClass}>BOOKING</a>
+            <a href="/#book" onClick={closeMobileMenu} className={navLinkClass}>BOOK A RIDE</a>
             <a href="/classifieds" onClick={closeMobileMenu} className={navLinkClass}>CLASSIFIEDS</a>
             <details className="group relative">
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg bg-primary px-3 py-3 text-center text-xs font-extrabold uppercase tracking-[0.08em] text-primary-foreground shadow-sm [&::-webkit-details-marker]:hidden">
