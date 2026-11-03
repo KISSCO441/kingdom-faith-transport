@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const [{ data: adverts, error: advertsError }, { data: reports, error: reportsError }] = await Promise.all([
     auth.supabase
       .from("classified_ads")
-      .select("id, category, title, description, asking_price, location, seller_contact_phone, image_urls, advert_status, admin_notes, created_at, classified_ad_payments(payment_status, amount, currency, payment_reference)")
+      .select("id, category, title, description, asking_price, location, seller_contact_phone, advert_status, admin_notes, created_at, classified_ad_payments(payment_status, amount, currency, payment_reference)")
       .order("created_at", { ascending: false })
       .limit(100),
     auth.supabase
