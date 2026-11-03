@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button"
 import { SiteHeader } from "@/components/site-header"
 import { Hero } from "@/components/hero"
 import { Services } from "@/components/services"
-import { CarServicing } from "@/components/car-servicing"
 import { NsawamMarket } from "@/components/nsawam-market"
 import { Features } from "@/components/features"
 import { HowItWorks } from "@/components/how-it-works"
@@ -18,7 +17,6 @@ export default function Page() {
       <main>
         <Hero />
         <Services />
-        <CarServicing />
         <NsawamMarket />
         <Features />
         <HowItWorks />
@@ -45,7 +43,6 @@ export default function Page() {
             </p>
 
             <div className="mt-10 grid gap-6 sm:grid-cols-3">
-              {/* Phone / WhatsApp */}
               <a
                 href="tel:+233240555688"
                 className="rounded-xl border border-border bg-background p-6 transition-colors hover:border-primary hover:text-primary"
@@ -53,17 +50,12 @@ export default function Page() {
                 <div className="text-sm font-bold uppercase tracking-wide">
                   PHONE / WHATSAPP
                 </div>
-
-                <div className="mt-3 text-lg font-bold">
-                  0240 555 688
-                </div>
-
+                <div className="mt-3 text-lg font-bold">0240 555 688</div>
                 <div className="mt-1 text-sm text-muted-foreground">
                   Call or WhatsApp KFM
                 </div>
               </a>
 
-              {/* Email */}
               <a
                 href="mailto:kingdomfaithtransport@gmail.com"
                 className="rounded-xl border border-border bg-background p-6 transition-colors hover:border-primary hover:text-primary"
@@ -71,47 +63,34 @@ export default function Page() {
                 <div className="text-sm font-bold uppercase tracking-wide">
                   EMAIL
                 </div>
-
                 <div className="mt-3 break-words text-lg font-bold">
                   kingdomfaithtransport@gmail.com
                 </div>
-
                 <div className="mt-1 text-sm text-muted-foreground">
                   Send us an email
                 </div>
               </a>
 
-              {/* Location */}
               <div className="rounded-xl border border-border bg-background p-6">
                 <div className="text-sm font-bold uppercase tracking-wide">
                   LOCATION
                 </div>
-
-                <div className="mt-3 text-lg font-bold">
-                  Nsawam
-                </div>
-
+                <div className="mt-3 text-lg font-bold">Nsawam</div>
                 <div className="mt-1 text-sm text-muted-foreground">
                   Eastern Region, Ghana
                 </div>
               </div>
             </div>
 
-            {/* WhatsApp Live Chat */}
             <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-border bg-background p-8 shadow-sm">
               <p className="text-sm font-bold uppercase tracking-widest text-primary">
                 LIVE CHAT
               </p>
-
-              <h3 className="mt-2 text-2xl font-bold">
-                Chat with KFM
-              </h3>
-
+              <h3 className="mt-2 text-2xl font-bold">Chat with KFM</h3>
               <p className="mt-3 text-muted-foreground">
                 Need help with a ride, market order, delivery, or another KFM
                 service? Start a live conversation with us on WhatsApp.
               </p>
-
               <Button asChild className="mt-6 font-bold tracking-wide">
                 <a
                   href="https://wa.me/233240555688?text=Hello%20KFM%2C%20I%20need%20assistance."
