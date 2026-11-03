@@ -21,23 +21,23 @@ export function VendorProductCard({ product }: { product: VendorProduct }) {
 
   return (
     <article className="overflow-hidden rounded-2xl border bg-card">
-      <button
-        type="button"
-        aria-expanded={expanded}
-        aria-controls={`vendor-product-details-${product.id}`}
-        onClick={() => setExpanded(value => !value)}
-        className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
-      >
-        {photos.length ? (
-          <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}><ClassifiedPhotoGallery title={product.title} photos={photos} /></div>
-        ) : <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>}
-        <div className="p-4">
-          <h3 className="font-bold">{product.title}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{product.vendor_location}</p>
-          <p className="mt-3 text-lg font-extrabold text-primary">GH₵{product.price.toFixed(2)}</p>
-          <span className="mt-3 inline-block text-sm font-bold text-primary">{expanded ? "Hide details −" : "View details +"}</span>
-        </div>
-      </button>
+      {photos.length ? (
+        <ClassifiedPhotoGallery title={product.title} photos={photos} />
+      ) : <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>}
+      <div className="p-4">
+        <h3 className="font-bold">{product.title}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">{product.vendor_location}</p>
+        <p className="mt-3 text-lg font-extrabold text-primary">GH₵{product.price.toFixed(2)}</p>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={`vendor-product-details-${product.id}`}
+          onClick={() => setExpanded(value => !value)}
+          className="mt-3 inline-flex min-h-10 items-center text-sm font-bold text-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {expanded ? "Hide details −" : "View details +"}
+        </button>
+      </div>
       {expanded && (
         <div id={`vendor-product-details-${product.id}`} className="border-t p-4">
           {photos.length > 3 && <div className="mb-4 grid grid-cols-2 gap-2">{photos.slice(3).map((image, index) => <img key={index} src={image} alt={`${product.title} photo ${index + 4}`} className="h-40 w-full rounded-lg object-cover" loading="lazy" />)}</div>}
