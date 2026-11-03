@@ -40,7 +40,20 @@ export async function POST(request: NextRequest) {
       asking_price: Math.round(askingPrice * 100) / 100, location, seller_contact_phone: phone,
       image_urls: images, advert_status: "pending_payment",
     }).select("id").single()
-    if (advertError || !advert) return NextResponse.json({ error: "Unable to save your advert details." }, { status: 503 })
+    if (advertError || !advert) {
+      console.error("KFM classified advert insert failed:", {
+        code: advertError?.code,
+        message: advertError?.message,
+        details: advertError?.details,
+        hint: advertError?.hint,
+        category,
+        sellerAccountId: account.id,
+      })
+      return NextResponse.json({
+        error: "Unable to save your advert details.",
+        reference: advertError?.code ? "Database error " + advertError.code : "Database insert failed",
+      }, { status: 503 })
+    }
 
     const reference = "KFM-CLS-" + randomBytes(12).toString("hex").toUpperCase()
     const paystackResponse = await fetch("https://api.paystack.co/transaction/initialize", {
