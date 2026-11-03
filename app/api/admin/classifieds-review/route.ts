@@ -91,11 +91,11 @@ export async function PATCH(request: NextRequest) {
           advert_status: status,
           admin_notes: notes || null,
           reviewed_at: now,
-          ...(status === "active" ? { published_at: now } : {}),
+          ...(status === "active" ? { published_at: now, expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), expired_at: null } : {}),
           updated_at: now,
         })
         .eq("id", id)
-        .select("id, title, advert_status, admin_notes, reviewed_at, published_at")
+        .select("id, title, advert_status, admin_notes, reviewed_at, published_at, expires_at")
         .maybeSingle()
       if (error) return NextResponse.json({ error: "Unable to update this advert." }, { status: 503 })
       if (!data) return NextResponse.json({ error: "Advert not found." }, { status: 404 })
