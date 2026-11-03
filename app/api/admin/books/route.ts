@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     const { error: pdfError } = await auth.supabase.storage.from("kfm-digital-books").upload(pdfPath, pdfBytes, { contentType: "application/pdf", upsert: false });
     if (pdfError) {
       console.error("KFM book PDF upload failed:", pdfError.message);
-      return NextResponse.json({ error: "Could not upload the PDF. Check that the KFM Books storage migration has been applied." }, { status: 500 });
+      return NextResponse.json({ error: "Could not upload the PDF.", diagnostic: { message: pdfError.message, name: pdfError.name } }, { status: 500 });
     }
 
     let coverUrl: string | null = null;
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       const { error: coverError } = await auth.supabase.storage.from("kfm-book-covers").upload(coverPath, Buffer.from(await cover.arrayBuffer()), { contentType: cover.type, upsert: false });
       if (coverError) {
         await auth.supabase.storage.from("kfm-digital-books").remove([pdfPath]);
-        return NextResponse.json({ error: "Could not upload the cover image." }, { status: 500 });
+        return NextResponse.json({ error: "Could not upload the cover image.", diagnostic: { message: coverError.message, name: coverError.name } }, { status: 500 });
       }
       coverUrl = auth.supabase.storage.from("kfm-book-covers").getPublicUrl(coverPath).data.publicUrl;
     }
@@ -86,11 +86,11 @@ export async function POST(request: NextRequest) {
         await auth.supabase.storage.from("kfm-book-covers").remove([`${slug}/cover.${extension}`]);
       }
       console.error("KFM book record creation failed:", error?.message);
-      return NextResponse.json({ error: "The book could not be saved." }, { status: 500 });
+      return NextResponse.json({ error: "The book could not be saved.", diagnostic: { code: error?.code ?? null, message: error?.message ?? "No book record was returned.", details: error?.details ?? null, hint: error?.hint ?? null } }, { status: 500 });
     }
     return NextResponse.json({ book });
   } catch (error) {
     console.error("KFM book upload error:", error);
-    return NextResponse.json({ error: "Unable to save this book. Please try again." }, { status: 500 });
+    return NextResponse.json({ error: "Unable to save this book.", diagnostic: { message: error instanceof Error ? error.message : String(error) } }, { status: 500 });
   }
 }
