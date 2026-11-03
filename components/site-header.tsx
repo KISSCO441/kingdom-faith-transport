@@ -4,38 +4,24 @@ import { useState } from "react"
 import { Car, ChevronDown, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const transportLinks = [
-  { label: "Book a Ride", href: "/#rides" },
-  { label: "Track a Ride", href: "/ride-status" },
-  { label: "Become a Driver", href: "/driver-registration" },
-  { label: "Driver Portal", href: "/driver-dashboard" },
-  { label: "Find a Mechanic", href: "/find-a-mechanic" },
-]
-
 const marketplaceLinks = [
-  { label: "KFM Market", href: "/market" },
-  { label: "Classifieds", href: "/classifieds" },
+  { label: "NSAWAM MARKET", href: "/market" },
+  { label: "FIND A MECHANIC", href: "/find-a-mechanic" },
 ]
 
-function DropdownLinks({
-  label,
-  links,
-}: {
-  label: string
-  links: { label: string; href: string }[]
-}) {
+function MarketplaceDropdown() {
   return (
     <details className="group relative">
-      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-md px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-foreground/75 transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
-        {label}
-        <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-xs font-extrabold uppercase tracking-[0.1em] text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+        MARKETPLACE
+        <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
       </summary>
-      <div className="absolute left-0 top-full z-50 mt-2 min-w-52 rounded-xl border border-border bg-background p-2 shadow-xl">
-        {links.map((link) => (
+      <div className="absolute right-0 top-full z-50 mt-2 min-w-56 rounded-xl border border-border bg-background p-2 shadow-xl">
+        {marketplaceLinks.map((link) => (
           <a
             key={link.href}
             href={link.href}
-            className="block rounded-lg px-3 py-2.5 text-sm font-semibold text-foreground/80 transition-colors hover:bg-muted hover:text-primary"
+            className="mb-1 block min-h-11 rounded-lg bg-primary px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-primary-foreground transition-colors last:mb-0 hover:bg-primary/90"
           >
             {link.label}
           </a>
@@ -47,8 +33,10 @@ function DropdownLinks({
 
 export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
   const closeMobileMenu = () => setMobileMenuOpen(false)
+
+  const navLinkClass =
+    "flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 py-3 text-xs font-extrabold uppercase tracking-[0.1em] text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 shadow-sm backdrop-blur-md">
@@ -75,31 +63,18 @@ export function SiteHeader() {
           </span>
         </a>
 
-        <nav aria-label="Main navigation" className="hidden items-center gap-1 xl:flex">
-          <a
-            href="/"
-            className="rounded-md px-3 py-2 text-xs font-bold uppercase tracking-[0.12em] text-foreground/75 transition-colors hover:bg-muted hover:text-primary"
-          >
-            Home
-          </a>
-          <DropdownLinks label="Transport" links={transportLinks} />
-          <DropdownLinks label="Marketplace" links={marketplaceLinks} />
+        <nav aria-label="Main navigation" className="hidden items-center gap-3 xl:flex">
+          <a href="/" className={navLinkClass}>HOME</a>
+          <a href="/#book" className={navLinkClass}>BOOKING</a>
+          <a href="/classifieds" className={navLinkClass}>CLASSIFIEDS</a>
+          <MarketplaceDropdown />
         </nav>
 
-        <div className="hidden shrink-0 xl:block">
-          <Button asChild className="h-11 rounded-lg px-5 text-xs font-extrabold tracking-wide shadow-sm">
-            <a href="/#book">BOOK A RIDE</a>
-          </Button>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2 xl:hidden">
-          <Button asChild size="sm" className="hidden rounded-lg font-bold sm:inline-flex">
-            <a href="/#book">BOOK A RIDE</a>
-          </Button>
+        <div className="flex shrink-0 items-center xl:hidden">
           <Button
-            variant="outline"
+            variant="default"
             size="icon"
-            className="h-10 w-10 rounded-lg"
+            className="h-11 w-11 rounded-lg"
             aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-site-navigation"
@@ -112,49 +87,31 @@ export function SiteHeader() {
 
       {mobileMenuOpen && (
         <div id="mobile-site-navigation" className="border-t border-border bg-background xl:hidden">
-          <nav aria-label="Mobile navigation" className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6">
-            <a
-              href="/"
-              onClick={closeMobileMenu}
-              className="rounded-lg px-3 py-3 text-sm font-bold text-foreground hover:bg-muted"
-            >
-              Home
-            </a>
-            <div className="rounded-xl bg-muted/50 p-3">
-              <p className="px-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
-                Transport
-              </p>
-              {transportLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={closeMobileMenu}
-                  className="block rounded-lg px-2 py-2.5 text-sm font-semibold text-foreground/80 hover:bg-background hover:text-primary"
-                >
-                  {link.label}
-                </a>
-              ))}
-            </div>
-            <div className="rounded-xl bg-muted/50 p-3">
-              <p className="px-2 pb-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">
-                Marketplace
-              </p>
-              {marketplaceLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={closeMobileMenu}
-                  className="block rounded-lg px-2 py-2.5 text-sm font-semibold text-foreground/80 hover:bg-background hover:text-primary"
-                >
-                  {link.label}
-                </a>
-              ))}
-            </div>
-            <Button asChild className="mt-2 h-11 w-full rounded-lg font-extrabold tracking-wide">
-              <a href="/#book" onClick={closeMobileMenu}>
-                BOOK A RIDE
-              </a>
-            </Button>
+          <nav
+            aria-label="Mobile navigation"
+            className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 py-4 sm:px-6"
+          >
+            <a href="/" onClick={closeMobileMenu} className={navLinkClass}>HOME</a>
+            <a href="/#book" onClick={closeMobileMenu} className={navLinkClass}>BOOKING</a>
+            <a href="/classifieds" onClick={closeMobileMenu} className={navLinkClass}>CLASSIFIEDS</a>
+            <details className="group relative">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg bg-primary px-3 py-3 text-center text-xs font-extrabold uppercase tracking-[0.08em] text-primary-foreground shadow-sm [&::-webkit-details-marker]:hidden">
+                MARKETPLACE
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="col-span-2 mt-2 grid gap-2">
+                {marketplaceLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={closeMobileMenu}
+                    className="flex min-h-11 items-center justify-center rounded-lg bg-primary px-3 py-3 text-center text-xs font-extrabold uppercase tracking-wide text-primary-foreground hover:bg-primary/90"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </details>
           </nav>
         </div>
       )}
