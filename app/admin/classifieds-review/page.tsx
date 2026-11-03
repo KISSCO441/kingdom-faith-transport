@@ -56,7 +56,7 @@ function ReviewContent() {
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || "Unable to save decision.")
-      setMessage("Your moderation decision has been saved.")
+      setMessage(result.emailNotice || "Your moderation decision has been saved.")
       await load()
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to save decision.") }
     finally { setBusy("") }
@@ -105,7 +105,7 @@ function ReviewContent() {
                 <p className="mt-2 text-lg font-black">GH₵{Number(ad.asking_price).toFixed(2)}</p>
                 <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{ad.description}</p>
                 <p className={`mt-3 text-sm font-bold ${paid ? "text-green-700" : "text-amber-700"}`}>Listing payment: {paid ? "Verified paid" : "Not verified as paid"}</p>
-                <label className="mt-3 block text-xs font-semibold">KFM review note<textarea rows={2} maxLength={1000} value={notes[ad.id] ?? ad.admin_notes ?? ""} onChange={e => setNotes(s => ({ ...s, [ad.id]: e.target.value }))} className="mt-1 w-full rounded-lg border p-3 text-sm" /></label>
+                <label className="mt-3 block text-xs font-semibold">KFM review note / rejection reason (this reason is emailed to the vendor when you reject)<textarea rows={3} maxLength={1000} value={notes[ad.id] ?? ad.admin_notes ?? ""} onChange={e => setNotes(s => ({ ...s, [ad.id]: e.target.value }))} placeholder="Explain what the vendor must correct. Required when rejecting." className="mt-1 w-full rounded-lg border p-3 text-sm" /></label>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button disabled={!paid || busy === ad.id || ad.advert_status === "active"} onClick={() => void decide("advert", ad.id, "active")} className="rounded-lg bg-green-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-40">Approve & publish</button>
                   <button disabled={busy === ad.id} onClick={() => void decide("advert", ad.id, "rejected")} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-bold text-red-700 disabled:opacity-40">Reject</button>
