@@ -20,6 +20,7 @@ function BooksAdmin() {
   const [notice,setNotice] = useState("");
 
   const loadBooks = useCallback(async () => {
+    if (!supabase) throw new Error("Supabase is not configured for admin access.");
     const {data:{session}} = await supabase.auth.getSession();
     if (!session?.access_token) return;
     const response = await fetch("/api/admin/books",{headers:{Authorization:`Bearer ${session.access_token}`},cache:"no-store"});
@@ -33,6 +34,7 @@ function BooksAdmin() {
   async function submit(event:FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError(""); setNotice("");
     try {
+      if (!supabase) throw new Error("Supabase is not configured for admin access.");
       const {data:{session}} = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Please sign in to KFM Admin again.");
       const form = new FormData();
