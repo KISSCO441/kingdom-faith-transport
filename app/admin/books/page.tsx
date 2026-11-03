@@ -32,7 +32,7 @@ function BooksAdmin() {
   useEffect(()=>{ void loadBooks().catch(e=>setError(e instanceof Error?e.message:"Could not load books.")); },[loadBooks]);
 
   async function submit(event:FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setError(""); setNotice("");
+    event.preventDefault(); const formElement = event.currentTarget; setBusy(true); setError(""); setNotice("");
     try {
       if (!supabase) throw new Error("Supabase is not configured for admin access.");
       const {data:{session}} = await supabase.auth.getSession();
@@ -46,7 +46,6 @@ function BooksAdmin() {
       if (!response.ok) throw new Error(result.diagnostic ? `${result.error || "Could not save this book."} — ${JSON.stringify(result.diagnostic)}` : (result.error || "Could not save this book."));
       setNotice("Book added and published. It is now visible on the Books & Publications page.");
       setTitle(""); setDescription(""); setPrice(""); setPdf(null); setCover(null);
-      const formElement = event.currentTarget;
       formElement.reset();
       await loadBooks();
     } catch(e) { setError(e instanceof Error?e.message:"Could not save this book."); }
