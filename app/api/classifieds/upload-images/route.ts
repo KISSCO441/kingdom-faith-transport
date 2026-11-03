@@ -11,7 +11,7 @@ const MAX_FILES = 5
 export async function POST(request: NextRequest) {
   const { account, supabase } = await getMarketAccount(request)
   if (!account || !supabase) return NextResponse.json({ error: "Please verify your seller email and sign in first." }, { status: 401 })
-  if (!["classified_seller", "vendor_and_seller"].includes(account.account_type)) {
+  if (!["vendor", "classified_seller", "vendor_and_seller"].includes(account.account_type)) {
     return NextResponse.json({ error: "This account does not have classified advert access." }, { status: 403 })
   }
 
