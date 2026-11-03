@@ -164,7 +164,7 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
               {adverts.map((ad) => (
                 <a key={ad.id} href={`/classifieds/${ad.id}`} className="overflow-hidden rounded-2xl border bg-card transition hover:border-primary hover:shadow-sm">
                   {ad.image_urls?.length ? (
-                    <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}><ClassifiedPhotoGallery title={ad.title} photos={ad.image_urls} /></div>
+                    <ClassifiedPhotoGallery title={ad.title} photos={ad.image_urls} />
                   ) : (
                     <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>
                   )}
