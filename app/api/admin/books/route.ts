@@ -94,3 +94,45 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unable to save this book.", diagnostic: { message: error instanceof Error ? error.message : String(error) } }, { status: 500 });
   }
 }
+
+export async function PUT(request: NextRequest) {
+  const auth = await requireKfmAdmin(request);
+  if (!auth.ok) return auth.response;
+
+  try {
+    const form = await request.formData();
+    const bookId = String(form.get("bookId") || "").trim();
+    const pdf = form.get("pdf");
+    if (!bookId || !(pdf instanceof File) || pdf.type !== "application/pdf" || pdf.size < 1 || pdf.size > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: "Choose the correct readable PDF file (maximum 50MB)." }, { status: 400 });
+    }
+
+    const { data: existing, error: lookupError } = await auth.supabase
+      .from("kfm_books").select("id,title,slug,file_path").eq("id", bookId).maybeSingle();
+    if (lookupError || !existing) {
+      return NextResponse.json({ error: "The selected book could not be found." }, { status: 404 });
+    }
+
+    const replacementPath = `${existing.slug}/book-${randomUUID()}.pdf`;
+    const { error: uploadError } = await auth.supabase.storage
+      .from("kfm-digital-books")
+      .upload(replacementPath, Buffer.from(await pdf.arrayBuffer()), { contentType: "application/pdf", upsert: false });
+    if (uploadError) {
+      console.error("KFM replacement book PDF upload failed:", uploadError.message);
+      return NextResponse.json({ error: "Could not upload the replacement PDF.", diagnostic: { message: uploadError.message } }, { status: 500 });
+    }
+
+    const { error: updateError } = await auth.supabase.from("kfm_books")
+      .update({ file_path: replacementPath }).eq("id", bookId);
+    if (updateError) {
+      await auth.supabase.storage.from("kfm-digital-books").remove([replacementPath]);
+      console.error("KFM replacement book record update failed:", updateError.message);
+      return NextResponse.json({ error: "The PDF uploaded, but the book record could not be updated.", diagnostic: { message: updateError.message } }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: "The book PDF has been replaced. The existing listing and its details are unchanged." });
+  } catch (error) {
+    console.error("KFM book PDF replacement error:", error);
+    return NextResponse.json({ error: "Unable to replace this book PDF.", diagnostic: { message: error instanceof Error ? error.message : String(error) } }, { status: 500 });
+  }
+}
