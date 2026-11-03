@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { BuyerSafetyNotice } from "@/components/classifieds/buyer-safety-notice"
 import { VendorProductCard } from "@/components/classifieds/vendor-product-card"
+import { ClassifiedPhotoGallery } from "@/components/classifieds/classified-photo-gallery"
 
 export const dynamic = "force-dynamic"
 
@@ -163,16 +164,7 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
               {adverts.map((ad) => (
                 <a key={ad.id} href={`/classifieds/${ad.id}`} className="overflow-hidden rounded-2xl border bg-card transition hover:border-primary hover:shadow-sm">
                   {ad.image_urls?.length ? (
-                    <div className="grid h-52 grid-cols-3 gap-1 bg-muted">
-                      {ad.image_urls.slice(0, 3).map((image, index) => (
-                        <div key={index} className="relative min-w-0 overflow-hidden">
-                          <img src={image} alt={`${ad.title} photo ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
-                          {index === 2 && ad.image_urls && ad.image_urls.length > 3 && (
-                            <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-bold text-white">+{ad.image_urls.length - 3}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}><ClassifiedPhotoGallery title={ad.title} photos={ad.image_urls} /></div>
                   ) : (
                     <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>
                   )}
