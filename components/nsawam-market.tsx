@@ -495,8 +495,11 @@ async function prepareOrder() {
           <div className="grid items-stretch lg:grid-cols-[1.05fr_0.95fr]">
             {/* HERO CONTENT */}
             <div className="flex flex-col justify-center p-7 sm:p-10 md:p-14 lg:p-16">
-              <div className="inline-flex w-fit items-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-bold text-primary">
-                🛒 KFM Nsawam Market
+              <div className="flex w-full items-center gap-3 rounded-2xl bg-primary px-4 py-4 text-primary-foreground shadow-md sm:px-6 sm:py-5">
+                <ShoppingBasket className="h-8 w-8 shrink-0 sm:h-10 sm:w-10 md:h-12 md:w-12" aria-hidden="true" />
+                <span className="text-2xl font-black uppercase leading-none tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
+                  NSAWAM MARKET
+                </span>
               </div>
 
               <h2 className="mt-6 max-w-3xl text-balance text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
