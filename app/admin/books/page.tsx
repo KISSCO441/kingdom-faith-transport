@@ -18,6 +18,8 @@ function BooksAdmin() {
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState("");
   const [notice,setNotice] = useState("");
+  const [replacementFiles,setReplacementFiles] = useState<Record<string,File>>({});
+  const [edits,setEdits] = useState<Record<string,{title:string;author:string;description:string;price:string}>>({});
 
   const loadBooks = useCallback(async () => {
     if (!supabase) throw new Error("Supabase is not configured for admin access.");
@@ -52,6 +54,52 @@ function BooksAdmin() {
     finally { setBusy(false); }
   }
 
+
+  async function adminRequest(method:string, url:string, body?:BodyInit) {
+    if (!supabase) throw new Error("Supabase is not configured for admin access.");
+    const {data:{session}} = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("Please sign in to KFM Admin again.");
+    const response = await fetch(url,{method,headers:{Authorization:"Bearer "+session.access_token},body});
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "The request could not be completed.");
+    return result;
+  }
+
+  async function saveBook(book:Book) {
+    const edit=edits[book.id] || {title:book.title,author:book.author,description:book.description,price:String(book.price)};
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await adminRequest("PATCH","/api/admin/books",JSON.stringify({id:book.id,...edit,price:Number(edit.price)}));
+      setNotice("Book details and price updated.");
+      await loadBooks();
+    } catch(e) { setError(e instanceof Error?e.message:"Could not update book."); }
+    finally { setBusy(false); }
+  }
+
+  async function replacePdf(bookId:string) {
+    const file=replacementFiles[bookId];
+    if (!file) { setError("Choose the correct readable PDF first."); return; }
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const form=new FormData(); form.set("bookId",bookId); form.set("pdf",file);
+      await adminRequest("PUT","/api/admin/books",form);
+      setNotice("The book content PDF has been replaced successfully.");
+      setReplacementFiles(current=>{const next={...current};delete next[bookId];return next;});
+    } catch(e) { setError(e instanceof Error?e.message:"Could not replace PDF."); }
+    finally { setBusy(false); }
+  }
+
+  async function removeBook(book:Book) {
+    if (!window.confirm("Remove this book from the public store? Existing purchase records will be preserved.")) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await adminRequest("DELETE","/api/admin/books?id="+encodeURIComponent(book.id));
+      setNotice("Book removed from the public store. Purchase history is preserved.");
+      await loadBooks();
+    } catch(e) { setError(e instanceof Error?e.message:"Could not remove book."); }
+    finally { setBusy(false); }
+  }
+
   return <main className="min-h-screen bg-slate-50 px-4 py-7 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-5xl">
       <header className="rounded-2xl bg-slate-950 p-6 text-white sm:p-8">
@@ -75,7 +123,7 @@ function BooksAdmin() {
         </form>
         <section className="rounded-2xl border bg-white p-5 shadow-sm sm:p-7">
           <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold">Your books</h2><a href="/books" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-orange-700">View page <ExternalLink className="h-4 w-4"/></a></div>
-          {books.length===0?<p className="mt-5 rounded-xl border border-dashed p-5 text-sm text-slate-500">No books have been added yet. Add your first digital book using the form.</p>:<div className="mt-5 space-y-3">{books.map(book=><article key={book.id} className="flex min-w-0 gap-3 rounded-xl border p-3">{book.cover_url?<img src={book.cover_url} alt="" className="h-24 w-16 shrink-0 rounded-md object-cover"/>:<div className="flex h-24 w-16 shrink-0 items-center justify-center rounded-md bg-orange-50"><BookOpen className="h-7 w-7 text-orange-600"/></div>}<div className="min-w-0"><h3 className="break-words font-bold">{book.title}</h3><p className="mt-1 text-xs text-slate-500">{book.author}</p><p className="mt-2 font-bold text-orange-700">GH₵{Number(book.price).toFixed(2)}</p><span className="text-xs text-green-700">Published</span></div></article>)}</div>}
+          {books.length===0?<p className="mt-5 rounded-xl border border-dashed p-5 text-sm text-slate-500">No books have been added yet. Add your first digital book using the form.</p>:<div className="mt-5 space-y-3">{books.map(book=><article key={book.id} className="flex min-w-0 gap-3 rounded-xl border p-3">{book.cover_url?<img src={book.cover_url} alt="" className="h-24 w-16 shrink-0 rounded-md object-cover"/>:<div className="flex h-24 w-16 shrink-0 items-center justify-center rounded-md bg-orange-50"><BookOpen className="h-7 w-7 text-orange-600"/></div>}<div className="min-w-0 flex-1"><h3 className="break-words font-bold">{book.title}</h3><p className="mt-1 text-xs text-slate-500">{book.author}</p><p className="mt-2 font-bold text-orange-700">GH₵{Number(book.price).toFixed(2)}</p><span className="text-xs text-green-700">Published</span><div className="mt-4 grid gap-2"><input aria-label="Book title" defaultValue={book.title} onChange={e=>setEdits(v=>({...v,[book.id]:{...(v[book.id]||{title:book.title,author:book.author,description:book.description,price:String(book.price)}),title:e.target.value}}))} className="min-h-10 rounded border px-2 text-sm"/><input aria-label="Author" defaultValue={book.author} onChange={e=>setEdits(v=>({...v,[book.id]:{...(v[book.id]||{title:book.title,author:book.author,description:book.description,price:String(book.price)}),author:e.target.value}}))} className="min-h-10 rounded border px-2 text-sm"/><textarea aria-label="Description" defaultValue={book.description} rows={3} onChange={e=>setEdits(v=>({...v,[book.id]:{...(v[book.id]||{title:book.title,author:book.author,description:book.description,price:String(book.price)}),description:e.target.value}}))} className="rounded border px-2 py-2 text-sm"/><input aria-label="Digital price in Ghana cedis" type="number" min="0.01" step="0.01" defaultValue={book.price} onChange={e=>setEdits(v=>({...v,[book.id]:{...(v[book.id]||{title:book.title,author:book.author,description:book.description,price:String(book.price)}),price:e.target.value}}))} className="min-h-10 rounded border px-2 text-sm"/><button type="button" disabled={busy} onClick={()=>void saveBook(book)} className="min-h-10 rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Save changes / price</button><label className="text-xs font-semibold">Replace readable book content (PDF · max 50MB)<input type="file" accept="application/pdf,.pdf" onChange={e=>{const file=e.target.files?.[0];if(file)setReplacementFiles(v=>({...v,[book.id]:file}));}} className="mt-1 block w-full text-xs"/></label><button type="button" disabled={busy||!replacementFiles[book.id]} onClick={()=>void replacePdf(book.id)} className="min-h-10 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Replace PDF content</button><button type="button" disabled={busy} onClick={()=>void removeBook(book)} className="min-h-10 rounded-lg border border-red-300 px-3 py-2 text-xs font-bold text-red-700 disabled:opacity-50">Remove from store</button></div></div></article>)}</div>}
         </section>
       </div>
       <a href="/admin" className="mt-6 inline-block text-sm font-semibold text-slate-700 underline">← Back to Admin Control Centre</a>
