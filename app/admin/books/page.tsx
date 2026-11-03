@@ -39,9 +39,15 @@ function BooksAdmin() {
       if (!supabase) throw new Error("Supabase is not configured for admin access.");
       const {data:{session}} = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Please sign in to KFM Admin again.");
+      if (!pdf) throw new Error("Choose the book PDF first.");
+      const uploadResponse = await fetch("/api/admin/books/upload-url",{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({fileName:pdf.name,contentType:pdf.type,size:pdf.size})});
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResponse.ok) throw new Error(uploadResult.error || "Could not prepare the PDF upload.");
+      const {error:uploadError} = await supabase.storage.from("kfm-digital-books").uploadToSignedUrl(uploadResult.path,uploadResult.token,pdf,{contentType:"application/pdf",upsert:false});
+      if (uploadError) throw new Error("PDF upload failed: "+uploadError.message);
       const form = new FormData();
       form.set("title",title); form.set("author",author); form.set("description",description); form.set("price",price);
-      if (pdf) form.set("pdf",pdf);
+      form.set("pdfPath",uploadResult.path);
       if (cover) form.set("cover",cover);
       const response = await fetch("/api/admin/books",{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`},body:form});
       const result = await response.json();
@@ -81,8 +87,15 @@ function BooksAdmin() {
     if (!file) { setError("Choose the correct readable PDF first."); return; }
     setBusy(true); setError(""); setNotice("");
     try {
-      const form=new FormData(); form.set("bookId",bookId); form.set("pdf",file);
-      await adminRequest("PUT","/api/admin/books",form);
+      if (!supabase) throw new Error("Supabase is not configured for admin access.");
+      const {data:{session}} = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Please sign in to KFM Admin again.");
+      const uploadResponse=await fetch("/api/admin/books/upload-url",{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({fileName:file.name,contentType:file.type,size:file.size})});
+      const uploadResult=await uploadResponse.json();
+      if(!uploadResponse.ok) throw new Error(uploadResult.error || "Could not prepare the replacement PDF upload.");
+      const {error:uploadError}=await supabase.storage.from("kfm-digital-books").uploadToSignedUrl(uploadResult.path,uploadResult.token,file,{contentType:"application/pdf",upsert:false});
+      if(uploadError) throw new Error("PDF upload failed: "+uploadError.message);
+      await adminRequest("PUT","/api/admin/books",JSON.stringify({bookId,pdfPath:uploadResult.path}));
       setNotice("The book content PDF has been replaced successfully.");
       setReplacementFiles(current=>({...current,[bookId]:null}));
     } catch(e) { setError(e instanceof Error?e.message:"Could not replace PDF."); }
