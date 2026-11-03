@@ -3,12 +3,10 @@
 import AdminAccessGuard from "@/components/admin/AdminAccessGuard"
 import { supabase } from "@/lib/supabase"
 import { useCallback, useEffect, useState } from "react"
-import { ClassifiedPhotoGallery } from "@/components/classifieds/classified-photo-gallery"
 
 type Advert = {
   id: string; title: string; description: string; category: string; asking_price: number
   location: string; seller_contact_phone: string; advert_status: string; admin_notes: string | null
-  image_urls: string[] | null
   created_at: string
   classified_ad_payments: { payment_status: string; amount: number; currency: string; payment_reference: string }[]
 }
@@ -106,7 +104,6 @@ function ReviewContent() {
                 <p className="mt-2 text-sm text-slate-600">{ad.category.replaceAll("_", " ")} · {ad.location} · {ad.seller_contact_phone}</p>
                 <p className="mt-2 text-lg font-black">GH₵{Number(ad.asking_price).toFixed(2)}</p>
                 <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{ad.description}</p>
-                {ad.image_urls?.length ? <div className="mt-3 rounded-xl border bg-slate-50"><p className="px-3 pt-3 text-xs font-bold text-slate-600">Seller photos ({ad.image_urls.length}) · Select a photo to enlarge</p><ClassifiedPhotoGallery title={ad.title} photos={ad.image_urls} /></div> : <p className="mt-3 text-xs text-slate-500">No photos were uploaded for this advert.</p> }
                 <p className={`mt-3 text-sm font-bold ${paid ? "text-green-700" : "text-amber-700"}`}>Listing payment: {paid ? "Verified paid" : "Not verified as paid"}</p>
                 <label className="mt-3 block text-xs font-semibold">KFM review note<textarea rows={2} maxLength={1000} value={notes[ad.id] ?? ad.admin_notes ?? ""} onChange={e => setNotes(s => ({ ...s, [ad.id]: e.target.value }))} className="mt-1 w-full rounded-lg border p-3 text-sm" /></label>
                 <div className="mt-3 flex flex-wrap gap-2">
