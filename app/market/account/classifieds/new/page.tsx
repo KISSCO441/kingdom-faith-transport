@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react"
 
 const categories = [
-  { value: "cars_vehicles", label: "Cars & Vehicles" },
-  { value: "appliances_electronics", label: "Home Appliances & Electronics" },
-  { value: "furniture_household", label: "Furniture & Household Items" },
-  { value: "general_items", label: "Other General Items" },
+  { value: "cars_vehicles", label: "Cars & Vehicles", fee: 100 },
+  { value: "appliances_electronics", label: "Home Appliances & Electronics", fee: 30 },
+  { value: "furniture_household", label: "Furniture & Household Items", fee: 30 },
+  { value: "general_items", label: "Other General Items", fee: 100 },
 ]
 
 export default function NewClassifiedAdvertPage() {
@@ -50,7 +50,8 @@ export default function NewClassifiedAdvertPage() {
     } finally { setBusy(false) }
   }
 
-  const selectedLabel = categories.find(item => item.value === category)?.label || "Other General Items"
+  const selectedCategory = categories.find(item => item.value === category) || categories[3]
+  const selectedLabel = selectedCategory.label
 
   return <main className="mx-auto min-h-screen max-w-2xl px-4 py-10">
     <a href="/classifieds" className="text-sm font-semibold text-primary underline">Back to KFM Classifieds</a>
@@ -59,7 +60,7 @@ export default function NewClassifiedAdvertPage() {
       <h1 className="mt-2 text-2xl font-extrabold">Advertise in {selectedLabel}</h1>
       <p className="mt-2 text-sm text-muted-foreground">Complete your advert details and upload up to five photos. Your advert remains unpublished until payment is verified and KFM approves it.</p>
       <form onSubmit={submit} className="mt-6 space-y-4">
-        <div className="rounded-lg bg-muted p-3 text-sm font-semibold">Selected category: {selectedLabel}</div>
+        <div className="rounded-lg bg-muted p-3 text-sm font-semibold">Selected category: {selectedLabel}<p className="mt-2 text-base font-extrabold text-primary">KFM advert fee: GH₵{selectedCategory.fee.toFixed(2)}</p></div>
         <label className="block text-sm font-semibold">Advert title<input required maxLength={140} value={form.title} onChange={e => setForm(s => ({ ...s, title: e.target.value }))} className="mt-1 w-full rounded-lg border bg-background p-3" /></label>
         <label className="block text-sm font-semibold">Description<textarea required maxLength={4000} rows={5} value={form.description} onChange={e => setForm(s => ({ ...s, description: e.target.value }))} className="mt-1 w-full rounded-lg border bg-background p-3" /></label>
         <label className="block text-sm font-semibold">Asking price (GH₵)<input required type="number" min="0.01" step="0.01" value={form.askingPrice} onChange={e => setForm(s => ({ ...s, askingPrice: e.target.value }))} className="mt-1 w-full rounded-lg border bg-background p-3" /></label>
