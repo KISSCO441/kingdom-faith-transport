@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: { Authorization: "Bearer " + secretKey, "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: account.email, amount: Math.round(fee * 100), currency: "GHS", reference,
+        email: account.email, amount: Math.round(fee * 100), currency: "GHS", reference, callback_url: `${request.nextUrl.origin}/payment/callback`,
         metadata: { kfm_payment_type: "classified_listing", kfm_advert_id: advert.id, kfm_seller_account_id: account.id, category },
       }),
       cache: "no-store",
