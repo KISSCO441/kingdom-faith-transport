@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { BuyerSafetyNotice } from "@/components/classifieds/buyer-safety-notice"
 import { ReportAdvertForm } from "@/components/classifieds/report-advert-form"
+import { ClassifiedPhotoGallery } from "@/components/classifieds/classified-photo-gallery"
 
 export const dynamic = "force-dynamic"
 
@@ -32,11 +33,7 @@ export default async function ClassifiedAdvertPage({ params }: Props) {
         <div className="mt-5"><BuyerSafetyNotice /></div>
         <article className="mt-5 overflow-hidden rounded-2xl border bg-card">
           {advert.image_urls?.length ? (
-            <div className="grid gap-2 p-3 sm:grid-cols-2">
-              {advert.image_urls.map((image: string, index: number) => (
-                <img key={index} src={image} alt={`${advert.title} photo ${index + 1}`} className="max-h-96 w-full rounded-xl object-cover" />
-              ))}
-            </div>
+            <ClassifiedPhotoGallery title={advert.title} photos={advert.image_urls} />
           ) : null}
           <div className="p-5 sm:p-7">
             <p className="text-xs font-bold uppercase tracking-wider text-primary">KFM approved advert</p>
