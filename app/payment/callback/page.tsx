@@ -28,29 +28,34 @@ export default function PaymentCallbackPage() {
 
         setReference(paymentReference)
 
-        const response = await fetch(
-          `/api/paystack/verify?reference=${encodeURIComponent(
-            paymentReference
-          )}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        )
+        const isClassifiedPayment = paymentReference.startsWith("KFM-CLS-")
+        const response = isClassifiedPayment
+          ? await fetch("/api/classifieds/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reference: paymentReference }),
+              cache: "no-store",
+            })
+          : await fetch(
+              `/api/paystack/verify?reference=${encodeURIComponent(paymentReference)}`,
+              { method: "GET", cache: "no-store" }
+            )
 
         const data = await response.json()
-
-        if (!response.ok || !data.status) {
+        const verified = isClassifiedPayment ? data?.success : data?.status
+        if (!response.ok || !verified) {
           setPaymentState("failed")
           setMessage(
-            data?.message ||
+            data?.error || data?.message ||
               "We could not confirm your payment. Please contact KFM if money was deducted."
           )
           return
         }
 
         setPaymentState("success")
-        setMessage("Your payment has been confirmed successfully.")
+        setMessage(isClassifiedPayment
+          ? "Your KFM advert listing fee is confirmed. Your advert is now waiting for KFM approval."
+          : "Your payment has been confirmed successfully.")
 
         const pendingOrder = sessionStorage.getItem("kfm_pending_order")
 
@@ -90,8 +95,9 @@ export default function PaymentCallbackPage() {
     verifyPayment()
   }, [])
 
+  const isClassifiedPayment = reference.startsWith("KFM-CLS-")
   const continueToMarket = () => {
-    window.location.href = "/#nsawam-market"
+    window.location.href = isClassifiedPayment ? "/market/account/my-adverts" : "/#nsawam-market"
   }
 
   const contactKfm = () => {
@@ -163,14 +169,13 @@ export default function PaymentCallbackPage() {
             </p>
 
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              KFM can now prepare your market order for delivery.
-              Keep your payment reference for your records.
+              {isClassifiedPayment ? "Your advert is now in KFM’s review queue. It will appear publicly only after approval." : "KFM can now prepare your market order for delivery. Keep your payment reference for your records."}
             </p>
           </div>
 
           <div className="mt-6 flex flex-col gap-3">
             <Button onClick={continueToMarket}>
-              Continue Shopping
+              {isClassifiedPayment ? "View My Adverts" : "Continue Shopping"}
             </Button>
 
             <Button variant="outline" onClick={contactKfm}>
