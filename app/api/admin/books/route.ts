@@ -41,27 +41,26 @@ export async function POST(request: NextRequest) {
     const author = String(form.get("author") || "Apostle K. F. Kisseh").trim();
     const description = String(form.get("description") || "").trim();
     const price = Number(form.get("price"));
-    const pdf = form.get("pdf");
+    const pdfPath = String(form.get("pdfPath") || "").trim();
     const cover = form.get("cover");
 
     if (!title || title.length > 180 || !description || description.length > 5000 ||
-        !Number.isFinite(price) || price <= 0 || !(pdf instanceof File) ||
-        pdf.type !== "application/pdf" || pdf.size < 1 || pdf.size > 50 * 1024 * 1024) {
+        !Number.isFinite(price) || price <= 0 || !/^admin-uploads\\/[a-f0-9-]+\\.pdf$/i.test(pdfPath)) {
       return NextResponse.json({ error: "Enter a title, description and valid price, and upload a PDF up to 50MB." }, { status: 400 });
+    }
+    const pdfFolder = pdfPath.slice(0, pdfPath.lastIndexOf("/"));
+    const pdfName = pdfPath.slice(pdfPath.lastIndexOf("/") + 1);
+    const { data: uploadedFiles, error: fileLookupError } = await auth.supabase.storage.from("kfm-digital-books").list(pdfFolder, { search: pdfName });
+    const uploadedPdf = uploadedFiles?.find((file) => file.name === pdfName);
+    if (fileLookupError || !uploadedPdf || uploadedPdf.metadata?.mimetype !== "application/pdf" ||
+        Number(uploadedPdf.metadata?.size || 0) < 1 || Number(uploadedPdf.metadata?.size || 0) > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: "The uploaded PDF could not be verified. Please upload it again." }, { status: 400 });
     }
     if (cover && (!(cover instanceof File) || !["image/jpeg","image/png","image/webp"].includes(cover.type) || cover.size > 5 * 1024 * 1024)) {
       return NextResponse.json({ error: "Cover image must be JPG, PNG or WebP and no larger than 5MB." }, { status: 400 });
     }
 
     const slug = title.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 150) + "-" + randomUUID().slice(0, 8);
-    const pdfPath = `${slug}/book.pdf`;
-    const pdfBytes = Buffer.from(await pdf.arrayBuffer());
-    const { error: pdfError } = await auth.supabase.storage.from("kfm-digital-books").upload(pdfPath, pdfBytes, { contentType: "application/pdf", upsert: false });
-    if (pdfError) {
-      console.error("KFM book PDF upload failed:", pdfError.message);
-      return NextResponse.json({ error: "Could not upload the PDF.", diagnostic: { message: pdfError.message, name: pdfError.name } }, { status: 500 });
-    }
-
     let coverUrl: string | null = null;
     if (cover instanceof File && cover.size > 0) {
       const extension = cover.type === "image/png" ? "png" : cover.type === "image/webp" ? "webp" : "jpg";
@@ -102,9 +101,18 @@ export async function PUT(request: NextRequest) {
   try {
     const form = await request.formData();
     const bookId = String(form.get("bookId") || "").trim();
-    const pdf = form.get("pdf");
-    if (!bookId || !(pdf instanceof File) || pdf.type !== "application/pdf" || pdf.size < 1 || pdf.size > 50 * 1024 * 1024) {
+    const body = await request.json();
+    const pdfPath = String(body.pdfPath || "").trim();
+    if (!bookId || !/^admin-uploads\\/[a-f0-9-]+\\.pdf$/i.test(pdfPath)) {
       return NextResponse.json({ error: "Choose the correct readable PDF file (maximum 50MB)." }, { status: 400 });
+    }
+    const pdfFolder = pdfPath.slice(0, pdfPath.lastIndexOf("/"));
+    const pdfName = pdfPath.slice(pdfPath.lastIndexOf("/") + 1);
+    const { data: uploadedFiles, error: fileLookupError } = await auth.supabase.storage.from("kfm-digital-books").list(pdfFolder, { search: pdfName });
+    const uploadedPdf = uploadedFiles?.find((file) => file.name === pdfName);
+    if (fileLookupError || !uploadedPdf || uploadedPdf.metadata?.mimetype !== "application/pdf" ||
+        Number(uploadedPdf.metadata?.size || 0) < 1 || Number(uploadedPdf.metadata?.size || 0) > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: "The uploaded PDF could not be verified. Please upload it again." }, { status: 400 });
     }
 
     const { data: existing, error: lookupError } = await auth.supabase
@@ -113,19 +121,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "The selected book could not be found." }, { status: 404 });
     }
 
-    const replacementPath = `${existing.slug}/book-${randomUUID()}.pdf`;
-    const { error: uploadError } = await auth.supabase.storage
-      .from("kfm-digital-books")
-      .upload(replacementPath, Buffer.from(await pdf.arrayBuffer()), { contentType: "application/pdf", upsert: false });
-    if (uploadError) {
-      console.error("KFM replacement book PDF upload failed:", uploadError.message);
-      return NextResponse.json({ error: "Could not upload the replacement PDF.", diagnostic: { message: uploadError.message } }, { status: 500 });
-    }
-
     const { error: updateError } = await auth.supabase.from("kfm_books")
-      .update({ file_path: replacementPath }).eq("id", bookId);
+      .update({ file_path: pdfPath }).eq("id", bookId);
     if (updateError) {
-      await auth.supabase.storage.from("kfm-digital-books").remove([replacementPath]);
       console.error("KFM replacement book record update failed:", updateError.message);
       return NextResponse.json({ error: "The PDF uploaded, but the book record could not be updated.", diagnostic: { message: updateError.message } }, { status: 500 });
     }
