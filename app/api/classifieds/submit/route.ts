@@ -3,11 +3,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { getMarketAccount } from "@/lib/market-account-auth"
 
 export const runtime = "nodejs"
-const feeKeys: Record<string, string> = {
-  cars_vehicles: "KFM_CLASSIFIED_FEE_CARS",
-  appliances_electronics: "KFM_CLASSIFIED_FEE_APPLIANCES",
-  furniture_household: "KFM_CLASSIFIED_FEE_FURNITURE",
-  general_items: "KFM_CLASSIFIED_FEE_GENERAL",
+const classifiedFees: Record<string, number> = {
+  cars_vehicles: 100,
+  appliances_electronics: 30,
+  furniture_household: 30,
+  general_items: 100,
 }
 
 export async function POST(request: NextRequest) {
@@ -24,15 +24,14 @@ export async function POST(request: NextRequest) {
     const phone = typeof body?.phone === "string" ? body.phone.trim() : ""
     const askingPrice = Number(body?.askingPrice)
     const images = Array.isArray(body?.imageUrls) ? body.imageUrls : []
-    if (!feeKeys[category] || !title || title.length > 140 || !description || description.length > 4000 ||
+    if (!Object.prototype.hasOwnProperty.call(classifiedFees, category) || !title || title.length > 140 || !description || description.length > 4000 ||
       !location || location.length > 180 || !phone || phone.length > 40 ||
       !Number.isFinite(askingPrice) || askingPrice <= 0 || askingPrice > 100000000 ||
       images.length > 5 || images.some((item: unknown) => typeof item !== "string" || item.length > 2000 || !/^https:\/\//i.test(item))) {
       return NextResponse.json({ error: "Check the advert details, category, price and photo links." }, { status: 400 })
     }
 
-    const fee = Number(process.env[feeKeys[category]])
-    if (!Number.isFinite(fee) || fee <= 0) return NextResponse.json({ error: "KFM is finalising the approved listing fee for this category. No advert has been submitted and no payment has been taken." }, { status: 503 })
+    const fee = classifiedFees[category]
     const secretKey = process.env.PAYSTACK_SECRET_KEY
     if (!secretKey) return NextResponse.json({ error: "Classified payments are not configured yet." }, { status: 503 })
 
