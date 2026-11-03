@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const cover = form.get("cover");
 
     if (!title || title.length > 180 || !description || description.length > 5000 ||
-        !Number.isFinite(price) || price <= 0 || !/^admin-uploads\\/[a-f0-9-]+\\.pdf$/i.test(pdfPath)) {
+        !Number.isFinite(price) || price <= 0 || !/^admin-uploads\/[a-f0-9-]+\.pdf$/i.test(pdfPath)) {
       return NextResponse.json({ error: "Enter a title, description and valid price, and upload a PDF up to 50MB." }, { status: 400 });
     }
     const pdfFolder = pdfPath.slice(0, pdfPath.lastIndexOf("/"));
@@ -99,11 +99,10 @@ export async function PUT(request: NextRequest) {
   if (!auth.ok) return auth.response;
 
   try {
-    const form = await request.formData();
-    const bookId = String(form.get("bookId") || "").trim();
     const body = await request.json();
+    const bookId = String(body.bookId || "").trim();
     const pdfPath = String(body.pdfPath || "").trim();
-    if (!bookId || !/^admin-uploads\\/[a-f0-9-]+\\.pdf$/i.test(pdfPath)) {
+    if (!bookId || !/^admin-uploads\/[a-f0-9-]+\.pdf$/i.test(pdfPath)) {
       return NextResponse.json({ error: "Choose the correct readable PDF file (maximum 50MB)." }, { status: 400 });
     }
     const pdfFolder = pdfPath.slice(0, pdfPath.lastIndexOf("/"));
