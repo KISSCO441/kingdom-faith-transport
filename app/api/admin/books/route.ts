@@ -136,3 +136,42 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Unable to replace this book PDF.", diagnostic: { message: error instanceof Error ? error.message : String(error) } }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  const auth = await requireKfmAdmin(request);
+  if (!auth.ok) return auth.response;
+  try {
+    const body = await request.json();
+    const id = String(body.id || "").trim();
+    const title = String(body.title || "").trim();
+    const author = String(body.author || "").trim();
+    const description = String(body.description || "").trim();
+    const price = Number(body.price);
+    if (!id || !title || title.length > 180 || !author || author.length > 160 ||
+        !description || description.length > 5000 || !Number.isFinite(price) || price <= 0) {
+      return NextResponse.json({ error: "Enter a valid title, author, description and price." }, { status: 400 });
+    }
+    const { data, error } = await auth.supabase.from("kfm_books")
+      .update({ title, author, description, price: Math.round(price * 100) / 100 })
+      .eq("id", id).select("id").maybeSingle();
+    if (error || !data) return NextResponse.json({ error: "Could not update this book.", diagnostic: { message: error?.message || "Book not found." } }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: "Could not update this book.", diagnostic: { message: error instanceof Error ? error.message : String(error) } }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = await requireKfmAdmin(request);
+  if (!auth.ok) return auth.response;
+  try {
+    const id = request.nextUrl.searchParams.get("id") || "";
+    if (!id) return NextResponse.json({ error: "Book ID is required." }, { status: 400 });
+    const { data, error } = await auth.supabase.from("kfm_books")
+      .update({ is_published: false }).eq("id", id).select("id").maybeSingle();
+    if (error || !data) return NextResponse.json({ error: "Could not remove this book from the store.", diagnostic: { message: error?.message || "Book not found." } }, { status: 500 });
+    return NextResponse.json({ success: true, message: "Book removed from the public store. Purchase history is preserved." });
+  } catch (error) {
+    return NextResponse.json({ error: "Could not remove this book.", diagnostic: { message: error instanceof Error ? error.message : String(error) } }, { status: 500 });
+  }
+}
