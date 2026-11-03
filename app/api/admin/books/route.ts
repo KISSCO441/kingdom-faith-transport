@@ -11,7 +11,23 @@ export async function GET(request: NextRequest) {
     .from("kfm_books")
     .select("id,title,author,description,price,cover_url,is_published,created_at")
     .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: "Unable to load books. Apply the KFM Books database migration first." }, { status: 500 });
+  if (error) {
+    console.error("KFM books list query failed:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    return NextResponse.json({
+      error: "Unable to load books.",
+      diagnostic: {
+        code: error.code ?? null,
+        message: error.message,
+        details: error.details ?? null,
+        hint: error.hint ?? null,
+      },
+    }, { status: 500 });
+  }
   return NextResponse.json({ books: data ?? [] });
 }
 
