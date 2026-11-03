@@ -42,7 +42,7 @@ export default function NewClassifiedAdvertPage() {
         body: JSON.stringify({ ...form, category, askingPrice: Number(form.askingPrice), imageUrls }),
       })
       const result = await response.json()
-      if (!response.ok) throw new Error(result.error || "Unable to submit your advert.")
+      if (!response.ok) throw new Error([result.error || "Unable to submit your advert.", result.reference].filter(Boolean).join(" — "))
       setMessage("Your advert has been saved. Continue to Paystack to pay the listing fee.")
       window.location.assign(result.paymentUrl)
     } catch (err) {
