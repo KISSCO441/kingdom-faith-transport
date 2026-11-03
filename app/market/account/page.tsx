@@ -174,7 +174,7 @@ export default function MarketAccountPage() {
                 <a href="/market/become-a-vendor" className="inline-flex rounded-lg border px-4 py-2 font-semibold">Vendor application</a>
               </div>
             )}
-            {(accountType === "classified_seller" || accountType === "vendor_and_seller") && (
+            {(accountType === "vendor" || accountType === "classified_seller" || accountType === "vendor_and_seller") && (
               <div className="mt-3 flex flex-wrap gap-3"><a href="/market/account/my-adverts" className="inline-flex rounded-lg border px-4 py-2 font-semibold">View My Adverts</a><a href={`/market/account/classifieds/new${selectedCategory ? `?category=${selectedCategory}` : ""}`} className="inline-flex rounded-lg border px-4 py-2 font-semibold">Create a classified advert</a></div>
             )}
           </div>
