@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest) {
       }
       const { data: advert, error: lookupError } = await auth.supabase
         .from("classified_ads")
-        .select("id, advert_status")
+        .select("id, title, seller_account_id, advert_status, admin_notes")
         .eq("id", id)
         .maybeSingle()
       if (lookupError) return NextResponse.json({ error: "Unable to verify advert." }, { status: 503 })
@@ -99,6 +99,60 @@ export async function PATCH(request: NextRequest) {
         .maybeSingle()
       if (error) return NextResponse.json({ error: "Unable to update this advert." }, { status: 503 })
       if (!data) return NextResponse.json({ error: "Advert not found." }, { status: 404 })
+
+      if (status === "rejected") {
+        let emailSent = false
+        let emailNotice = "The rejection was saved, but the vendor email could not be sent. Check Resend configuration."
+        const { data: seller, error: sellerError } = await auth.supabase
+          .from("market_accounts")
+          .select("email")
+          .eq("id", advert.seller_account_id)
+          .maybeSingle()
+        const previewTestMode = process.env.VERCEL_ENV === "preview" &&
+          process.env.KFM_MARKET_ACCOUNT_EMAIL_TEST_MODE === "true" &&
+          Boolean(process.env.KFM_MARKET_ACCOUNT_EMAIL_TEST_TO)
+        const liveEmailMode = process.env.RESEND_DOMAIN_VERIFIED === "true" &&
+          process.env.KFM_MARKET_ACCOUNT_EMAILS_ENABLED === "true"
+        const recipient = previewTestMode
+          ? process.env.KFM_MARKET_ACCOUNT_EMAIL_TEST_TO
+          : liveEmailMode ? seller?.email : null
+        const shouldNotify = advert.advert_status !== "rejected" || advert.admin_notes !== notes
+
+        if (!sellerError && recipient && process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL && shouldNotify) {
+          try {
+            const escapedReason = notes.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>")
+            const emailResponse = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                Authorization: "Bearer " + process.env.RESEND_API_KEY,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from: process.env.RESEND_FROM_EMAIL,
+                to: [recipient],
+                subject: "Update on your NSAWAM MARKET advert: " + data.title,
+                text: "Hello,\n\nYour advert \"" + data.title + "\" has not been approved by KFM.\n\nReason: " + notes + "\n\nPlease review the reason and make the necessary corrections before submitting again. If you need assistance, contact KFM at 0240 555 688 or 020 409 7129.\n\nNSAWAM MARKET – Shop More. We Deliver!",
+                html: "<p>Hello,</p><p>Your advert <strong>" + data.title + "</strong> has not been approved by KFM.</p><p><strong>Reason for rejection:</strong></p><p>" + escapedReason + "</p><p>Please review the reason and make the necessary corrections before submitting again.</p><p>For assistance, contact KFM at 0240 555 688 or 020 409 7129.</p><p>NSAWAM MARKET – Shop More. We Deliver!</p>",
+              }),
+              cache: "no-store",
+            })
+            emailSent = emailResponse.ok
+            emailNotice = emailSent
+              ? (previewTestMode ? "Rejection email sent to the configured Preview test inbox." : "Rejection email sent to the vendor.")
+              : "The rejection was saved, but Resend did not accept the email. Check the Resend delivery logs."
+          } catch {
+            emailNotice = "The rejection was saved, but the email service could not be reached."
+          }
+        } else if (!shouldNotify) {
+          emailSent = true
+          emailNotice = "This rejection reason was already emailed; no duplicate email was sent."
+        } else if (sellerError || !seller?.email) {
+          emailNotice = "The rejection was saved, but the vendor email address could not be found."
+        } else if (!recipient) {
+          emailNotice = "The rejection was saved. Vendor email delivery is not enabled in this environment."
+        }
+        return NextResponse.json({ success: true, record: data, emailSent, emailNotice })
+      }
       return NextResponse.json({ success: true, record: data })
     }
 
