@@ -195,25 +195,6 @@ export default async function ClassifiedsPage({ searchParams }: { searchParams: 
             ) : (
               <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {vendorProducts.map((product) => <VendorProductCard key={product.id} product={product} />)}
-                        </div>
-                      ) : <div className="flex h-52 items-center justify-center bg-muted text-sm text-muted-foreground">No photo provided</div>}
-                      <div className="p-4">
-                        <h3 className="font-bold">{product.title}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">{product.vendor_location}</p>
-                        <p className="mt-3 text-lg font-extrabold text-primary">GH₵{product.price.toFixed(2)}</p>
-                        <span className="mt-3 inline-block text-sm font-bold text-primary group-open:hidden">View details +</span>
-                        <span className="mt-3 hidden text-sm font-bold text-primary group-open:inline-block">Hide details −</span>
-                      </div>
-                    </summary>
-                    <div className="border-t p-4">
-                      {product.image_urls && product.image_urls.length > 3 && <div className="mb-4 grid grid-cols-2 gap-2">{product.image_urls.slice(3).map((image, index) => <img key={index} src={image} alt={`${product.title} photo ${index + 4}`} className="h-40 w-full rounded-lg object-cover" loading="lazy" />)}</div>}
-                      {product.item_condition && <p className="text-sm font-semibold">Condition: {product.item_condition}</p>}
-                      {product.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{product.description}</p>}
-                      <p className="mt-3 text-sm">Seller: {product.vendor_name}</p>
-                      {product.vendor_phone && <p className="mt-2 text-sm font-semibold">Contact number: <span className="text-primary">{product.vendor_phone}</span></p>}
-                    </div>
-                  </details>
-                ))}
               </div>
             )}
           </section>
