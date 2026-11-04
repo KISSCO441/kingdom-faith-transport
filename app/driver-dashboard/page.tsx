@@ -53,6 +53,10 @@ type RideRequest = {
   payment_method: string | null
   payment_status: string | null
   payment_paid_at: string | null
+  driver_share_amount: number | null
+  kfm_commission_amount: number | null
+  driver_payout_status: string | null
+  kfm_commission_status: string | null
   created_at: string
 }
 
@@ -168,6 +172,10 @@ export default function DriverDashboardPage() {
           payment_method,
           payment_status,
           payment_paid_at,
+          driver_share_amount,
+          kfm_commission_amount,
+          driver_payout_status,
+          kfm_commission_status,
           created_at
         `)
 
@@ -1223,6 +1231,14 @@ const response = await fetch(
                           : "Not provided"}
                       </p>
                     </div>
+
+                    {ride.payment_status?.toLowerCase() === "paid" && ride.driver_share_amount != null && (
+                      <div>
+                        <p className="text-sm text-gray-500">Your 80% share</p>
+                        <p className="font-semibold text-green-700">GH₵ {Number(ride.driver_share_amount).toFixed(2)}</p>
+                        <p className="text-xs text-gray-500">Payout status: {ride.driver_payout_status || "Pending"}</p>
+                      </div>
+                    )}
 
                     <div>
                       <p className="text-sm text-gray-500">
