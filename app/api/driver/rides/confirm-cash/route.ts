@@ -105,6 +105,7 @@ export async function POST(request: Request) {
     }
 
     if (String(ride.payment_status).toLowerCase() === "paid") {
+      await sendRidePaymentNotifications(ride.id);
       return NextResponse.json({
         success: true,
         already_paid: true,
