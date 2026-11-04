@@ -83,7 +83,9 @@ export async function POST(request: Request, context: Context) {
       return NextResponse.json({ error: "Unable to prepare this payment. Please try again." }, { status: 409 });
     }
 
-    const origin = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL\n      ? `https://${process.env.VERCEL_URL}`\n      : process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(request.url).origin);
+    const origin = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(request.url).origin);
     const paystackResponse = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
