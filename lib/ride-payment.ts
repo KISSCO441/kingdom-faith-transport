@@ -29,7 +29,7 @@ export function calculateRidePaymentSplit(
 }
 
 export function normalizeGhanaPhone(value: unknown): string {
-  const digits = String(value ?? "").replace(/\\D/g, "");
+  const digits = String(value ?? "").replace(/\D/g, "");
 
   if (digits.startsWith("233") && digits.length === 12) {
     return `0${digits.slice(3)}`;
@@ -39,5 +39,5 @@ export function normalizeGhanaPhone(value: unknown): string {
 }
 
 export function isValidGhanaPhone(value: unknown): boolean {
-  return /^0\\d{9}$/.test(normalizeGhanaPhone(value));
+  return /^0\d{9}$/.test(normalizeGhanaPhone(value));
 }
