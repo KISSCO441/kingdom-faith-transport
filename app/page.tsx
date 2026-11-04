@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { SiteHeader } from "@/components/site-header"
 import { Hero } from "@/components/hero"
-import { NsawamMarket } from "@/components/nsawam-market"
+import { NsawamMarketBanner } from "@/components/nsawam-market-banner"
 import { Features } from "@/components/features"
 import { HowItWorks } from "@/components/how-it-works"
 import { FAQ } from "@/components/faq"
@@ -14,7 +14,7 @@ export default function Page() {
 
       <main>
         <Hero />
-        <NsawamMarket />
+        <NsawamMarketBanner />
         <Features />
         <HowItWorks />
         <FAQ />
