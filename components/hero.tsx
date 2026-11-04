@@ -145,12 +145,7 @@ export function Hero() {
               </a>
             </Button>
 
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
-            >
+            <Button asChild size="lg" className="gap-2">
               <a href="#nsawam-market">
                 <ShoppingBasket className="h-4 w-4" />
                 Visit Market
