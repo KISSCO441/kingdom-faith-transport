@@ -1881,9 +1881,35 @@ return
     return (
       <main className="min-h-screen bg-background text-foreground">
         <section className="mx-auto max-w-4xl px-6 py-16">
-          <h1 className="text-4xl font-bold">
-            KFM Driver Registration
-          </h1>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h1 className="text-4xl font-bold">
+              KFM Driver Registration
+            </h1>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!supabase) {
+                  setError("Unable to sign out right now. Please try again.")
+                  return
+                }
+
+                setLoading(true)
+                const { error: signOutError } = await supabase.auth.signOut()
+                setLoading(false)
+
+                if (signOutError) {
+                  setError(signOutError.message)
+                  return
+                }
+
+                window.location.href = "/driver-registration"
+              }}
+              disabled={loading}
+              className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50"
+            >
+              {loading ? "Signing out..." : "Sign Out"}
+            </button>
+          </div>
 
           <div className="mt-8">
             <h2 className="text-2xl font-bold">
