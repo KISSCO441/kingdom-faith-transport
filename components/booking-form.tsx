@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react"
 import { Car, Bike, CheckCircle2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { BookingMap } from "@/components/booking-map"
 
 type VehicleType = "car" | "motorbike"
 
@@ -377,6 +378,12 @@ if (
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
+              <BookingMap
+                pickupTown={pickupTown}
+                pickupArea={pickupArea}
+                destinationTown={isOkada ? "Nsawam" : destinationTown}
+                destinationArea={isOkada ? (okadaZone || "Nsawam Central") : destinationArea}
+              />
               <div>
                 <span className="mb-2 block text-sm font-medium">
                   Vehicle type
@@ -735,4 +742,3 @@ if (
     </section>
   )
 }
-
