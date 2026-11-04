@@ -124,7 +124,7 @@ export default function MarketAccountPage() {
               </div>
             )}
             {(accountType === "classified_seller" || accountType === "vendor_and_seller") && (
-              <p className="mt-3 text-sm text-muted-foreground">Classified advert submission is the next stage of development.</p>
+              <a href="/market/account/classifieds/new" className="mt-3 inline-flex rounded-lg border px-4 py-2 font-semibold">Create a classified advert</a>
             )}
           </div>
         )}

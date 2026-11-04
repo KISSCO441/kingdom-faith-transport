@@ -28,23 +28,27 @@ export function SiteFooter() {
           <div>
             <h3 className="text-sm font-semibold">Rides</h3>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li><a href="#rides" className="hover:text-foreground">KFM Go</a></li>
-              <li><a href="#rides" className="hover:text-foreground">KFM Comfort</a></li>
-              <li><a href="#rides" className="hover:text-foreground">KFM XL</a></li>
-              <li><a href="#rides" className="hover:text-foreground">Okada</a></li>
+              <li><a href="/#rides" className="hover:text-foreground">KFM Go</a></li>
+              <li><a href="/#rides" className="hover:text-foreground">KFM Comfort</a></li>
+              <li><a href="/#rides" className="hover:text-foreground">KFM XL</a></li>
+              <li><a href="/#rides" className="hover:text-foreground">Okada</a></li>
+              <li><a href="/ride-status" className="hover:text-foreground">Track a ride</a></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold">Company</h3>
+            <h3 className="text-sm font-semibold">Explore</h3>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li><a href="#features" className="hover:text-foreground">Why us</a></li>
-              <li><a href="#how-it-works" className="hover:text-foreground">How it works</a></li>
-              <li><a href="#book" className="hover:text-foreground">Order a ride</a></li>
+              <li><a href="/#features" className="hover:text-foreground">About KFM</a></li>
+              <li><a href="/#how-it-works" className="hover:text-foreground">How it works</a></li>
+              <li><a href="/market" className="hover:text-foreground">KFM Market</a></li>
+              <li><a href="/classifieds" className="hover:text-foreground">Classifieds</a></li>
+              <li><a href="/driver-registration" className="hover:text-foreground">Become a driver</a></li>
+              <li><a href="/#contact" className="hover:text-foreground">Contact us</a></li>
             </ul>
           </div>
 
-          <div>
+          <div id="contact">
             <h3 className="text-sm font-semibold">Contact</h3>
             <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
