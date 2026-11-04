@@ -96,7 +96,9 @@ export async function POST(request: Request) {
       }
     }
 
-    const origin = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL\n      ? `https://${process.env.VERCEL_URL}`\n      : process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(request.url).origin);
+    const origin = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(request.url).origin);
     return NextResponse.json({
       success: true,
       booking_code: ride.booking_code,
