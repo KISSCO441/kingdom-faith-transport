@@ -185,6 +185,13 @@ export function NsawamMarket() {
   const [orderNumber, setOrderNumber] = useState("")
   const [orderError, setOrderError] = useState("")
 
+  useEffect(() => {
+    const requestedCategory = new URLSearchParams(window.location.search).get("category")
+    if (requestedCategory && categories.includes(requestedCategory)) {
+      setActiveCategory(requestedCategory)
+    }
+  }, [])
+
   const visibleProducts = useMemo(
     () => activeCategory === "All"
       ? products
