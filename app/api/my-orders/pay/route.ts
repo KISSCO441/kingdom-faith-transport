@@ -12,11 +12,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
 
-if (!supabaseUrl || !serviceKey || !paystackSecretKey) {
-  throw new Error("Missing required environment variables");
-}
-
-const supabase = createClient(supabaseUrl, serviceKey);
+const supabase =
+  supabaseUrl && serviceKey
+    ? createClient(supabaseUrl, serviceKey)
+    : null;
 
 function hashSession(token: string) {
   return createHmac("sha256", serviceKey!)
@@ -45,6 +44,13 @@ function getSessionToken(request: Request): string | null {
 
 export async function POST(request: Request) {
   try {
+    if (!supabase || !serviceKey || !paystackSecretKey) {
+      return NextResponse.json(
+        { error: "Order payments are not configured for this environment." },
+        { status: 503 },
+      );
+    }
+
     const token = getSessionToken(request);
 
     if (!token) {
