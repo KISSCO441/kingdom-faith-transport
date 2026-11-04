@@ -52,7 +52,7 @@ export function SiteHeader() {
               <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
             </summary>
             <div className="absolute left-0 top-full z-50 mt-2 min-w-52 rounded-xl border border-border bg-background p-2 shadow-xl">
-              <a href="/#book" className="mb-1 block min-h-11 rounded-lg bg-primary px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-primary-foreground hover:bg-primary/90">BOOK A RIDE</a>
+              <a href="/book-ride" className="mb-1 block min-h-11 rounded-lg bg-primary px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-primary-foreground hover:bg-primary/90">BOOK A RIDE</a>
               <a href="/ride-status" className="block min-h-11 rounded-lg bg-primary px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-primary-foreground hover:bg-primary/90">CHECK YOUR RIDE</a>
             </div>
           </details>
@@ -76,7 +76,7 @@ export function SiteHeader() {
                 <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
               </summary>
               <div className="col-span-2 mt-2 grid gap-2">
-                <a href="/#book" onClick={closeMobileMenu} className={navLinkClass}>BOOK A RIDE</a>
+                <a href="/book-ride" onClick={closeMobileMenu} className={navLinkClass}>BOOK A RIDE</a>
                 <a href="/ride-status" onClick={closeMobileMenu} className={navLinkClass}>CHECK YOUR RIDE</a>
               </div>
             </details>
