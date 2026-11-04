@@ -7,6 +7,16 @@ import { BookOpen, Upload, ExternalLink } from "lucide-react";
 
 type Book = { id:string; title:string; author:string; description:string; price:number; cover_url:string|null; is_published:boolean; created_at:string };
 
+async function readApiResponse(response: Response) {
+  const raw = await response.text();
+  try {
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    const detail = raw.trim().slice(0, 240);
+    throw new Error(detail || `The server returned an unreadable response (HTTP ${response.status}).`);
+  }
+}
+
 function BooksAdmin() {
   const [books,setBooks] = useState<Book[]>([]);
   const [title,setTitle] = useState("");
@@ -35,8 +45,6 @@ function BooksAdmin() {
 
   async function submit(event:FormEvent<HTMLFormElement>) {
     event.preventDefault(); const formElement = event.currentTarget; setBusy(true); setError(""); setNotice("");
-    let uploadedPdfPath = "";
-    let uploadedCoverPath = "";
     try {
       if (!supabase) throw new Error("Supabase is not configured for admin access.");
       const {data:{session}} = await supabase.auth.getSession();
@@ -49,19 +57,19 @@ function BooksAdmin() {
       if (!pdfUrlResponse.ok) throw new Error(pdfUrlResult.error || "Could not prepare the PDF upload.");
       const {error:pdfUploadError} = await supabase.storage.from("kfm-digital-books").uploadToSignedUrl(pdfUrlResult.path,pdfUrlResult.token,pdf,{contentType:"application/pdf",upsert:false});
       if (pdfUploadError) throw new Error("PDF upload failed: "+pdfUploadError.message);
-      uploadedPdfPath = pdfUrlResult.path;
 
+      let coverPath = "";
       if (cover) {
         const coverUrlResponse = await fetch("/api/admin/books/upload-url",{method:"POST",headers,body:JSON.stringify({kind:"cover",fileName:cover.name,contentType:cover.type,size:cover.size})});
         const coverUrlResult = await readApiResponse(coverUrlResponse);
         if (!coverUrlResponse.ok) throw new Error(coverUrlResult.error || "Could not prepare the cover image upload.");
         const {error:coverUploadError} = await supabase.storage.from("kfm-book-covers").uploadToSignedUrl(coverUrlResult.path,coverUrlResult.token,cover,{contentType:cover.type,upsert:false});
         if (coverUploadError) throw new Error("Cover image upload failed: "+coverUploadError.message);
-        uploadedCoverPath = coverUrlResult.path;
+        coverPath = coverUrlResult.path;
       }
 
       const response = await fetch("/api/admin/books",{method:"POST",headers:{"Authorization":`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({
-        title,author,description,price,pdfPath:uploadedPdfPath,coverPath:uploadedCoverPath || null
+        title,author,description,price,pdfPath:pdfUrlResult.path,coverPath:coverPath || null
       })});
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.diagnostic ? `${result.error || "Could not save this book."} — ${JSON.stringify(result.diagnostic)}` : (result.error || "Could not save this book."));
