@@ -56,22 +56,22 @@ const [openIndex, setOpenIndex] = useState<number | null>(null)
 
 return ( <section
    id="faqs"
-   className="border-t border-border bg-muted/30 px-4 py-16 sm:px-6 lg:px-8"
+   className="border-t border-border bg-muted/30 px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
  > <div className="mx-auto max-w-4xl"> <div className="text-center"> <p className="mb-2 text-sm font-bold uppercase tracking-widest text-primary">
 KFM SUPPORT </p>
 
 
-      <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+      <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
         Frequently Asked Questions
       </h2>
 
-      <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
+      <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
         Find answers about rides, fares, drivers, market orders, and our
         other services.
       </p>
     </div>
 
-    <div className="mt-10 space-y-3">
+    <div className="mt-5 space-y-2">
       {faqs.map((faq, index) => {
         const isOpen = openIndex === index
 
@@ -84,7 +84,7 @@ KFM SUPPORT </p>
               type="button"
               onClick={() => setOpenIndex(isOpen ? null : index)}
               aria-expanded={isOpen}
-              className="flex w-full items-center justify-between gap-4 p-5 text-left font-semibold transition-colors hover:text-primary"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold transition-colors hover:text-primary sm:text-base"
             >
               <span>{faq.question}</span>
 
@@ -96,7 +96,7 @@ KFM SUPPORT </p>
             </button>
 
             {isOpen && (
-              <div className="border-t border-border px-5 py-4 leading-7 text-muted-foreground">
+              <div className="border-t border-border px-4 py-3 text-sm leading-6 text-muted-foreground">
                 {faq.answer}
               </div>
             )}
