@@ -23,6 +23,10 @@ type Ride = {
   ride_status: string
   fare_estimate: number | null
   created_at: string
+  payment_method: string | null
+  payment_status: string | null
+  payment_paid_at: string | null
+  payment_receipt_number: string | null
 }
 
 type Driver = {
@@ -109,6 +113,18 @@ export default function RideStatusPage() {
   const [loading, setLoading] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelFeedback, setCancelFeedback] = useState("")
+  const [paying, setPaying] = useState(false)
+  const [paymentReference, setPaymentReference] = useState("")
+  const [paymentFeedback, setPaymentFeedback] = useState("")
+  const [paymentError, setPaymentError] = useState("")
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get("booking_code")
+    const reference = params.get("reference")
+    if (code) setBookingCode(code.toUpperCase())
+    if (reference) setPaymentReference(reference)
+  }, [])
 
   async function checkRideStatus(options?: { preserveCurrent?: boolean }) {
     const code = bookingCode.trim().toUpperCase()
@@ -143,7 +159,33 @@ export default function RideStatusPage() {
         )
       }
 
-      setRide(data.ride || null)
+      let loadedRide = data.ride || null
+
+      // Verify a Paystack callback on the server using the booking phone.
+      if (loadedRide && paymentReference) {
+        const verificationResponse = await fetch("/api/rides/paystack/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ booking_code: code, phone, reference: paymentReference }),
+          cache: "no-store",
+        })
+        const verification = await verificationResponse.json()
+        if (verificationResponse.ok && verification.success) {
+          loadedRide = {
+            ...loadedRide,
+            payment_status: "paid",
+            payment_paid_at: verification.payment_paid_at || new Date().toISOString(),
+            payment_receipt_number: verification.payment_receipt_number || null,
+          }
+          setPaymentFeedback("Your Paystack payment has been verified. Thank you for riding with KFM.")
+          setPaymentReference("")
+          window.history.replaceState({}, "", "/ride-status")
+        } else {
+          setPaymentError(verification.error || "Payment is not yet confirmed. Please refresh shortly.")
+        }
+      }
+
+      setRide(loadedRide)
       setDriver(data.driver || null)
       setLocation(data.location || null)
     } catch (err) {
@@ -154,6 +196,29 @@ export default function RideStatusPage() {
       )
     } finally {
       if (!options?.preserveCurrent) setLoading(false)
+    }
+  }
+
+  async function startPaystackPayment() {
+    if (!ride || !customerPhone.trim()) return
+    setPaying(true)
+    setPaymentError("")
+    setPaymentFeedback("")
+    try {
+      const response = await fetch("/api/rides/paystack/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_code: ride.booking_code, phone: customerPhone.trim() }),
+        cache: "no-store",
+      })
+      const result = await response.json()
+      if (!response.ok || !result.success || !result.authorization_url) {
+        throw new Error(result.error || "Unable to open Paystack checkout.")
+      }
+      window.location.assign(result.authorization_url)
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : "Unable to start payment.")
+      setPaying(false)
     }
   }
 
@@ -389,6 +454,68 @@ export default function RideStatusPage() {
                 </div>
               )}
             </div>
+
+            {ride.ride_status === "completed" && (
+              <section className="mt-6 rounded-2xl border bg-card p-6 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="font-semibold">Ride Payment</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {ride.payment_method?.toLowerCase() === "cash"
+                        ? "Cash was selected when this ride was booked. Please pay your driver directly."
+                        : "Your ride is complete. Pay the approved fare securely through Paystack."}
+                    </p>
+                  </div>
+                  <span className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${
+                    ride.payment_status?.toLowerCase() === "paid"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-amber-100 text-amber-800"
+                  }`}>
+                    {ride.payment_status?.toLowerCase() === "paid" ? "PAID" : "UNPAID"}
+                  </span>
+                </div>
+
+                <p className="mt-4 text-2xl font-bold">
+                  GH₵{Number(ride.fare_estimate || 0).toFixed(2)}
+                </p>
+
+                {ride.payment_status?.toLowerCase() === "paid" ? (
+                  <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                    <p className="font-semibold">Payment confirmed</p>
+                    {ride.payment_receipt_number && (
+                      <p className="mt-1">Receipt: {ride.payment_receipt_number}</p>
+                    )}
+                    {ride.payment_paid_at && (
+                      <p className="mt-1">
+                        Paid {new Date(ride.payment_paid_at).toLocaleString("en-GH", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </p>
+                    )}
+                  </div>
+                ) : ride.payment_method?.toLowerCase() === "paystack" ? (
+                  <Button
+                    className="mt-4 w-full sm:w-auto"
+                    onClick={startPaystackPayment}
+                    disabled={paying}
+                  >
+                    {paying ? "Opening secure checkout..." : "Pay Ride Fare with Paystack"}
+                  </Button>
+                ) : null}
+
+                {paymentFeedback && (
+                  <p role="status" className="mt-3 text-sm text-green-700">
+                    {paymentFeedback}
+                  </p>
+                )}
+                {paymentError && (
+                  <p role="alert" className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                    {paymentError}
+                  </p>
+                )}
+              </section>
+            )}
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-2xl border bg-card p-6 shadow-sm">
