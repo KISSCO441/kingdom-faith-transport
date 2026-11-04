@@ -46,7 +46,16 @@ export function SiteHeader() {
         </a>
         <nav aria-label="Main navigation" className="hidden items-center gap-3 xl:flex">
           <a href="/" className={navLinkClass}>HOME</a>
-          <a href="/#book" className={navLinkClass}>BOOK A RIDE</a>
+          <details className="group relative">
+            <summary className={navLinkClass + " cursor-pointer list-none gap-2 [&::-webkit-details-marker]:hidden"}>
+              BOOK A RIDE
+              <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="absolute left-0 top-full z-50 mt-2 min-w-52 rounded-xl border border-border bg-background p-2 shadow-xl">
+              <a href="/#book" className="mb-1 block min-h-11 rounded-lg bg-primary px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-primary-foreground hover:bg-primary/90">BOOK A RIDE</a>
+              <a href="/ride-status" className="block min-h-11 rounded-lg bg-primary px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-primary-foreground hover:bg-primary/90">CHECK YOUR RIDE</a>
+            </div>
+          </details>
           <a href="/classifieds" className={navLinkClass}>CLASSIFIEDS</a>
           <MarketplaceDropdown />
         </nav>
@@ -60,7 +69,16 @@ export function SiteHeader() {
         <div id="mobile-site-navigation" className="border-t border-border bg-background xl:hidden">
           <nav aria-label="Mobile navigation" className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 py-4 sm:px-6">
             <a href="/" onClick={closeMobileMenu} className={navLinkClass}>HOME</a>
-            <a href="/#book" onClick={closeMobileMenu} className={navLinkClass}>BOOK A RIDE</a>
+            <details className="group relative">
+              <summary className={navLinkClass + " cursor-pointer list-none gap-2 [&::-webkit-details-marker]:hidden"}>
+                BOOK A RIDE
+                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="col-span-2 mt-2 grid gap-2">
+                <a href="/#book" onClick={closeMobileMenu} className={navLinkClass}>BOOK A RIDE</a>
+                <a href="/ride-status" onClick={closeMobileMenu} className={navLinkClass}>CHECK YOUR RIDE</a>
+              </div>
+            </details>
             <a href="/classifieds" onClick={closeMobileMenu} className={navLinkClass}>CLASSIFIEDS</a>
             <details className="group relative">
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg bg-primary px-3 py-3 text-center text-xs font-extrabold uppercase tracking-[0.08em] text-primary-foreground shadow-sm [&::-webkit-details-marker]:hidden">
