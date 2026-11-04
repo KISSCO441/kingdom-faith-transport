@@ -1,12 +1,10 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 
-type Context = { params: Promise<{ token: string }> };
-
-export async function POST(request: Request, context: Context) {
+export async function POST(request: Request) {
   try {
-    const { token } = await context.params;
     const body = await request.json();
+    const token = typeof body.token === "string" ? body.token : "";
     const reference = typeof body.reference === "string" ? body.reference.trim() : "";
     if (!/^[a-f0-9]{64}$/i.test(token) || !reference) {
       return NextResponse.json({ error: "A valid payment link and reference are required." }, { status: 400 });
