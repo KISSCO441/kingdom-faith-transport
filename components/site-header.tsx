@@ -56,6 +56,7 @@ export function SiteHeader() {
               <a href="/ride-status" className="block min-h-11 rounded-lg bg-primary px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-primary-foreground hover:bg-primary/90">CHECK YOUR RIDE</a>
             </div>
           </details>
+          <a href="/driver-registration" className={navLinkClass}>BECOME A DRIVER</a>
           <a href="/classifieds" className={navLinkClass}>CLASSIFIEDS</a>
           <MarketplaceDropdown />
         </nav>
@@ -79,6 +80,7 @@ export function SiteHeader() {
                 <a href="/ride-status" onClick={closeMobileMenu} className={navLinkClass}>CHECK YOUR RIDE</a>
               </div>
             </details>
+            <a href="/driver-registration" onClick={closeMobileMenu} className={navLinkClass}>BECOME A DRIVER</a>
             <a href="/classifieds" onClick={closeMobileMenu} className={navLinkClass}>CLASSIFIEDS</a>
             <details className="group relative">
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg bg-primary px-3 py-3 text-center text-xs font-extrabold uppercase tracking-[0.08em] text-primary-foreground shadow-sm [&::-webkit-details-marker]:hidden">
