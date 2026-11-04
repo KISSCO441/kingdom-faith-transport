@@ -11,14 +11,20 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY
 
-if (!supabaseUrl || !supabaseServiceKey || !paystackSecretKey) {
-  throw new Error("Missing required environment variables")
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabase =
+  supabaseUrl && supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : null
 
 export async function POST(request: Request) {
   try {
+    if (!supabase || !paystackSecretKey) {
+      return NextResponse.json(
+        { error: "Paystack webhook is not configured for this environment." },
+        { status: 503 },
+      )
+    }
+
     const body = await request.text()
     const signature = request.headers.get("x-paystack-signature")
 
