@@ -197,10 +197,10 @@ export function BookingMap({
             geometry: route,
           })
         }
-        const bounds = {
-          _sw: { lng: Math.min(pickup[0], destination[0]), lat: Math.min(pickup[1], destination[1]) },
-          _ne: { lng: Math.max(pickup[0], destination[0]), lat: Math.max(pickup[1], destination[1]) },
-        }
+        const bounds: [[number, number], [number, number]] = [
+          [Math.min(pickup[0], destination[0]), Math.min(pickup[1], destination[1])],
+          [Math.max(pickup[0], destination[0]), Math.max(pickup[1], destination[1])],
+        ]
         mapRef.current.fitBounds(bounds, { padding: 56, maxZoom: 13, duration: 700 })
         setStatus(route ? "Route preview · Green marker: pickup · Orange marker: destination" : "Pickup and destination located. A driving route is not available for this pair.")
       } catch (error) {
