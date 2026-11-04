@@ -53,6 +53,7 @@ answer:
 
 export function FAQ() {
 const [openIndex, setOpenIndex] = useState<number | null>(null)
+const [showFaqs, setShowFaqs] = useState(false)
 
 return ( <section
    id="faqs"
@@ -71,7 +72,24 @@ KFM SUPPORT </p>
       </p>
     </div>
 
-    <div className="mt-5 space-y-2">
+    <div className="mt-4 text-center">
+      <button
+        type="button"
+        onClick={() => {
+          setShowFaqs((visible) => !visible)
+          setOpenIndex(null)
+        }}
+        aria-expanded={showFaqs}
+        aria-controls="kfm-faq-list"
+        className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+      >
+        {showFaqs ? "Hide FAQs" : "View FAQs"}
+        <ChevronDown className={`h-4 w-4 transition-transform ${showFaqs ? "rotate-180" : ""}`} />
+      </button>
+    </div>
+
+    {showFaqs && (
+    <div id="kfm-faq-list" className="mt-4 space-y-2">
       {faqs.map((faq, index) => {
         const isOpen = openIndex === index
 
@@ -104,6 +122,7 @@ KFM SUPPORT </p>
         )
       })}
     </div>
+    )}
   </div>
 </section>
 
