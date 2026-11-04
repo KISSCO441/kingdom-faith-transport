@@ -8,7 +8,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Ride and driver details are required." }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
     if (!supabaseUrl || !serviceKey || !publishableKey) {
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unable to create the payment link. Confirm the KFM ride-payment database migration has been applied." }, { status: 500 });
     }
 
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(request.url).origin);
+    const origin = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL\n      ? `https://${process.env.VERCEL_URL}`\n      : process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(request.url).origin);
     return NextResponse.json({
       success: true,
       booking_code: ride.booking_code,
