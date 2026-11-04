@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
 import { sendMarketPaymentConfirmation } from "@/lib/market-order-email"\nimport { calculateRidePaymentSplit } from "@/lib/ride-payment"
+import { sendRidePaymentNotifications } from "@/lib/ride-payment-email"
 
 export const runtime = "nodejs"
 
@@ -148,10 +149,12 @@ export async function POST(request: Request) {
       }
 
       if (String(ride.payment_status).toLowerCase() === "paid") {
+        const notifications = await sendRidePaymentNotifications(ride.id);
         return NextResponse.json({
           success: true,
           message: "KFM ride payment was already recorded.",
           booking_code: ride.booking_code,
+          notifications,
         });
       }
 
@@ -183,12 +186,15 @@ export async function POST(request: Request) {
         );
       }
 
+      const notifications = await sendRidePaymentNotifications(ride.id);
+
       return NextResponse.json({
         success: true,
         message: updatedRide
           ? "Ride payment verified and recorded."
           : "Ride payment was already recorded.",
         booking_code: ride.booking_code,
+        notifications,
         ...split,
       });
     }
