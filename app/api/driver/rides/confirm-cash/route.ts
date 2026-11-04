@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { calculateRidePaymentSplit } from "@/lib/ride-payment";
+import { sendRidePaymentNotifications } from "@/lib/ride-payment-email";
 
 export const runtime = "nodejs";
 
@@ -153,6 +154,8 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
+
+    await sendRidePaymentNotifications(ride.id);
 
     return NextResponse.json({
       success: true,
