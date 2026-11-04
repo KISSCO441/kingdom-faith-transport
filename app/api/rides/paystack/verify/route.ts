@@ -31,9 +31,9 @@ export async function POST(request: Request) {
       typeof body.reference === "string" ? body.reference.trim() : "";
 
     if (
-      !/^KFM-\\d{6}$/.test(bookingCode) ||
-      !/^0\\d{9}$/.test(suppliedPhone) ||
-      !/^KFM-RIDE-KFM-\\d{6}-[a-f0-9]{16}$/i.test(reference)
+      !/^KFM-\d{6}$/.test(bookingCode) ||
+      !/^0\d{9}$/.test(suppliedPhone) ||
+      !/^KFM-RIDE-KFM-\d{6}-[a-f0-9]{16}$/i.test(reference)
     ) {
       return NextResponse.json(
         { error: "The booking details or payment reference are invalid." },
