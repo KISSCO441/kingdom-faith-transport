@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
+import { sendMarketPaymentConfirmation } from "@/lib/market-order-email"
 
 export const runtime = "nodejs"
 
@@ -164,11 +165,26 @@ export async function POST(request: Request) {
       )
     }
 
-    // Do not repeat the payment update for an already-paid order.
+    // A webhook retry can also retry a failed confirmation email. The
+    // email helper uses a stable Resend idempotency key per order.
     if (order.payment_status === "PAID") {
+      const email = await sendMarketPaymentConfirmation(order.id)
+
+      if (
+        process.env.KFM_MARKETPLACE_EMAILS_ENABLED === "true" &&
+        process.env.RESEND_DOMAIN_VERIFIED === "true" &&
+        !email.sent
+      ) {
+        return NextResponse.json(
+          { error: "Payment is recorded, but the confirmation email could not be sent." },
+          { status: 500 },
+        )
+      }
+
       return NextResponse.json({
         success: true,
         message: "Order was already marked as paid.",
+        email: email.sent ? "sent" : email.reason,
       })
     }
 
@@ -195,8 +211,31 @@ export async function POST(request: Request) {
       )
     }
 
+    let emailResult: "sent" | "disabled" | "not_sent" = "not_sent"
+
     if (updatedOrder) {
       console.log(`KFM order ${order.order_number} marked PAID.`)
+
+      // Send only after Paystack verification and the database PAID update.
+      // Email failure must not undo a successful payment or break checkout.
+      const email = await sendMarketPaymentConfirmation(order.id)
+      emailResult = email.sent
+        ? "sent"
+        : email.reason === "disabled"
+          ? "disabled"
+          : "not_sent"
+    }
+
+    if (
+      updatedOrder &&
+      process.env.KFM_MARKETPLACE_EMAILS_ENABLED === "true" &&
+      process.env.RESEND_DOMAIN_VERIFIED === "true" &&
+      emailResult === "not_sent"
+    ) {
+      return NextResponse.json(
+        { error: "Payment is recorded, but the confirmation email could not be sent." },
+        { status: 500 },
+      )
     }
 
     return NextResponse.json({
@@ -204,6 +243,7 @@ export async function POST(request: Request) {
       message: updatedOrder
         ? "Payment verified and order marked as paid."
         : "Order was already marked as paid.",
+      email: emailResult,
     })
   } catch (error) {
     console.error("KFM Paystack webhook error:", error)
