@@ -6,8 +6,8 @@ alter table public.ride_requests
   add column if not exists payment_channel text,
   add column if not exists driver_share_amount numeric(12,2),
   add column if not exists kfm_commission_amount numeric(12,2),
-  add column if not exists driver_payout_status text not null default 'pending',
-  add column if not exists kfm_commission_status text not null default 'pending',
+  add column if not exists driver_payout_status text,
+  add column if not exists kfm_commission_status text,
   add column if not exists cash_confirmed_by uuid,
   add column if not exists cash_confirmed_at timestamptz,
   add column if not exists payment_receipt_number text;
