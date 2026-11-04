@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !serviceKey) {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     };
 
     const rideResponse = await fetch(
-      `${supabaseUrl}/rest/v1/ride_requests?booking_code=eq.${encodeURIComponent(bookingCode)}&select=id,booking_code,customer_name,customer_phone,vehicle_type,pickup_town,pickup_area,destination_town,destination_area,ride_status,fare_estimate,driver_id,created_at&limit=1`,
+      `${supabaseUrl}/rest/v1/ride_requests?booking_code=eq.${encodeURIComponent(bookingCode)}&select=id,booking_code,customer_name,customer_phone,vehicle_type,pickup_town,pickup_area,destination_town,destination_area,ride_status,fare_estimate,driver_id,created_at,payment_method,payment_status,payment_paid_at,payment_requested_at,payment_receipt_number,driver_share_amount,kfm_commission_amount&limit=1`,
       { headers, cache: "no-store" },
     );
 
