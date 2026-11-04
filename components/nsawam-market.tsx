@@ -733,7 +733,7 @@ async function prepareOrder() {
           id="market-products"
           className="mt-10 scroll-mt-24"
         >
-          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5 md:flex-row md:items-center md:justify-between">
+          <div className="sticky top-16 z-30 flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-semibold">
                 Market Categories
@@ -744,13 +744,13 @@ async function prepareOrder() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:justify-end">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   type="button"
                   onClick={() => setActiveCategory(cat)}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${
                     activeCategory === cat
                       ? "border-primary bg-primary text-primary-foreground"
                       : "border-border bg-background text-muted-foreground hover:text-foreground"
@@ -762,7 +762,7 @@ async function prepareOrder() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {visibleProducts.map((product) => {
               const cartItem = cart[product.id]
               const quantity = cartItem?.quantity ?? 0
@@ -792,7 +792,7 @@ async function prepareOrder() {
                     </div>
                   )}
 
-                  <div className="flex flex-1 flex-col p-5">
+                  <div className="flex flex-1 flex-col p-3 sm:p-5">
                     <h4 className="text-base font-semibold">
                       {product.name}
                     </h4>
