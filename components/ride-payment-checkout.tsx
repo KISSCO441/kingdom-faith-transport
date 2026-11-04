@@ -24,10 +24,10 @@ export function RidePaymentCheckout({ token }: { token: string }) {
         const reference = params.get("reference");
         if (reference) {
           setProcessing(true);
-          const verify = await fetch("/api/ride-payment/verify/" + token, {
+          const verify = await fetch("/api/ride-payment/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reference }),
+            body: JSON.stringify({ reference, token }),
             cache: "no-store",
           });
           const result = await verify.json();
