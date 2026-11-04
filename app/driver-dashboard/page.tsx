@@ -73,6 +73,7 @@ export default function DriverDashboardPage() {
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([])
   const [loadingRides, setLoadingRides] = useState(false)
   const [updatingRideId, setUpdatingRideId] = useState<string | null>(null)
+  const [paymentLinks, setPaymentLinks] = useState<Record<string, string>>({})
 
   useEffect(() => {
     loadDriver()
@@ -328,6 +329,46 @@ const response = await fetch(
     }
   }
  
+  async function createRidePaymentLink(rideId: string) {
+    if (!driver) return
+
+    try {
+      setUpdatingRideId(rideId)
+      setError("")
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) throw sessionError
+      if (!session?.access_token) {
+        throw new Error("Your session has expired. Please sign in again.")
+      }
+
+      const response = await fetch("/api/driver/rides/payment-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ ride_id: rideId, driver_id: driver.id }),
+      })
+      const result = await response.json()
+      if (!response.ok || !result.payment_url) {
+        throw new Error(result.error || "Unable to create payment link.")
+      }
+
+      setPaymentLinks((current) => ({ ...current, [rideId]: result.payment_url }))
+      await navigator.clipboard.writeText(result.payment_url)
+    } catch (err) {
+      console.error("Ride payment link error:", err)
+      setError(err instanceof Error ? err.message : "Unable to create payment link.")
+    } finally {
+      setUpdatingRideId(null)
+    }
+  }
+
   async function updateAvailability(
     newAvailability: "ONLINE" | "OFFLINE",
   ) {
@@ -1240,6 +1281,33 @@ const response = await fetch(
                     </div>
 
                   </div>
+
+                  {ride.ride_status?.toLowerCase() === "completed" &&
+                    ride.payment_method?.toLowerCase() === "paystack" &&
+                    ride.payment_status?.toLowerCase() === "unpaid" && (
+                      <div className="mt-5 border-t pt-4">
+                        <p className="text-sm text-slate-600">
+                          Create a secure Paystack payment link and share it with the customer.
+                        </p>
+                        <Button
+                          className="mt-3 bg-orange-600 hover:bg-orange-700"
+                          disabled={updatingRideId === ride.id}
+                          onClick={() => createRidePaymentLink(ride.id)}
+                        >
+                          {updatingRideId === ride.id
+                            ? "Creating link..."
+                            : paymentLinks[ride.id]
+                              ? "Create a new payment link"
+                              : "Create payment link"}
+                        </Button>
+                        {paymentLinks[ride.id] && (
+                          <div className="mt-3 break-all rounded-lg bg-slate-50 p-3 text-sm">
+                            <p className="font-medium text-green-700">Payment link copied</p>
+                            <p className="mt-1 text-slate-600">{paymentLinks[ride.id]}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                 </div>
               ))
