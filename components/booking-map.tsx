@@ -46,7 +46,7 @@ function loadMapbox(): Promise<MapboxApi> {
   if (window.mapboxgl) return Promise.resolve(window.mapboxgl)
   if (mapboxLoader) return mapboxLoader
 
-  mapboxLoader = new Promise((resolve, reject) => {
+  mapboxLoader = new Promise<MapboxApi>((resolve, reject) => {
     const stylesheetUrl = "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css"
     if (!document.querySelector('link[data-kfm-mapbox="true"]')) {
       const stylesheet = document.createElement("link")
@@ -78,7 +78,7 @@ function loadMapbox(): Promise<MapboxApi> {
     throw error
   })
 
-  return mapboxLoader
+  return mapboxLoader!
 }
 
 async function geocodePlace(place: string, token: string): Promise<[number, number] | null> {
@@ -156,6 +156,7 @@ export function BookingMap({
   useEffect(() => {
     if (!mapReady || !mapRef.current || !token) return
     let cancelled = false
+    const accessToken = token
 
     async function updateRoute() {
       setStatus("Locating pickup and destination…")
@@ -164,8 +165,8 @@ export function BookingMap({
         const pickupLabel = `${pickupArea}, ${pickupTown}, Ghana`
         const destinationLabel = `${destinationArea}, ${destinationTown}, Ghana`
         const [pickup, destination] = await Promise.all([
-          geocodePlace(pickupLabel, token),
-          geocodePlace(destinationLabel, token),
+          geocodePlace(pickupLabel, accessToken),
+          geocodePlace(destinationLabel, accessToken),
         ])
         if (cancelled || !mapRef.current) return
         if (!pickup || !destination) {
@@ -184,7 +185,7 @@ export function BookingMap({
         const directionsUrl = new URL(`https://api.mapbox.com/directions/v5/mapbox/driving/${pickup.join(",")};${destination.join(",")}`)
         directionsUrl.searchParams.set("geometries", "geojson")
         directionsUrl.searchParams.set("overview", "full")
-        directionsUrl.searchParams.set("access_token", token)
+        directionsUrl.searchParams.set("access_token", accessToken)
         const directionsResponse = await fetch(directionsUrl.toString())
         if (!directionsResponse.ok) throw new Error("The driving route could not be loaded.")
         const directions = await directionsResponse.json()
