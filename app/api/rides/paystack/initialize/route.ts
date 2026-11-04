@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         : "";
     const suppliedPhone = normalizeGhanaPhone(body.phone);
 
-    if (!/^KFM-\\d{6}$/.test(bookingCode) || !/^0\\d{9}$/.test(suppliedPhone)) {
+    if (!/^KFM-\d{6}$/.test(bookingCode) || !/^0\d{9}$/.test(suppliedPhone)) {
       return NextResponse.json(
         { error: "Enter a valid KFM booking number and Ghana phone number." },
         { status: 400 },
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     const fare = Number(ride.fare_estimate);
 
     if (
-      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
       !Number.isFinite(fare) ||
       fare <= 0
     ) {
