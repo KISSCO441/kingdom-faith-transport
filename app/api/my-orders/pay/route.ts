@@ -8,18 +8,8 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
-
-if (!supabaseUrl || !serviceKey || !paystackSecretKey) {
-  throw new Error("Missing required environment variables");
-}
-
-const supabase = createClient(supabaseUrl, serviceKey);
-
-function hashSession(token: string) {
-  return createHmac("sha256", serviceKey!)
+function hashSession(token: string, serviceKey: string) {
+  return createHmac("sha256", serviceKey)
     .update(token)
     .digest("hex");
 }
@@ -45,6 +35,18 @@ function getSessionToken(request: Request): string | null {
 
 export async function POST(request: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY;
+
+    if (!supabaseUrl || !serviceKey || !paystackSecretKey) {
+      return NextResponse.json(
+        { error: "Order payments are not configured for this environment." },
+        { status: 503 },
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, serviceKey);
     const token = getSessionToken(request);
 
     if (!token) {
@@ -54,7 +56,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const tokenHash = hashSession(token);
+    const tokenHash = hashSession(token, serviceKey);
     const now = new Date().toISOString();
 
     // STEP 1: Validate the customer's verified session.
