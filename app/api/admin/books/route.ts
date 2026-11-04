@@ -35,19 +35,26 @@ export async function POST(request: NextRequest) {
   const auth = await requireKfmAdmin(request);
   if (!auth.ok) return auth.response;
 
+  let pdfPath = "";
+  let coverPath = "";
   try {
-    const form = await request.formData();
-    const title = String(form.get("title") || "").trim();
-    const author = String(form.get("author") || "Apostle K. F. Kisseh").trim();
-    const description = String(form.get("description") || "").trim();
-    const price = Number(form.get("price"));
-    const pdfPath = String(form.get("pdfPath") || "").trim();
-    const cover = form.get("cover");
+    const body = await request.json();
+    const title = String(body.title || "").trim();
+    const author = String(body.author || "Apostle K. F. Kisseh").trim();
+    const description = String(body.description || "").trim();
+    const price = Number(body.price);
+    pdfPath = String(body.pdfPath || "").trim();
+    coverPath = String(body.coverPath || "").trim();
 
-    if (!title || title.length > 180 || !description || description.length > 5000 ||
-        !Number.isFinite(price) || price <= 0 || !/^admin-uploads\/[a-f0-9-]+\.pdf$/i.test(pdfPath)) {
-      return NextResponse.json({ error: "Enter a title, description and valid price, and upload a PDF up to 50MB." }, { status: 400 });
+    if (!title || title.length > 180 || !author || author.length > 160 ||
+        !description || description.length > 5000 || !Number.isFinite(price) || price <= 0 ||
+        !/^admin-uploads\/[a-f0-9-]+\.pdf$/i.test(pdfPath)) {
+      return NextResponse.json({ error: "Enter a title, author, description and valid price, and upload a PDF up to 50MB." }, { status: 400 });
     }
+    if (coverPath && !/^admin-uploads\/[a-f0-9-]+\.(jpg|png|webp)$/i.test(coverPath)) {
+      return NextResponse.json({ error: "The cover image path is invalid. Please upload the cover again." }, { status: 400 });
+    }
+
     const pdfFolder = pdfPath.slice(0, pdfPath.lastIndexOf("/"));
     const pdfName = pdfPath.slice(pdfPath.lastIndexOf("/") + 1);
     const { data: uploadedFiles, error: fileLookupError } = await auth.supabase.storage.from("kfm-digital-books").list(pdfFolder, { search: pdfName });
@@ -56,23 +63,22 @@ export async function POST(request: NextRequest) {
         Number(uploadedPdf.metadata?.size || 0) < 1 || Number(uploadedPdf.metadata?.size || 0) > 50 * 1024 * 1024) {
       return NextResponse.json({ error: "The uploaded PDF could not be verified. Please upload it again." }, { status: 400 });
     }
-    if (cover && (!(cover instanceof File) || !["image/jpeg","image/png","image/webp"].includes(cover.type) || cover.size > 5 * 1024 * 1024)) {
-      return NextResponse.json({ error: "Cover image must be JPG, PNG or WebP and no larger than 5MB." }, { status: 400 });
-    }
 
-    const slug = title.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 150) + "-" + randomUUID().slice(0, 8);
     let coverUrl: string | null = null;
-    if (cover instanceof File && cover.size > 0) {
-      const extension = cover.type === "image/png" ? "png" : cover.type === "image/webp" ? "webp" : "jpg";
-      const coverPath = `${slug}/cover.${extension}`;
-      const { error: coverError } = await auth.supabase.storage.from("kfm-book-covers").upload(coverPath, Buffer.from(await cover.arrayBuffer()), { contentType: cover.type, upsert: false });
-      if (coverError) {
-        await auth.supabase.storage.from("kfm-digital-books").remove([pdfPath]);
-        return NextResponse.json({ error: "Could not upload the cover image.", diagnostic: { message: coverError.message, name: coverError.name } }, { status: 500 });
+    if (coverPath) {
+      const coverFolder = coverPath.slice(0, coverPath.lastIndexOf("/"));
+      const coverName = coverPath.slice(coverPath.lastIndexOf("/") + 1);
+      const { data: coverFiles, error: coverLookupError } = await auth.supabase.storage.from("kfm-book-covers").list(coverFolder, { search: coverName });
+      const uploadedCover = coverFiles?.find((file) => file.name === coverName);
+      const allowedCoverTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (coverLookupError || !uploadedCover || !allowedCoverTypes.includes(String(uploadedCover.metadata?.mimetype || "")) ||
+          Number(uploadedCover.metadata?.size || 0) < 1 || Number(uploadedCover.metadata?.size || 0) > 5 * 1024 * 1024) {
+        return NextResponse.json({ error: "The uploaded cover image could not be verified. Please upload it again." }, { status: 400 });
       }
       coverUrl = auth.supabase.storage.from("kfm-book-covers").getPublicUrl(coverPath).data.publicUrl;
     }
 
+    const slug = title.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 150) + "-" + randomUUID().slice(0, 8);
     const { data: book, error } = await auth.supabase.from("kfm_books").insert({
       title, slug, author, description, price: Math.round(price * 100) / 100,
       cover_url: coverUrl, file_path: pdfPath, is_published: true,
@@ -80,17 +86,17 @@ export async function POST(request: NextRequest) {
 
     if (error || !book) {
       await auth.supabase.storage.from("kfm-digital-books").remove([pdfPath]);
-      if (coverUrl) {
-        const extension = coverUrl.split(".").pop()?.split("?")[0] || "jpg";
-        await auth.supabase.storage.from("kfm-book-covers").remove([`${slug}/cover.${extension}`]);
-      }
+      if (coverPath) await auth.supabase.storage.from("kfm-book-covers").remove([coverPath]);
       console.error("KFM book record creation failed:", error?.message);
       return NextResponse.json({ error: "The book could not be saved.", diagnostic: { code: error?.code ?? null, message: error?.message ?? "No book record was returned.", details: error?.details ?? null, hint: error?.hint ?? null } }, { status: 500 });
     }
     return NextResponse.json({ book });
   } catch (error) {
     console.error("KFM book upload error:", error);
-    return NextResponse.json({ error: "Unable to save this book.", diagnostic: { message: error instanceof Error ? error.message : String(error) } }, { status: 500 });
+    return NextResponse.json({
+      error: "Unable to save this book.",
+      diagnostic: { message: error instanceof Error ? error.message : String(error) },
+    }, { status: 500 });
   }
 }
 
