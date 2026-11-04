@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import crypto from "crypto"
 import { createClient } from "@supabase/supabase-js"
-import { sendMarketPaymentConfirmation } from "@/lib/market-order-email"\nimport { calculateRidePaymentSplit } from "@/lib/ride-payment"
+import { sendMarketPaymentConfirmation } from "@/lib/market-order-email"
+import { calculateRidePaymentSplit } from "@/lib/ride-payment"
 import { sendRidePaymentNotifications } from "@/lib/ride-payment-email"
 
 export const runtime = "nodejs"
