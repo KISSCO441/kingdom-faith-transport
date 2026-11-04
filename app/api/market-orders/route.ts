@@ -14,9 +14,6 @@ if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error("Missing Supabase environment variables");
 }
 
-if (!paystackSecretKey) {
-  throw new Error("Missing PAYSTACK_SECRET_KEY");
-}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -47,6 +44,13 @@ function generateOrderNumber() {
 
 export async function POST(request: Request) {
   try {
+    if (!paystackSecretKey) {
+      return NextResponse.json(
+        { error: "Market payments are not configured for this environment." },
+        { status: 503 },
+      );
+    }
+
     const body = (await request.json()) as Partial<MarketOrderRequest>;
 
     const {
