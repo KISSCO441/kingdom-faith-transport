@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { SiteHeader } from "@/components/site-header"
 import { Hero } from "@/components/hero"
-import { Services } from "@/components/services"
 import { NsawamMarket } from "@/components/nsawam-market"
 import { Features } from "@/components/features"
 import { HowItWorks } from "@/components/how-it-works"
@@ -16,7 +15,6 @@ export default function Page() {
 
       <main>
         <Hero />
-        <Services />
         <NsawamMarket />
         <Features />
         <HowItWorks />
