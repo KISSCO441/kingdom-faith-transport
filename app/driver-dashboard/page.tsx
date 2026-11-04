@@ -1283,6 +1283,25 @@ const response = await fetch(
                   </div>
 
                   {ride.ride_status?.toLowerCase() === "completed" &&
+                    ride.payment_method?.toLowerCase() === "cash" &&
+                    ride.payment_status?.toLowerCase() === "unpaid" && (
+                      <div className="mt-5 border-t pt-4">
+                        <p className="text-sm text-slate-600">
+                          Confirm cash only after you have actually received the customer's fare.
+                        </p>
+                        <Button
+                          className="mt-3 bg-green-600 hover:bg-green-700"
+                          disabled={updatingRideId === ride.id}
+                          onClick={() => confirmCashPayment(ride.id)}
+                        >
+                          {updatingRideId === ride.id
+                            ? "Confirming..."
+                            : "Confirm Cash Received"}
+                        </Button>
+                      </div>
+                    )}
+
+                  {ride.ride_status?.toLowerCase() === "completed" &&
                     ride.payment_method?.toLowerCase() === "paystack" &&
                     ride.payment_status?.toLowerCase() === "unpaid" && (
                       <div className="mt-5 border-t pt-4">
