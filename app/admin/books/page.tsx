@@ -35,38 +35,51 @@ function BooksAdmin() {
 
   async function submit(event:FormEvent<HTMLFormElement>) {
     event.preventDefault(); const formElement = event.currentTarget; setBusy(true); setError(""); setNotice("");
+    let uploadedPdfPath = "";
+    let uploadedCoverPath = "";
     try {
       if (!supabase) throw new Error("Supabase is not configured for admin access.");
       const {data:{session}} = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Please sign in to KFM Admin again.");
       if (!pdf) throw new Error("Choose the book PDF first.");
-      const uploadResponse = await fetch("/api/admin/books/upload-url",{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({fileName:pdf.name,contentType:pdf.type,size:pdf.size})});
-      const uploadResult = await uploadResponse.json();
-      if (!uploadResponse.ok) throw new Error(uploadResult.error || "Could not prepare the PDF upload.");
-      const {error:uploadError} = await supabase.storage.from("kfm-digital-books").uploadToSignedUrl(uploadResult.path,uploadResult.token,pdf,{contentType:"application/pdf",upsert:false});
-      if (uploadError) throw new Error("PDF upload failed: "+uploadError.message);
-      const form = new FormData();
-      form.set("title",title); form.set("author",author); form.set("description",description); form.set("price",price);
-      form.set("pdfPath",uploadResult.path);
-      if (cover) form.set("cover",cover);
-      const response = await fetch("/api/admin/books",{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`},body:form});
-      const result = await response.json();
+
+      const headers = {Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"};
+      const pdfUrlResponse = await fetch("/api/admin/books/upload-url",{method:"POST",headers,body:JSON.stringify({kind:"pdf",fileName:pdf.name,contentType:pdf.type,size:pdf.size})});
+      const pdfUrlResult = await readApiResponse(pdfUrlResponse);
+      if (!pdfUrlResponse.ok) throw new Error(pdfUrlResult.error || "Could not prepare the PDF upload.");
+      const {error:pdfUploadError} = await supabase.storage.from("kfm-digital-books").uploadToSignedUrl(pdfUrlResult.path,pdfUrlResult.token,pdf,{contentType:"application/pdf",upsert:false});
+      if (pdfUploadError) throw new Error("PDF upload failed: "+pdfUploadError.message);
+      uploadedPdfPath = pdfUrlResult.path;
+
+      if (cover) {
+        const coverUrlResponse = await fetch("/api/admin/books/upload-url",{method:"POST",headers,body:JSON.stringify({kind:"cover",fileName:cover.name,contentType:cover.type,size:cover.size})});
+        const coverUrlResult = await readApiResponse(coverUrlResponse);
+        if (!coverUrlResponse.ok) throw new Error(coverUrlResult.error || "Could not prepare the cover image upload.");
+        const {error:coverUploadError} = await supabase.storage.from("kfm-book-covers").uploadToSignedUrl(coverUrlResult.path,coverUrlResult.token,cover,{contentType:cover.type,upsert:false});
+        if (coverUploadError) throw new Error("Cover image upload failed: "+coverUploadError.message);
+        uploadedCoverPath = coverUrlResult.path;
+      }
+
+      const response = await fetch("/api/admin/books",{method:"POST",headers:{"Authorization":`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({
+        title,author,description,price,pdfPath:uploadedPdfPath,coverPath:uploadedCoverPath || null
+      })});
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.diagnostic ? `${result.error || "Could not save this book."} — ${JSON.stringify(result.diagnostic)}` : (result.error || "Could not save this book."));
       setNotice("Book added and published. It is now visible on the Books & Publications page.");
       setTitle(""); setDescription(""); setPrice(""); setPdf(null); setCover(null);
       formElement.reset();
       await loadBooks();
-    } catch(e) { setError(e instanceof Error?e.message:"Could not save this book."); }
-    finally { setBusy(false); }
+    } catch(e) {
+      setError(e instanceof Error?e.message:"Could not save this book.");
+    } finally { setBusy(false); }
   }
-
 
   async function adminRequest(method:string, url:string, body?:BodyInit) {
     if (!supabase) throw new Error("Supabase is not configured for admin access.");
     const {data:{session}} = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error("Please sign in to KFM Admin again.");
     const response = await fetch(url,{method,headers:{Authorization:"Bearer "+session.access_token},body});
-    const result = await response.json();
+    const result = await readApiResponse(response);
     if (!response.ok) throw new Error(result.error || "The request could not be completed.");
     return result;
   }
@@ -91,7 +104,7 @@ function BooksAdmin() {
       const {data:{session}} = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Please sign in to KFM Admin again.");
       const uploadResponse=await fetch("/api/admin/books/upload-url",{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({fileName:file.name,contentType:file.type,size:file.size})});
-      const uploadResult=await uploadResponse.json();
+      const uploadResult=await readApiResponse(uploadResponse);
       if(!uploadResponse.ok) throw new Error(uploadResult.error || "Could not prepare the replacement PDF upload.");
       const {error:uploadError}=await supabase.storage.from("kfm-digital-books").uploadToSignedUrl(uploadResult.path,uploadResult.token,file,{contentType:"application/pdf",upsert:false});
       if(uploadError) throw new Error("PDF upload failed: "+uploadError.message);
