@@ -135,64 +135,41 @@ export async function POST(request: Request) {
       )
     }
 
-    // 4. Atomically mark paid only if all conditions still hold.
-    // This prevents repeat confirmation and avoids changing ride status.
-    const paidAt = new Date().toISOString()
-
-    const updateResponse = await fetch(
-      `${supabaseUrl}/rest/v1/ride_requests` +
-        `?id=eq.${encodeURIComponent(ride_id)}` +
-        `&driver_id=eq.${encodeURIComponent(driver_id)}` +
-        `&ride_status=eq.completed` +
-        `&payment_method=eq.cash` +
-        `&payment_status=eq.unpaid`,
+    // 4. Record payment and the agreed 80/20 split atomically in the database.
+    const settleResponse = await fetch(
+      `${supabaseUrl}/rest/v1/rpc/kfm_record_ride_payment`,
       {
-        method: "PATCH",
-        headers: {
-          ...headers,
-          Prefer: "return=representation",
-        },
+        method: "POST",
+        headers,
         body: JSON.stringify({
-          payment_status: "paid",
-          payment_paid_at: paidAt,
+          p_ride_id: ride_id,
+          p_payment_method: "cash",
+          p_payment_reference: null,
         }),
+        cache: "no-store",
       },
-    )
+    );
 
-    if (!updateResponse.ok) {
-      console.error(
-        "KFM CASH PAYMENT UPDATE FAILED:",
-        await updateResponse.text(),
-      )
-
+    const settleResult = await settleResponse.json().catch(() => null);
+    if (!settleResponse.ok || !settleResult?.success) {
+      console.error("KFM CASH PAYMENT SETTLEMENT FAILED:", settleResult);
       return NextResponse.json(
-        { error: "Unable to record the cash payment." },
+        { error: settleResult?.error || "Unable to record the cash payment. Confirm the KFM ride-payment migration has been applied." },
         { status: 500 },
-      )
+      );
     }
-
-    const updatedRides = await updateResponse.json()
-
-    if (!Array.isArray(updatedRides) || updatedRides.length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            "The payment was not changed. Please refresh and check its current status.",
-        },
-        { status: 409 },
-      )
-    }
-
-    const updatedRide = updatedRides[0]
 
     return NextResponse.json({
       success: true,
-      message: "Cash payment confirmed successfully.",
-      booking_code: updatedRide.booking_code,
-      payment_status: updatedRide.payment_status,
-      payment_paid_at: updatedRide.payment_paid_at,
-      fare: updatedRide.fare_estimate,
-    })
+      message: settleResult.already_paid
+        ? "This cash payment was already recorded."
+        : "Cash payment confirmed and the 80/20 split recorded.",
+      booking_code: ride.booking_code,
+      payment_status: "paid",
+      fare: settleResult.fare_amount ?? Number(ride.fare_estimate),
+      driver_share: settleResult.driver_share ?? null,
+      kfm_commission: settleResult.kfm_commission ?? null,
+    });
   } catch (error) {
     console.error("KFM CASH PAYMENT CONFIRMATION ERROR:", error)
 
