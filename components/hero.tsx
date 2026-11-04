@@ -139,7 +139,7 @@ export function Hero() {
 
           <div className="mt-5 flex flex-wrap items-center gap-2.5 sm:mt-8 sm:gap-3">
             <Button asChild size="lg" className="gap-2">
-              <a href="#book">
+              <a href="/book-ride">
                 <MapPin className="h-4 w-4" />
                 Order a Ride
               </a>
