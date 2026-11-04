@@ -25,7 +25,8 @@ export async function POST(request:Request){
   }
   const {data:paidOrder,error:paidError}=await supabase.from("kfm_book_orders").select("download_token,download_expires_at,email_sent_at").eq("id",order.id).single();
   if(paidError||!paidOrder?.download_token) throw new Error("Paid order download token could not be prepared.");
-  const origin=new URL(request.url).origin;
+  // Customer email links must use the public production domain, never a protected Preview hostname.
+  const origin="https://www.kingdomfaithmarketplace.com";
   const downloadUrl=`${origin}/api/books/download?token=${encodeURIComponent(paidOrder.download_token)}`;
   let emailSent=Boolean(paidOrder.email_sent_at);
   if(!emailSent){
