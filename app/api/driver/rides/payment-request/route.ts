@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     }
     const amount = Number(ride.fare_estimate);
     const email = String(ride.customer_email || "").trim().toLowerCase();
-    if (!Number.isFinite(amount) || amount <= 0 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    if (!Number.isFinite(amount) || amount <= 0 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: "The ride fare or customer email is missing. KFM admin must review this booking." }, { status: 409 });
     }
 
