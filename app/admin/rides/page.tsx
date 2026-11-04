@@ -44,6 +44,14 @@ type Ride = {
   payment_method: string
   payment_reference: string | null
   payment_paid_at: string | null
+  payment_channel: string | null
+  payment_receipt_number: string | null
+  driver_share_amount: number | null
+  kfm_commission_amount: number | null
+  driver_payout_status: string | null
+  kfm_commission_status: string | null
+  payment_requested_at: string | null
+  cash_confirmed_at: string | null
   driver: Driver | null
 }
 
@@ -395,13 +403,19 @@ export default function AdminRidesPage() {
                     <InfoRow label="Payment status" value={selectedRide.payment_status} />
                     <InfoRow label="Payment reference" value={selectedRide.payment_reference || "Not recorded"} />
                     <InfoRow label="Payment date" value={formatDate(selectedRide.payment_paid_at)} />
+                    <InfoRow label="Payment channel" value={selectedRide.payment_channel || "Not recorded"} />
+                    <InfoRow label="Receipt number" value={selectedRide.payment_receipt_number || "Not generated"} />
+                    <InfoRow label="Driver share (80%)" value={selectedRide.driver_share_amount == null ? "Awaiting payment" : formatCurrency(selectedRide.driver_share_amount)} />
+                    <InfoRow label="KFM commission (20%)" value={selectedRide.kfm_commission_amount == null ? "Awaiting payment" : formatCurrency(selectedRide.kfm_commission_amount)} />
+                    <InfoRow label="Driver payout status" value={selectedRide.driver_payout_status || "Not recorded"} />
+                    <InfoRow label="KFM commission status" value={selectedRide.kfm_commission_status || "Not recorded"} />
                   </InfoCard>
                 </div>
 
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                   <p className="font-semibold">Payment confirmation</p>
                   <p className="mt-1">
-                    This dashboard is currently read-only. A completed ride is not automatically treated as paid. Cash receipts and Paystack transactions will require separate verification before payment records can be updated.
+                    Paystack rides are marked paid only after server-side transaction verification. Cash rides are recorded only after the assigned driver confirms that the fare was received. The 80/20 split is recorded separately from actual driver payouts and cash commission settlement.
                   </p>
                 </div>
               </>
