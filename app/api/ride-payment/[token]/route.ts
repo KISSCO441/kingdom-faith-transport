@@ -29,7 +29,7 @@ export async function GET(_request: Request, context: Context) {
     }
     const payment = await getPaymentRequest(token);
     if (!payment) return NextResponse.json({ error: "This payment link could not be found." }, { status: 404 });
-    if (payment.status === "paid") return NextResponse.json({ success: true, paid: true, booking_code: payment.booking_code });
+    if (payment.status === "paid") return NextResponse.json({ success: true, paid: true, booking_code: payment.booking_code, amount: Number(payment.amount), currency: "GHS" });
     if (payment.status !== "pending" || new Date(payment.expires_at).getTime() <= Date.now()) {
       return NextResponse.json({ error: "This payment link has expired. Please contact KFM." }, { status: 410 });
     }
