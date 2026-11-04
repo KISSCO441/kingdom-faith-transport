@@ -9,6 +9,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const resendApiKey = process.env.RESEND_API_KEY;
 const resendFromEmail = process.env.RESEND_FROM_EMAIL;
+const emailTestMode = process.env.KFM_MARKETPLACE_EMAIL_TEST_MODE === "true";
+const customerEmailsEnabled = process.env.KFM_MARKETPLACE_CUSTOMER_EMAILS_ENABLED === "true";
+const testRecipient = process.env.KFM_MARKETPLACE_EMAIL_TEST_TO?.trim().toLowerCase() || "";
 
 if (!supabaseUrl || !serviceKey) {
   throw new Error("Missing Supabase environment variables");
@@ -64,11 +67,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: genericMessage });
     }
 
-    // Keep real customer email delivery disabled until the Resend domain is verified
-    // and KFM explicitly enables customer emails.
-    if (
+    // Test mode is restricted to the single configured inbox. Normal customer
+    // delivery additionally requires explicit enablement and a verified Resend domain.
+    if (emailTestMode) {
+      if (!testRecipient || email !== testRecipient) {
+        return NextResponse.json(
+          { error: "Email verification is in test mode and only the configured test address can receive a code." },
+          { status: 403 },
+        );
+      }
+    } else if (
+      !customerEmailsEnabled ||
       process.env.RESEND_DOMAIN_VERIFIED !== "true" ||
-      process.env.KFM_MARKETPLACE_CUSTOMER_EMAILS_ENABLED !== "true" ||
       !resendApiKey ||
       !resendFromEmail
     ) {
@@ -78,6 +88,8 @@ export async function POST(request: Request) {
       );
     }
 
+    // The configured test inbox may be used without a previous order.
+    if (!emailTestMode) {
     // Do not reveal whether the email has existing orders.
     const { data: existingOrder, error: orderError } = await supabase
       .from("market_orders")
@@ -96,6 +108,7 @@ export async function POST(request: Request) {
 
     if (!existingOrder) {
       return NextResponse.json({ message: genericMessage });
+    }
     }
 
     // Do not store or log the plain-text verification code.
