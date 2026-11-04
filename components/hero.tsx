@@ -101,15 +101,17 @@ export function Hero() {
   const activeSlide = slides[currentSlide]
 
   return (
-    <section className="relative min-h-[540px] overflow-hidden sm:min-h-[600px] lg:min-h-[680px]">
+    <section className="relative min-h-[480px] overflow-hidden sm:min-h-[520px] lg:min-h-[560px]">
       {/* Real photograph */}
       <div className="absolute inset-0 bg-green-950">
         <img
           key={activeSlide.image}
           src={activeSlide.image}
           alt={activeSlide.alt}
-          className="h-full w-full object-cover object-center brightness-[1.08] contrast-[1.06] saturate-[1.08] transition-opacity duration-700"
+          className="h-full w-full object-cover object-center brightness-100 contrast-[1.08] saturate-[1.05] transition-opacity duration-700"
           referrerPolicy="no-referrer"
+          fetchPriority="high"
+          decoding="async"
         />
 
         {/* Dark overlay for readable text */}
@@ -119,7 +121,7 @@ export function Hero() {
       </div>
 
       {/* Main content */}
-      <div className="relative mx-auto flex min-h-[540px] max-w-6xl items-center px-4 py-12 sm:min-h-[600px] sm:py-16 lg:min-h-[680px] lg:py-32">
+      <div className="relative mx-auto flex min-h-[480px] max-w-6xl items-center px-4 py-8 sm:min-h-[520px] sm:py-10 lg:min-h-[560px] lg:py-16">
         <div className="max-w-2xl text-white">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-md">
             <span className="flex h-1.5 w-1.5 rounded-full bg-green-400" />
