@@ -101,7 +101,7 @@ export function Hero() {
   const activeSlide = slides[currentSlide]
 
   return (
-    <section className="relative min-h-[480px] overflow-hidden sm:min-h-[520px] lg:min-h-[560px]">
+    <section className="relative min-h-[360px] overflow-hidden sm:min-h-[400px] lg:min-h-[440px]">
       {/* Real photograph */}
       <div className="absolute inset-0 bg-green-950">
         <img
@@ -121,7 +121,7 @@ export function Hero() {
       </div>
 
       {/* Main content */}
-      <div className="relative mx-auto flex min-h-[480px] max-w-6xl items-center px-4 py-8 sm:min-h-[520px] sm:py-10 lg:min-h-[560px] lg:py-16">
+      <div className="relative mx-auto flex min-h-[360px] max-w-6xl items-center px-4 py-6 sm:min-h-[400px] sm:py-7 lg:min-h-[440px] lg:py-10">
         <div className="max-w-2xl text-white">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-md">
             <span className="flex h-1.5 w-1.5 rounded-full bg-green-400" />
@@ -137,7 +137,7 @@ export function Hero() {
             {activeSlide.description}
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2.5 sm:mt-8 sm:gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-3">
             <Button asChild size="lg" className="gap-2">
               <a href="/book-ride">
                 <MapPin className="h-4 w-4" />
@@ -153,7 +153,7 @@ export function Hero() {
             </Button>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs text-white/90 sm:mt-8 sm:gap-x-6 sm:gap-y-3 sm:text-sm">
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-white/90 sm:mt-5 sm:gap-x-6 sm:gap-y-3 sm:text-sm">
             <span className="inline-flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-green-300" />
               Trusted local service
@@ -170,7 +170,7 @@ export function Hero() {
             </span>
           </div>
 
-          <dl className="mt-7 grid max-w-md grid-cols-3 gap-3 sm:mt-10 sm:gap-6">
+          <dl className="mt-5 grid max-w-md grid-cols-3 gap-3 sm:mt-6 sm:gap-6">
             {stats.map((stat) => (
               <div key={stat.label}>
                 <dt className="text-xl font-bold text-white sm:text-2xl">
