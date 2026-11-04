@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ShoppingBasket, Truck, ShieldCheck, Clock3 } from "lucide-react"
+import { ShoppingBasket, Truck, ShieldCheck, Clock3, MessageCircle } from "lucide-react"
 
 export function NsawamMarketBanner() {
   return (
@@ -28,13 +28,35 @@ export function NsawamMarketBanner() {
                 Choose a category and let KFM make your market shopping easier.
               </p>
 
-              <div className="mt-7">
+              <div className="mt-7 flex flex-wrap gap-3">
                 <Link
                   href="/market/categories"
                   className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-7 text-base font-bold text-primary-foreground shadow transition-opacity hover:opacity-90"
                 >
                   SHOP THE MARKET
                 </Link>
+                <a
+                  href={`https://wa.me/233240555688?text=${encodeURIComponent([
+                    "Hello KFM, I want to place a LIVE MARKET ORDER.",
+                    "",
+                    "Please check availability and current prices for these items:",
+                    "1. Item and quantity:",
+                    "2. Item and quantity:",
+                    "3. Item and quantity:",
+                    "",
+                    "Please send me the itemized order and delivery fee for confirmation before payment.",
+                    "",
+                    "Customer name:",
+                    "Delivery location:",
+                    "Contact number:",
+                  ].join("\\n"))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border-2 border-primary px-6 text-base font-bold text-primary transition-colors hover:bg-primary/10"
+                >
+                  <MessageCircle className="mr-2 h-5 w-5" aria-hidden="true" />
+                  LIVE MARKET
+                </a>
               </div>
 
               <div className="mt-8 grid gap-4 border-t border-border pt-6 sm:grid-cols-3">
