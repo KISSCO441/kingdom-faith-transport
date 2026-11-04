@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Search,
   CheckCircle2,
@@ -34,6 +34,13 @@ type Driver = {
   vehicle_registration: string | null
   vehicle_color: string | null
   photo_url: string | null
+}
+
+type DriverLocation = {
+  latitude: number
+  longitude: number
+  accuracy_m: number | null
+  updated_at: string
 }
 
 const statusSteps = [
@@ -94,31 +101,39 @@ function getStatusMessage(status: string) {
 
 export default function RideStatusPage() {
   const [bookingCode, setBookingCode] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
   const [ride, setRide] = useState<Ride | null>(null)
   const [driver, setDriver] = useState<Driver | null>(null)
+  const [location, setLocation] = useState<DriverLocation | null>(null)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelFeedback, setCancelFeedback] = useState("")
 
-  async function checkRideStatus() {
+  async function checkRideStatus(options?: { preserveCurrent?: boolean }) {
     const code = bookingCode.trim().toUpperCase()
+    const phone = customerPhone.trim()
 
-    if (!code) {
-      setError("Please enter your KFM booking number.")
+    if (!code || !phone) {
+      setError("Please enter your KFM booking number and the phone number used when booking.")
       return
     }
 
-    setLoading(true)
+    if (!options?.preserveCurrent) setLoading(true)
     setError("")
-    setRide(null)
-    setDriver(null)
+    if (!options?.preserveCurrent) {
+      setRide(null)
+      setDriver(null)
+      setLocation(null)
+    }
 
     try {
-      const response = await fetch(
-        `/api/rides/status?booking_code=${encodeURIComponent(code)}`,
-        {
-          cache: "no-store",
-        },
-      )
+      const response = await fetch("/api/rides/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_code: code, phone }),
+        cache: "no-store",
+      })
 
       const data = await response.json()
 
@@ -130,6 +145,7 @@ export default function RideStatusPage() {
 
       setRide(data.ride || null)
       setDriver(data.driver || null)
+      setLocation(data.location || null)
     } catch (err) {
       setError(
         err instanceof Error
@@ -137,9 +153,55 @@ export default function RideStatusPage() {
           : "Unable to check your ride status.",
       )
     } finally {
-      setLoading(false)
+      if (!options?.preserveCurrent) setLoading(false)
     }
   }
+
+  async function cancelRide() {
+    if (!ride || !["requested", "accepted"].includes(ride.ride_status)) return
+
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this KFM ride? This cannot be undone."
+    )
+    if (!confirmed) return
+
+    setCancelling(true)
+    setCancelFeedback("")
+    setError("")
+
+    try {
+      const response = await fetch("/api/rides/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          booking_code: bookingCode.trim().toUpperCase(),
+          phone: customerPhone.trim(),
+        }),
+        cache: "no-store",
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to cancel this ride.")
+      }
+
+      setRide((current) => current ? { ...current, ride_status: "cancelled" } : current)
+      setLocation(null)
+      setCancelFeedback("Your ride has been cancelled.")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to cancel this ride.")
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!ride || ["completed", "cancelled"].includes(String(ride.ride_status || "").toLowerCase())) return
+    const timer = window.setInterval(() => {
+      void checkRideStatus({ preserveCurrent: true })
+    }, 10000)
+    return () => window.clearInterval(timer)
+  }, [ride?.id, ride?.ride_status, bookingCode, customerPhone])
 
   const statusIndex = ride
     ? getStatusIndex(ride.ride_status)
@@ -158,8 +220,7 @@ export default function RideStatusPage() {
           </h1>
 
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-            Enter your KFM booking number to see your ride
-            status and driver information.
+            Enter your KFM booking number and the phone number used when booking to securely check your ride status and driver information.
           </p>
         </div>
 
@@ -171,7 +232,7 @@ export default function RideStatusPage() {
             KFM Booking Number
           </label>
 
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-2 flex flex-col gap-3">
             <input
               id="bookingCode"
               value={bookingCode}
@@ -184,13 +245,32 @@ export default function RideStatusPage() {
                 }
               }}
               placeholder="KFM-243731"
+              required
+              autoComplete="off"
+              className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+            />
+
+            <label htmlFor="customerPhone" className="text-sm font-medium">
+              Phone Number Used When Booking
+            </label>
+            <input
+              id="customerPhone"
+              type="tel"
+              autoComplete="tel"
+              value={customerPhone}
+              onChange={(event) => setCustomerPhone(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") checkRideStatus()
+              }}
+              placeholder="Enter your booking phone number"
+              required
               className="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
             />
 
             <Button
-              onClick={checkRideStatus}
+              onClick={() => checkRideStatus()}
               disabled={loading}
-              className="sm:min-w-36"
+              className="w-full sm:w-auto sm:min-w-36"
             >
               <Search className="mr-2 h-4 w-4" />
               {loading ? "Checking..." : "Check Ride"}
@@ -227,6 +307,27 @@ export default function RideStatusPage() {
                 {getStatusMessage(ride.ride_status)}
               </p>
 
+              {cancelFeedback && (
+                <p role="status" className="mt-3 rounded-lg border border-green-600/30 bg-green-600/5 px-4 py-3 text-sm">
+                  {cancelFeedback}
+                </p>
+              )}
+
+              {["requested", "accepted"].includes(ride.ride_status) && (
+                <div className="mt-5">
+                  <Button
+                    variant="destructive"
+                    onClick={cancelRide}
+                    disabled={cancelling}
+                  >
+                    {cancelling ? "Cancelling ride..." : "Cancel Ride"}
+                  </Button>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Cancellation is available before the driver arrives. Once the ride is underway, please contact KFM support.
+                  </p>
+                </div>
+              )}
+
               {ride.ride_status !== "cancelled" && (
                 <div className="mt-8">
                   <div className="space-y-5">
@@ -238,20 +339,28 @@ export default function RideStatusPage() {
                       return (
                         <div
                           key={step.key}
-                          className="flex items-start gap-4"
+                          className="relative flex items-start gap-4"
                         >
+                          {index < statusSteps.length - 1 && (
+                            <span
+                              aria-hidden="true"
+                              className={`absolute left-[17px] top-9 h-7 w-0.5 ${
+                                index < statusIndex ? "bg-primary" : "bg-border"
+                              }`}
+                            />
+                          )}
                           <div
-                            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                            className={`relative z-10 mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
                               completed
                                 ? "bg-primary text-primary-foreground"
                                 : "border border-border bg-background text-muted-foreground"
                             }`}
                           >
-                        {completed ? (
-  <CheckCircle2 className="h-5 w-5" />
-) : (
-  <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
-)}
+                            {completed ? (
+                              <CheckCircle2 className="h-5 w-5" />
+                            ) : (
+                              <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
+                            )}
                           </div>
 
                           <div>
@@ -333,7 +442,7 @@ export default function RideStatusPage() {
                 </div>
               </div>
 
-              {driver && ride.ride_status !== "requested" ? (
+              {driver ? (
                 <div className="rounded-2xl border bg-card p-6 shadow-sm">
                   <div className="flex items-center gap-3">
                     <Navigation className="h-5 w-5 text-primary" />
@@ -361,6 +470,11 @@ export default function RideStatusPage() {
     <p className="mt-1 text-lg font-semibold">
       {driver.full_name || "KFM Driver"}
     </p>
+    {ride.ride_status === "requested" && (
+      <p className="mt-2 text-sm text-muted-foreground">
+        Your driver is assigned to this booking. The ride is waiting for the driver to accept.
+      </p>
+    )}
   </div>
 
                     {driver.vehicle_name && (
@@ -426,6 +540,73 @@ export default function RideStatusPage() {
                 </div>
               )}
             </div>
+
+            <section className="rounded-2xl border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <Navigation className="h-5 w-5 text-primary" />
+                <div>
+                  <h3 className="font-semibold">
+                    {location ? "Live Driver Location" : "Trip Map & Route"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {location
+                      ? `Driver GPS last updated ${new Date(location.updated_at).toLocaleTimeString()}`
+                      : "Map and route preview. Live driver GPS appears when the ride is active and a recent location is available."}
+                  </p>
+                </div>
+              </div>
+
+              {location ? (
+                <div className="mt-4 overflow-hidden rounded-xl border">
+                  <iframe
+                    title="Live KFM driver location map"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude - 0.006}%2C${location.latitude - 0.006}%2C${location.longitude + 0.006}%2C${location.latitude + 0.006}&layer=mapnik&marker=${location.latitude}%2C${location.longitude}`}
+                    className="h-80 w-full"
+                    loading="lazy"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
+                    <span className="text-muted-foreground">
+                      {location.accuracy_m != null ? `GPS accuracy about ${Math.round(location.accuracy_m)} m` : "GPS location received"}
+                    </span>
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${location.latitude}&mlon=${location.longitude}#map=17/${location.latitude}/${location.longitude}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-primary underline underline-offset-4"
+                    >
+                      Open full live map
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-4 overflow-hidden rounded-xl border">
+                    <iframe
+                      title="KFM trip route preview"
+                      src={`https://www.google.com/maps?output=embed&saddr=${encodeURIComponent(`${ride.pickup_town}, ${ride.pickup_area}`)}&daddr=${encodeURIComponent(`${ride.destination_town}, ${ride.destination_area}`)}`}
+                      className="h-80 w-full"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-muted-foreground">
+                      {["accepted", "arrived", "in_progress"].includes(String(ride.ride_status || "").toLowerCase())
+                        ? "Waiting for a recent GPS position from your driver. This is the route preview, not live tracking."
+                        : "This is a route preview. Live driver tracking starts when the ride is active and GPS is available."}
+                    </p>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${ride.pickup_town}, ${ride.pickup_area}`)}&destination=${encodeURIComponent(`${ride.destination_town}, ${ride.destination_area}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 font-medium text-primary underline underline-offset-4"
+                    >
+                      Open route in Maps
+                    </a>
+                  </div>
+                </>
+              )}
+            </section>
 
             <div className="text-center text-sm text-muted-foreground">
               Keep your booking number for reference.
