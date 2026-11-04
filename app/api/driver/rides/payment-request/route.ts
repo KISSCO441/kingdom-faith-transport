@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -47,30 +47,53 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "The ride fare or customer email is missing. KFM admin must review this booking." }, { status: 409 });
     }
 
-    const token = randomBytes(32).toString("hex");
-    const tokenHash = createHash("sha256").update(token).digest("hex");
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const saveResponse = await fetch(
-      `${supabaseUrl}/rest/v1/ride_payment_requests?on_conflict=ride_id`,
-      {
-        method: "POST",
-        headers: { ...headers, Prefer: "resolution=merge-duplicates,return=representation" },
-        body: JSON.stringify({
-          ride_id: ride.id,
-          booking_code: ride.booking_code,
-          token_hash: tokenHash,
-          amount: Number(amount.toFixed(2)),
-          customer_email: email,
-          payment_reference: null,
-          status: "pending",
-          expires_at: expiresAt,
-          paid_at: null,
-        }),
-      },
+    // Reuse an unexpired link for this ride so the customer does not end up
+    // with multiple valid links that could initiate duplicate payments.
+    const existingResponse = await fetch(
+      `${supabaseUrl}/rest/v1/ride_payment_requests?ride_id=eq.${encodeURIComponent(ride.id)}&select=id,token_hash,status,expires_at`,
+      { headers, cache: "no-store" },
     );
-    if (!saveResponse.ok) {
-      console.error("KFM ride payment request save failed:", await saveResponse.text());
-      return NextResponse.json({ error: "Unable to create the payment link. Confirm the KFM ride-payment database migration has been applied." }, { status: 500 });
+    if (!existingResponse.ok) {
+      return NextResponse.json({ error: "Unable to check existing payment links." }, { status: 500 });
+    }
+    const existingRows = await existingResponse.json();
+    const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+
+    let expiresAt: string;
+    let token: string;
+    if (existing?.status === "pending" && new Date(existing.expires_at).getTime() > Date.now()) {
+      expiresAt = existing.expires_at;
+      token = createHmac("sha256", serviceKey).update(`${ride.id}:${expiresAt}`).digest("hex");
+      const expectedHash = createHash("sha256").update(token).digest("hex");
+      if (expectedHash !== existing.token_hash) {
+        return NextResponse.json({ error: "An existing payment link is active. Please use the link already shared with the customer." }, { status: 409 });
+      }
+    } else {
+      expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      token = createHmac("sha256", serviceKey).update(`${ride.id}:${expiresAt}`).digest("hex");
+      const tokenHash = createHash("sha256").update(token).digest("hex");
+      const saveResponse = await fetch(
+        `${supabaseUrl}/rest/v1/ride_payment_requests?on_conflict=ride_id`,
+        {
+          method: "POST",
+          headers: { ...headers, Prefer: "resolution=merge-duplicates,return=representation" },
+          body: JSON.stringify({
+            ride_id: ride.id,
+            booking_code: ride.booking_code,
+            token_hash: tokenHash,
+            amount: Number(amount.toFixed(2)),
+            customer_email: email,
+            payment_reference: null,
+            status: "pending",
+            expires_at: expiresAt,
+            paid_at: null,
+          }),
+        },
+      );
+      if (!saveResponse.ok) {
+        console.error("KFM ride payment request save failed:", await saveResponse.text());
+        return NextResponse.json({ error: "Unable to create the payment link. Confirm the KFM ride-payment database migration has been applied." }, { status: 500 });
+      }
     }
 
     const origin = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL\n      ? `https://${process.env.VERCEL_URL}`\n      : process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(request.url).origin);
