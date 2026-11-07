@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Car, ChevronDown, Menu, X } from "lucide-react"
+import { ChevronDown, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const marketplaceLinks = [
@@ -35,13 +35,21 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 shadow-sm backdrop-blur-md">
-      <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6 lg:px-8">
-        <a href="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" onClick={closeMobileMenu} aria-label="Kingdom Faith Marketplace home">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm"><Car className="h-6 w-6" /></span>
+      <div className="mx-auto flex min-h-[84px] max-w-7xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6 lg:px-8">
+        <a href="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" onClick={closeMobileMenu} aria-label="Kingdom Faith Transport and Marketplace home">
+          <img
+            src="/kfm-brand-logo.webp"
+            alt="Kingdom Faith Ghana-coloured car logo"
+            width={128}
+            height={128}
+            className="h-12 w-12 shrink-0 rounded-xl object-cover shadow-sm ring-1 ring-yellow-500/60 sm:h-14 sm:w-14"
+          />
           <span className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate text-sm font-extrabold tracking-tight text-foreground sm:text-base">Kingdom Faith</span>
-            <span className="truncate text-sm font-bold tracking-tight text-primary sm:text-base">Marketplace</span>
-            <span className="mt-1 hidden text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground sm:block sm:text-[10px]">Transport &amp; Shopping · Eastern Region, Ghana</span>
+            <span className="text-sm font-black uppercase tracking-tight text-foreground sm:text-lg">KINGDOM FAITH</span>
+            <span className="text-[11px] font-extrabold uppercase tracking-tight text-primary sm:text-sm">TRANSPORT &amp; MARKETPLACE</span>
+            <span className="mt-1 text-[9px] font-extrabold uppercase tracking-[0.04em] text-foreground sm:text-[10px] sm:tracking-[0.08em]">
+              BOOK A RIDE <span className="px-0.5 text-green-700">·</span> SHOP A MARKET
+            </span>
           </span>
         </a>
         <nav aria-label="Main navigation" className="hidden items-center gap-3 xl:flex">
