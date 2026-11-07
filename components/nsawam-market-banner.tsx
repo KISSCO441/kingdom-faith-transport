@@ -31,13 +31,20 @@ export function NsawamMarketBanner() {
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link
                   href="/market"
-                  className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-7 text-base font-bold text-primary-foreground shadow transition-opacity hover:opacity-90"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border border-orange-600 bg-orange-500 px-6 text-sm font-extrabold text-white shadow transition-colors hover:border-orange-700 hover:bg-orange-600"
                 >
                   SHOP THE MARKET
                 </Link>
+                <Link
+                  href="/market#market-basket"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border border-orange-600 bg-orange-500 px-6 text-sm font-extrabold text-white shadow transition-colors hover:border-orange-700 hover:bg-orange-600"
+                >
+                  <ShoppingBasket className="mr-2 h-5 w-5" aria-hidden="true" />
+                  VIEW YOUR BASKET
+                </Link>
                 <a
                   href={`https://wa.me/233240555688?text=${encodeURIComponent([
-                    "Hello KFM, I want to place a LIVE MARKET ORDER.",
+                    "Hello KFM, I want to place a LIVE MARKET ORDER ORDER.",
                     "",
                     "Please check availability and current prices for these items:",
                     "1. Item and quantity:",
@@ -52,7 +59,7 @@ export function NsawamMarketBanner() {
                   ].join("\\n"))}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-12 items-center justify-center rounded-lg border-2 border-primary px-6 text-base font-bold text-primary transition-colors hover:bg-primary/10"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border border-orange-600 bg-orange-500 px-5 text-sm font-extrabold text-white shadow transition-colors hover:border-orange-700 hover:bg-orange-600"
                 >
                   <MessageCircle className="mr-2 h-5 w-5" aria-hidden="true" />
                   LIVE MARKET
