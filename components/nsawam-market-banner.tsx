@@ -28,18 +28,18 @@ export function NsawamMarketBanner() {
                 Choose a category and let KFM make your market shopping easier.
               </p>
 
-              <div className="mt-7 flex flex-wrap gap-3">
+              <div className="mt-7 grid grid-cols-3 gap-2">
                 <Link
                   href="/market"
-                  className="inline-flex h-12 items-center justify-center rounded-lg border border-orange-600 bg-orange-500 px-6 text-sm font-extrabold text-white shadow transition-colors hover:border-orange-700 hover:bg-orange-600"
+                  className="inline-flex h-12 min-w-0 items-center justify-center whitespace-nowrap rounded-lg border border-orange-600 bg-orange-500 px-1 text-[8px] font-extrabold leading-tight text-white shadow transition-colors hover:border-orange-700 hover:bg-orange-600 sm:px-2 sm:text-[10px] md:px-3 md:text-xs"
                 >
                   SHOP THE MARKET
                 </Link>
                 <Link
                   href="/market#market-basket"
-                  className="inline-flex h-12 items-center justify-center rounded-lg border border-orange-600 bg-orange-500 px-6 text-sm font-extrabold text-white shadow transition-colors hover:border-orange-700 hover:bg-orange-600"
+                  className="inline-flex h-12 min-w-0 items-center justify-center whitespace-nowrap rounded-lg border border-orange-600 bg-orange-500 px-1 text-[8px] font-extrabold leading-tight text-white shadow transition-colors hover:border-orange-700 hover:bg-orange-600 sm:px-2 sm:text-[10px] md:px-3 md:text-xs"
                 >
-                  <ShoppingBasket className="mr-2 h-5 w-5" aria-hidden="true" />
+                  <ShoppingBasket className="mr-1 hidden h-4 w-4 shrink-0 sm:inline" aria-hidden="true" />
                   VIEW YOUR BASKET
                 </Link>
                 <a
