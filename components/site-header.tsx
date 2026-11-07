@@ -35,13 +35,13 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 shadow-sm backdrop-blur-md">
-      <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <a href="/" className="flex min-w-0 shrink-0 items-center gap-3" onClick={closeMobileMenu} aria-label="Kingdom Faith Marketplace home">
+      <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6 lg:px-8">
+        <a href="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" onClick={closeMobileMenu} aria-label="Kingdom Faith Marketplace home">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm"><Car className="h-6 w-6" /></span>
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="truncate text-sm font-extrabold tracking-tight text-foreground sm:text-base">Kingdom Faith</span>
             <span className="truncate text-sm font-bold tracking-tight text-primary sm:text-base">Marketplace</span>
-            <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground sm:text-[10px]">Transport &amp; Shopping · Eastern Region, Ghana</span>
+            <span className="mt-1 hidden text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground sm:block sm:text-[10px]">Transport &amp; Shopping · Eastern Region, Ghana</span>
           </span>
         </a>
         <nav aria-label="Main navigation" className="hidden items-center gap-3 xl:flex">
