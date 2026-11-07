@@ -101,54 +101,53 @@ export function Hero() {
   const activeSlide = slides[currentSlide]
 
   return (
-    <section className="relative min-h-[680px] overflow-hidden">
+    <section className="relative min-h-[360px] overflow-hidden sm:min-h-[400px] lg:min-h-[440px]">
       {/* Real photograph */}
       <div className="absolute inset-0 bg-green-950">
         <img
           key={activeSlide.image}
           src={activeSlide.image}
           alt={activeSlide.alt}
-          className="h-full w-full object-cover object-center transition-opacity duration-700"
+          className="h-full w-full object-cover object-center brightness-100 contrast-[1.08] saturate-[1.05] transition-opacity duration-700"
           referrerPolicy="no-referrer"
+          fetchPriority="high"
+          decoding="async"
         />
 
         {/* Dark overlay for readable text */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/5" />
       </div>
 
       {/* Main content */}
-      <div className="relative mx-auto flex min-h-[680px] max-w-6xl items-center px-4 py-24 md:py-32">
+      <div className="relative mx-auto flex min-h-[360px] max-w-6xl items-center px-4 py-6 sm:min-h-[400px] sm:py-7 lg:min-h-[440px] lg:py-10">
         <div className="max-w-2xl text-white">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-md">
-            <span className="flex h-1.5 w-1.5 rounded-full bg-green-400" />
+          <div className="mb-4 inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-full border border-white/20 bg-black/35 px-3 py-2 text-sm font-semibold leading-snug text-white/95 backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-base">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-green-400" />
 
-            {activeSlide.label} · Eastern Region, Ghana
+            <span className="min-w-0 whitespace-normal">
+              {activeSlide.label} · Eastern Region, Ghana
+            </span>
           </div>
 
-          <h1 className="text-balance text-4xl font-bold leading-tight tracking-tight md:text-6xl">
+          <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-6xl">
             {activeSlide.title}
           </h1>
 
-          <p className="mt-5 max-w-xl text-pretty text-lg leading-8 text-white/85">
+          <p className="mt-3 max-w-xl text-pretty text-base leading-6 text-white/90 sm:mt-5 sm:text-lg sm:leading-8">
             {activeSlide.description}
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-2 sm:mt-5 sm:gap-3">
             <Button asChild size="lg" className="gap-2">
-              <a href="#book">
+              <a href="/book-ride">
                 <MapPin className="h-4 w-4" />
                 Order a Ride
               </a>
             </Button>
 
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
-            >
+            <Button asChild size="lg" className="gap-2">
               <a href="#nsawam-market">
                 <ShoppingBasket className="h-4 w-4" />
                 Visit Market
@@ -156,7 +155,7 @@ export function Hero() {
             </Button>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-white/80">
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-white/90 sm:mt-5 sm:gap-x-6 sm:gap-y-3 sm:text-sm">
             <span className="inline-flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-green-300" />
               Trusted local service
@@ -173,14 +172,14 @@ export function Hero() {
             </span>
           </div>
 
-          <dl className="mt-12 grid max-w-md grid-cols-3 gap-6">
+          <dl className="mt-5 grid max-w-md grid-cols-3 gap-3 sm:mt-6 sm:gap-6">
             {stats.map((stat) => (
               <div key={stat.label}>
-                <dt className="text-2xl font-bold text-white">
+                <dt className="text-xl font-bold text-white sm:text-2xl">
                   {stat.value}
                 </dt>
 
-                <dd className="mt-1 text-xs text-white/70">
+                <dd className="mt-1 text-[11px] leading-tight text-white/85 sm:text-xs">
                   {stat.label}
                 </dd>
               </div>
@@ -194,7 +193,7 @@ export function Hero() {
         type="button"
         onClick={previousSlide}
         aria-label="Previous banner"
-        className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/35 text-white backdrop-blur-md transition hover:bg-black/55"
+        className="absolute left-2 top-1/2 z-20 flex h-9 w-9 sm:left-4 sm:h-11 sm:w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/35 text-white backdrop-blur-md transition hover:bg-black/55"
       >
         <ChevronLeft className="h-5 w-5" />
       </button>
@@ -204,13 +203,13 @@ export function Hero() {
         type="button"
         onClick={nextSlide}
         aria-label="Next banner"
-        className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/35 text-white backdrop-blur-md transition hover:bg-black/55"
+        className="absolute right-2 top-1/2 z-20 flex h-9 w-9 sm:right-4 sm:h-11 sm:w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/35 text-white backdrop-blur-md transition hover:bg-black/55"
       >
         <ChevronRight className="h-5 w-5" />
       </button>
 
       {/* Dots */}
-      <div className="absolute bottom-7 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+      <div className="absolute bottom-4 left-1/2 sm:bottom-7 z-20 flex -translate-x-1/2 items-center gap-2">
         {slides.map((slide, index) => (
           <button
             key={slide.id}
