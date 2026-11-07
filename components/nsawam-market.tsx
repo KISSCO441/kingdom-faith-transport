@@ -520,31 +520,31 @@ async function prepareOrder() {
             <Button
               type="button"
               size="lg"
-              className="h-12 px-7 text-base font-bold"
+              className="h-14 px-5 text-sm font-extrabold uppercase tracking-wide shadow-md sm:px-6 sm:text-base md:text-lg"
               onClick={scrollToProducts}
             >
-              Shop the Market
+              SHOP THE MARKET
             </Button>
 
             <Button
               type="button"
               size="lg"
               variant="outline"
-              className="h-12 px-7 text-base font-bold"
+              className="h-14 border-2 border-primary px-5 text-sm font-extrabold uppercase tracking-wide text-primary shadow-sm hover:bg-primary/10 sm:px-6 sm:text-base md:text-lg"
               onClick={scrollToBasket}
             >
-              <ShoppingBasket className="mr-2 h-5 w-5" />
-              View Basket
+              <ShoppingBasket className="mr-2 h-5 w-5 shrink-0" />
+              VIEW YOUR BASKET
               {totalItems > 0 ? ` (${totalItems})` : ""}
             </Button>
 
             <Button
               type="button"
               size="lg"
-              className="h-12 px-7 text-base font-bold"
+              className="h-14 px-5 text-sm font-extrabold uppercase tracking-wide shadow-md sm:px-6 sm:text-base md:text-lg"
               onClick={startLiveMarketOrder}
             >
-              <MessageCircle className="mr-2 h-5 w-5" />
+              <MessageCircle className="mr-2 h-5 w-5 shrink-0" />
               LIVE MARKET ORDER
             </Button>
           </div>
