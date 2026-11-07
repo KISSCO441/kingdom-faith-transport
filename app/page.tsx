@@ -1,11 +1,9 @@
 import { Button } from "@/components/ui/button"
 import { SiteHeader } from "@/components/site-header"
 import { Hero } from "@/components/hero"
-import { Services } from "@/components/services"
-import { NsawamMarket } from "@/components/nsawam-market"
+import { NsawamMarketBanner } from "@/components/nsawam-market-banner"
 import { Features } from "@/components/features"
 import { HowItWorks } from "@/components/how-it-works"
-import { BookingForm } from "@/components/booking-form"
 import { FAQ } from "@/components/faq"
 import { SiteFooter } from "@/components/site-footer"
 
@@ -16,11 +14,9 @@ export default function Page() {
 
       <main>
         <Hero />
-        <Services />
-        <NsawamMarket />
+        <NsawamMarketBanner />
         <Features />
         <HowItWorks />
-        <BookingForm />
         <FAQ />
 
         {/* Contact KFM */}
