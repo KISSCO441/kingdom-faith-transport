@@ -516,11 +516,11 @@ async function prepareOrder() {
               </p>
 
           {/* HERO ACTIONS */}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <Button
               type="button"
               size="lg"
-              className="h-14 px-5 text-sm font-extrabold uppercase tracking-wide shadow-md sm:px-6 sm:text-base md:text-lg"
+              className="h-14 min-w-0 whitespace-nowrap px-2 text-xs font-extrabold uppercase tracking-wide shadow-md sm:px-2 sm:text-xs"
               onClick={scrollToProducts}
             >
               SHOP THE MARKET
@@ -529,10 +529,10 @@ async function prepareOrder() {
             <Button
               type="button"
               size="lg"
-              className="h-14 px-5 text-sm font-extrabold uppercase tracking-wide shadow-md sm:px-6 sm:text-base md:text-lg"
+              className="h-14 min-w-0 whitespace-nowrap px-2 text-xs font-extrabold uppercase tracking-wide shadow-md sm:px-2 sm:text-xs"
               onClick={scrollToBasket}
             >
-              <ShoppingBasket className="mr-2 h-5 w-5 shrink-0" />
+              <ShoppingBasket className="mr-1.5 h-4 w-4 shrink-0" />
               VIEW YOUR BASKET
               {totalItems > 0 ? ` (${totalItems})` : ""}
             </Button>
@@ -540,10 +540,10 @@ async function prepareOrder() {
             <Button
               type="button"
               size="lg"
-              className="h-14 px-5 text-sm font-extrabold uppercase tracking-wide shadow-md sm:px-6 sm:text-base md:text-lg"
+              className="h-14 min-w-0 whitespace-nowrap px-2 text-xs font-extrabold uppercase tracking-wide shadow-md sm:px-2 sm:text-xs"
               onClick={startLiveMarketOrder}
             >
-              <MessageCircle className="mr-2 h-5 w-5 shrink-0" />
+              <MessageCircle className="mr-1.5 h-4 w-4 shrink-0" />
               LIVE MARKET ORDER
             </Button>
           </div>
