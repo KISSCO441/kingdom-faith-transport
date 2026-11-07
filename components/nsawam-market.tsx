@@ -520,7 +520,7 @@ async function prepareOrder() {
             <Button
               type="button"
               size="lg"
-              className="h-14 min-w-0 whitespace-nowrap px-2 text-xs font-extrabold uppercase tracking-wide shadow-md sm:px-2 sm:text-xs"
+              className="h-14 min-w-0 whitespace-nowrap border border-orange-600 bg-orange-500 px-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-md hover:border-orange-700 hover:bg-orange-600 sm:px-2 sm:text-xs"
               onClick={scrollToProducts}
             >
               SHOP THE MARKET
@@ -529,7 +529,7 @@ async function prepareOrder() {
             <Button
               type="button"
               size="lg"
-              className="h-14 min-w-0 whitespace-nowrap px-2 text-xs font-extrabold uppercase tracking-wide shadow-md sm:px-2 sm:text-xs"
+              className="h-14 min-w-0 whitespace-nowrap border border-orange-600 bg-orange-500 px-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-md hover:border-orange-700 hover:bg-orange-600 sm:px-2 sm:text-xs"
               onClick={scrollToBasket}
             >
               <ShoppingBasket className="mr-1.5 h-4 w-4 shrink-0" />
@@ -540,7 +540,7 @@ async function prepareOrder() {
             <Button
               type="button"
               size="lg"
-              className="h-14 min-w-0 whitespace-nowrap px-2 text-xs font-extrabold uppercase tracking-wide shadow-md sm:px-2 sm:text-xs"
+              className="h-14 min-w-0 whitespace-nowrap border border-orange-600 bg-orange-500 px-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-md hover:border-orange-700 hover:bg-orange-600 sm:px-2 sm:text-xs"
               onClick={startLiveMarketOrder}
             >
               <MessageCircle className="mr-1.5 h-4 w-4 shrink-0" />
