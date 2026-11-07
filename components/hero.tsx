@@ -123,10 +123,12 @@ export function Hero() {
       {/* Main content */}
       <div className="relative mx-auto flex min-h-[360px] max-w-6xl items-center px-4 py-6 sm:min-h-[400px] sm:py-7 lg:min-h-[440px] lg:py-10">
         <div className="max-w-2xl text-white">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-md">
-            <span className="flex h-1.5 w-1.5 rounded-full bg-green-400" />
+          <div className="mb-4 inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-full border border-white/20 bg-black/35 px-3 py-2 text-sm font-semibold leading-snug text-white/95 backdrop-blur-md sm:px-4 sm:py-2.5 sm:text-base">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-green-400" />
 
-            {activeSlide.label} · Eastern Region, Ghana
+            <span className="min-w-0 whitespace-normal">
+              {activeSlide.label} · Eastern Region, Ghana
+            </span>
           </div>
 
           <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-6xl">
