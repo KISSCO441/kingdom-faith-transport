@@ -529,8 +529,7 @@ async function prepareOrder() {
             <Button
               type="button"
               size="lg"
-              variant="outline"
-              className="h-14 border-2 border-primary px-5 text-sm font-extrabold uppercase tracking-wide text-primary shadow-sm hover:bg-primary/10 sm:px-6 sm:text-base md:text-lg"
+              className="h-14 px-5 text-sm font-extrabold uppercase tracking-wide shadow-md sm:px-6 sm:text-base md:text-lg"
               onClick={scrollToBasket}
             >
               <ShoppingBasket className="mr-2 h-5 w-5 shrink-0" />
