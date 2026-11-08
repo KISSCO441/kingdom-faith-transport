@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   if ("response" in auth) return auth.response
   const { data: adverts, error } = await auth.supabase
     .from("classified_ads")
-    .select("id, title, description, category, asking_price, location, seller_contact_phone, image_urls, advert_status, admin_notes, created_at, published_at, expires_at, expired_at")
+    .select("id, title, description, category, asking_price, location, seller_contact_phone, image_urls, advert_status, admin_notes, created_at, published_at, expires_at")
     .eq("seller_account_id", auth.account.id)
     .order("created_at", { ascending: false })
     .limit(100)
