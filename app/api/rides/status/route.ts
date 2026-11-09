@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     };
 
     const rideResponse = await fetch(
-      `${supabaseUrl}/rest/v1/ride_requests?booking_code=eq.${encodeURIComponent(bookingCode)}&select=id,booking_code,customer_name,customer_phone,vehicle_type,pickup_town,pickup_area,destination_town,destination_area,ride_status,fare_estimate,driver_id,created_at&limit=1`,
+      `${supabaseUrl}/rest/v1/ride_requests?booking_code=eq.${encodeURIComponent(bookingCode)}&select=id,booking_code,customer_name,customer_phone,vehicle_type,pickup_town,pickup_area,destination_town,destination_area,ride_status,fare_estimate,driver_id,created_at,payment_method,payment_status&limit=1`,
       { headers, cache: "no-store" },
     );
 
@@ -102,6 +102,8 @@ export async function POST(request: Request) {
         destination_area: ride.destination_area,
         ride_status: ride.ride_status,
         fare_estimate: ride.fare_estimate,
+        payment_method: ride.payment_method,
+        payment_status: ride.payment_status,
         created_at: ride.created_at,
       },
       driver,
