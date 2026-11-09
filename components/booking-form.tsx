@@ -216,7 +216,7 @@ export function BookingForm() {
       return
     }
 
-    if (customerEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(customerEmail)) {
+    if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
       setError("Please enter a valid email address.")
       return
     }
