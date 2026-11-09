@@ -176,7 +176,7 @@ export async function POST(request: Request) {
         : "";
     const marketingOptIn = marketing_opt_in === true;
 
-    if (normalizedCustomerEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedCustomerEmail)) {
+    if (normalizedCustomerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedCustomerEmail)) {
       return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
     }
     if (marketingOptIn && !normalizedCustomerEmail) {
