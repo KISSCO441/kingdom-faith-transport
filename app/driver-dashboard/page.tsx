@@ -128,7 +128,7 @@ export default function DriverDashboardPage() {
           availability,
           profile_photo_url
         `)
-        .eq("id", user.id)
+        .eq("user_id", user.id)
         .single()
 
       if (driverError) {
