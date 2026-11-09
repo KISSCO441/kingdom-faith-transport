@@ -22,6 +22,8 @@ type Ride = {
   destination_area: string
   ride_status: string
   fare_estimate: number | null
+  payment_method: string | null
+  payment_status: string | null
   created_at: string
 }
 
@@ -109,6 +111,8 @@ export default function RideStatusPage() {
   const [loading, setLoading] = useState(false)
   const [cancelling, setCancelling] = useState(false)
   const [cancelFeedback, setCancelFeedback] = useState("")
+  const [paying, setPaying] = useState(false)
+  const [paymentFeedback, setPaymentFeedback] = useState("")
 
   async function checkRideStatus(options?: { preserveCurrent?: boolean }) {
     const code = bookingCode.trim().toUpperCase()
@@ -154,6 +158,41 @@ export default function RideStatusPage() {
       )
     } finally {
       if (!options?.preserveCurrent) setLoading(false)
+    }
+  }
+
+  async function payForRide() {
+    if (!ride || ride.ride_status !== "completed" || ride.payment_status?.toLowerCase() === "paid") return
+    setPaying(true)
+    setPaymentFeedback("")
+    setError("")
+    try {
+      const response = await fetch("/api/rides/pay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          booking_code: bookingCode.trim().toUpperCase(),
+          customer_phone: customerPhone.trim(),
+        }),
+        cache: "no-store",
+      })
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Unable to prepare your Paystack payment.")
+      }
+      if (data.already_paid) {
+        setRide((current) => current ? { ...current, payment_status: "paid" } : current)
+        setPaymentFeedback("This ride has already been paid.")
+        return
+      }
+      if (!data.authorization_url) {
+        throw new Error("KFM did not receive a Paystack payment link. Please contact KFM.")
+      }
+      window.location.href = data.authorization_url
+    } catch (err) {
+      setPaymentFeedback(err instanceof Error ? err.message : "Unable to prepare your payment.")
+    } finally {
+      setPaying(false)
     }
   }
 
@@ -306,6 +345,23 @@ export default function RideStatusPage() {
               <p className="mt-5 text-sm text-muted-foreground">
                 {getStatusMessage(ride.ride_status)}
               </p>
+
+              {ride.ride_status === "completed" && ride.payment_method?.toLowerCase() === "paystack" && (
+                <div className="mt-5 rounded-xl border border-orange-200 bg-orange-50 p-4">
+                  <p className="font-semibold text-orange-950">Ride Payment</p>
+                  <p className="mt-1 text-sm text-orange-900">
+                    {ride.payment_status?.toLowerCase() === "paid"
+                      ? "Payment confirmed. Thank you for choosing KFM."
+                      : "Your ride is complete. Pay securely online to settle your GH₵ fare."}
+                  </p>
+                  {ride.payment_status?.toLowerCase() !== "paid" && (
+                    <Button onClick={payForRide} disabled={paying} className="mt-3 w-full sm:w-auto">
+                      {paying ? "Preparing Paystack..." : "Pay Online with Paystack"}
+                    </Button>
+                  )}
+                  {paymentFeedback && <p role="status" className="mt-3 text-sm text-orange-950">{paymentFeedback}</p>}
+                </div>
+              )}
 
               {cancelFeedback && (
                 <p role="status" className="mt-3 rounded-lg border border-green-600/30 bg-green-600/5 px-4 py-3 text-sm">
