@@ -310,6 +310,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: {
           apikey: supabaseSecretKey,
+          Authorization: `Bearer ${supabaseSecretKey}`,
           "Content-Type": "application/json",
           Prefer: "return=representation",
         },
