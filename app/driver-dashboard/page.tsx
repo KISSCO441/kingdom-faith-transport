@@ -998,23 +998,25 @@ const response = await fetch(
                       {ride.ride_status?.toLowerCase() === "completed" &&
                         ride.payment_method?.toLowerCase() === "cash" &&
                         ride.payment_status?.toLowerCase() === "cash_pending_driver" && (
-                          <Button
-                            className="mt-3 bg-green-600 hover:bg-green-700"
-                            disabled={updatingRideId === ride.id}
-                            onClick={() => confirmCashPayment(ride.id)}
-                          >
-                            {updatingRideId === ride.id
-                              ? "Confirming..."
-                              : "Confirm Cash Received"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="mt-3 ml-2 border-red-300 text-red-700 hover:bg-red-50"
-                            disabled={updatingRideId === ride.id}
-                            onClick={() => confirmCashPayment(ride.id, "dispute")}
-                          >
-                            Report Cash Not Received
-                          </Button>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button
+                              className="bg-green-600 hover:bg-green-700"
+                              disabled={updatingRideId === ride.id}
+                              onClick={() => confirmCashPayment(ride.id)}
+                            >
+                              {updatingRideId === ride.id
+                                ? "Confirming..."
+                                : "Confirm Cash Received"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="border-red-300 text-red-700 hover:bg-red-50"
+                              disabled={updatingRideId === ride.id}
+                              onClick={() => confirmCashPayment(ride.id, "dispute")}
+                            >
+                              Report Cash Not Received
+                            </Button>
+                          </div>
                         )}
                     </div>
 
