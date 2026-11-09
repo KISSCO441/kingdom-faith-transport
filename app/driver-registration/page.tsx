@@ -542,12 +542,35 @@ export default function DriverRegistrationPage() {
       )
       return
     }
- setVerified(true)
- setStarted(true)
- setEmail(user.email ?? "")
 
-window.location.href = "/driver-dashboard"
-return
+    const { data: driver, error: driverLookupError } = await supabase
+      .from("drivers")
+      .select("id, status")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (driverLookupError) {
+      setError("We could not check your KFM driver approval. Please try again.")
+      return
+    }
+
+    if (!driver) {
+      setError("No KFM driver registration was found for this account. Please choose Become a Driver to register.")
+      return
+    }
+
+    if (String(driver.status ?? "").toUpperCase() !== "VERIFIED") {
+      setError(
+        "Your KFM driver account is not verified yet. You can sign in after KFM has approved your registration.",
+      )
+      return
+    }
+
+    setVerified(true)
+    setStarted(true)
+    setEmail(user.email ?? "")
+    window.location.href = "/driver-dashboard"
+    return
   }
 
   async function handlePersonalInformation(
@@ -1229,7 +1252,7 @@ return
               }}
               className="rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground"
             >
-              Start Driver Registration
+              Become a Driver
             </button>
 
             <button
@@ -1242,7 +1265,7 @@ return
               }}
               className="rounded-lg border px-6 py-3 font-semibold"
             >
-              Already have an account? Sign in
+              Returning Verified Driver? Sign In
             </button>
           </div>
         </section>
@@ -2721,7 +2744,7 @@ return
           >
             {signInMode
               ? "Need to create a new account?"
-              : "Already have a verified account? Sign in"}
+              : "Returning Verified Driver? Sign In"}
           </button>
         </div>
       </section>
