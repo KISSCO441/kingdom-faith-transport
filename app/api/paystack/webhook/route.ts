@@ -74,6 +74,81 @@ export async function POST(request: Request) {
       )
     }
 
+    // KFM ride payments use their own reference prefix and ride_requests table.
+    if (reference.startsWith("KFM-RIDE-")) {
+      const { data: ride, error: rideError } = await supabase
+        .from("ride_requests")
+        .select("id, booking_code, fare_estimate, payment_status, payment_method, ride_status")
+        .eq("payment_reference", reference)
+        .maybeSingle()
+
+      if (rideError || !ride) {
+        console.error("KFM ride not found for Paystack reference:", reference, rideError)
+        return NextResponse.json({ error: "KFM ride not found." }, { status: 404 })
+      }
+
+      const verificationResponse = await fetch(
+        `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${paystackSecretKey}`, Accept: "application/json" },
+          cache: "no-store",
+        },
+      )
+      if (!verificationResponse.ok) {
+        return NextResponse.json({ error: "Unable to verify ride payment with Paystack." }, { status: 502 })
+      }
+
+      const verification = await verificationResponse.json()
+      const transaction = verification?.data
+      const expectedAmount = Math.round(Number(ride.fare_estimate) * 100)
+
+      if (
+        verification?.status !== true ||
+        transaction?.status !== "success" ||
+        transaction?.reference !== reference ||
+        transaction?.currency !== "GHS" ||
+        !Number.isFinite(expectedAmount) ||
+        expectedAmount <= 0 ||
+        transaction?.amount !== expectedAmount ||
+        ride.ride_status !== "completed" ||
+        ride.payment_method?.toLowerCase() !== "paystack"
+      ) {
+        console.error("KFM ride Paystack verification mismatch:", ride.booking_code)
+        return NextResponse.json({ error: "Ride payment could not be verified against the booking." }, { status: 400 })
+      }
+
+      if (ride.payment_status?.toLowerCase() === "paid") {
+        return NextResponse.json({ success: true, message: "Ride payment was already recorded." })
+      }
+
+      const fare = Number(ride.fare_estimate)
+      const driverShare = Math.round(fare * 0.8 * 100) / 100
+      const commission = Math.round((fare - driverShare) * 100) / 100
+      const { error: updateError } = await supabase
+        .from("ride_requests")
+        .update({
+          payment_status: "paid",
+          payment_paid_at: transaction.paid_at || new Date().toISOString(),
+          payment_channel: transaction.channel || null,
+          driver_share_amount: driverShare,
+          kfm_commission_amount: commission,
+          driver_payout_status: "pending",
+          kfm_commission_status: "recorded",
+          payment_receipt_number: reference,
+        })
+        .eq("id", ride.id)
+        .eq("payment_status", "unpaid")
+
+      if (updateError) {
+        console.error("KFM ride payment recording failed:", updateError)
+        return NextResponse.json({ error: "Unable to record KFM ride payment." }, { status: 500 })
+      }
+
+      console.log(`KFM ride ${ride.booking_code} marked PAID via Paystack webhook.`)
+      return NextResponse.json({ success: true, message: "Ride payment verified and recorded." })
+    }
+
     // Find the KFM order associated with this Paystack reference.
     const { data: order, error: orderError } = await supabase
       .from("market_orders")
