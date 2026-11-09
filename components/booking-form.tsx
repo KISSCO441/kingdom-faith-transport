@@ -206,6 +206,8 @@ export function BookingForm() {
 
     const customerName = String(formData.get("name") || "").trim()
     const customerPhone = String(formData.get("phone") || "").trim()
+    const customerEmail = String(formData.get("email") || "").trim().toLowerCase()
+    const marketingOptIn = formData.get("marketing_opt_in") === "on"
     const whenOption = String(formData.get("when") || "").trim()
     const notes = String(formData.get("notes") || "").trim()
 
@@ -214,7 +216,16 @@ export function BookingForm() {
       return
     }
 
-        if (!pickupTown || !pickupArea) {
+    if (customerEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(customerEmail)) {
+      setError("Please enter a valid email address.")
+      return
+    }
+    if (marketingOptIn && !customerEmail) {
+      setError("Please enter your email address if you want to receive KFM ride offers.")
+      return
+    }
+
+    if (!pickupTown || !pickupArea) {
       setError("Please select your pickup town and area.")
       return
     }
@@ -234,7 +245,8 @@ export function BookingForm() {
     const bookingData = {
       customer_name: customerName,
       customer_phone: customerPhone,
-      customer_email: null,
+      customer_email: customerEmail || null,
+      marketing_opt_in: marketingOptIn,
       payment_method: "pending",
       vehicle_type: vehicle,
       ride_option: isOkada ? "KFM Okada" : "KFM Car",
@@ -588,6 +600,18 @@ export function BookingForm() {
               </div>
               
       <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium">
+                  Email address <span className="text-muted-foreground">(optional)</span>
+                </label>
+                <input id="email" name="email" type="email" autoComplete="email" className={fieldClass} placeholder="you@example.com" />
+                <p className="text-xs text-muted-foreground">We can save this address for your booking and payment receipts.</p>
+                <label className="flex items-start gap-2 text-sm leading-5">
+                  <input type="checkbox" name="marketing_opt_in" className="mt-1 h-4 w-4 rounded border-input" />
+                  <span>Yes, send me KFM Transport offers and service updates by email, about once every 7 days. I can unsubscribe at any time.</span>
+                </label>
+              </div>
+
+              <div className="space-y-2">
           <label
            htmlFor="when"
              className="text-sm font-medium"

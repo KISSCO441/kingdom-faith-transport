@@ -138,6 +138,7 @@ export async function POST(request: Request) {
       customer_name,
       customer_phone,
       customer_email,
+      marketing_opt_in,
       payment_method,
       vehicle_type,
       ride_option,
@@ -173,6 +174,14 @@ export async function POST(request: Request) {
       typeof customer_email === "string"
         ? customer_email.trim().toLowerCase()
         : "";
+    const marketingOptIn = marketing_opt_in === true;
+
+    if (normalizedCustomerEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedCustomerEmail)) {
+      return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
+    }
+    if (marketingOptIn && !normalizedCustomerEmail) {
+      return NextResponse.json({ error: "An email address is required to receive KFM marketing emails." }, { status: 400 });
+    }
 
     let fareEstimate: number | null = null;
 
@@ -320,6 +329,17 @@ export async function POST(request: Request) {
         { error: "Unable to save the ride request." },
         { status: 500 }
       );
+    }
+
+    // Marketing is strictly opt-in and separate from transactional ride messages.
+    if (marketingOptIn && normalizedCustomerEmail) {
+      const subscriberResponse = await fetch(`${supabaseUrl}/rest/v1/kfm_ride_marketing_subscribers?on_conflict=email`, {
+        method: "POST",
+        headers: { apikey: supabaseSecretKey, Authorization: `Bearer ${supabaseSecretKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ email: normalizedCustomerEmail, customer_name: String(customer_name).trim(), opted_in: true, consent_source: "ride_booking", consented_at: new Date().toISOString(), unsubscribed_at: null }),
+        cache: "no-store",
+      });
+      if (!subscriberResponse.ok) console.error("KFM ride marketing opt-in could not be saved:", await subscriberResponse.text());
     }
 
     return NextResponse.json(
