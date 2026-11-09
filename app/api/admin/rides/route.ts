@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const { data: rides, error: ridesError } = await supabase
       .from("ride_requests")
       .select(
-        "id, created_at, booking_code, customer_name, customer_phone, vehicle_type, ride_option, pickup_town, pickup_area, destination_town, destination_area, when_option, notes, ride_status, payment_status, driver_id, fare_estimate, payment_method, customer_email, payment_reference, payment_paid_at"
+        "id, created_at, booking_code, customer_name, customer_phone, vehicle_type, ride_option, pickup_town, pickup_area, destination_town, destination_area, when_option, notes, ride_status, payment_status, driver_id, fare_estimate, payment_method, customer_email, payment_reference, payment_paid_at, payment_channel, driver_share_amount, kfm_commission_amount, payment_receipt_number"
       )
       .order("created_at", { ascending: false });
 

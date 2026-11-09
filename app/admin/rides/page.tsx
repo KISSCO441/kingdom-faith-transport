@@ -44,6 +44,10 @@ type Ride = {
   payment_method: string
   payment_reference: string | null
   payment_paid_at: string | null
+  payment_channel: string | null
+  driver_share_amount: number | null
+  kfm_commission_amount: number | null
+  payment_receipt_number: string | null
   driver: Driver | null
 }
 
@@ -394,14 +398,18 @@ export default function AdminRidesPage() {
                     <InfoRow label="Payment method" value={selectedRide.payment_method} />
                     <InfoRow label="Payment status" value={selectedRide.payment_status} />
                     <InfoRow label="Payment reference" value={selectedRide.payment_reference || "Not recorded"} />
+                    <InfoRow label="Payment channel" value={selectedRide.payment_channel || "Not recorded"} />
                     <InfoRow label="Payment date" value={formatDate(selectedRide.payment_paid_at)} />
+                    <InfoRow label="Driver share (80%)" value={formatCurrency(selectedRide.driver_share_amount)} />
+                    <InfoRow label="KFM commission (20%)" value={formatCurrency(selectedRide.kfm_commission_amount)} />
+                    <InfoRow label="Receipt number" value={selectedRide.payment_receipt_number || "Not recorded"} />
                   </InfoCard>
                 </div>
 
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                   <p className="font-semibold">Payment confirmation</p>
                   <p className="mt-1">
-                    This dashboard is currently read-only. A completed ride is not automatically treated as paid. Cash receipts and Paystack transactions will require separate verification before payment records can be updated.
+                    Paystack rides are marked paid only after Paystack verification. Cash rides remain awaiting driver confirmation until the assigned driver confirms receipt; disputed cash payments are flagged for KFM review.
                   </p>
                 </div>
               </>

@@ -47,6 +47,7 @@ export default function PaymentCallbackPage() {
 
   const isClassifiedPayment=reference.startsWith("KFM-CLS-")
   const isBookPayment=reference.startsWith("KFM-BOOK-")
+  const isRidePayment=reference.startsWith("KFM-RIDE-")
   const continueToMarket=()=>{window.location.href=isRidePayment?"/":isClassifiedPayment?"/market/account/my-adverts":isBookPayment?"/books":"/#nsawam-market"}
   const contactKfm=()=>{const text=reference?`Hello KFM, I completed a payment and need help confirming my order. Paystack reference: ${reference}`:"Hello KFM, I completed a payment and need help confirming my order.";window.open(`https://wa.me/233240555688?text=${encodeURIComponent(text)}`,"_blank")}
 

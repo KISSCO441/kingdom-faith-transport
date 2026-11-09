@@ -167,40 +167,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Existing bookings default to cash until a customer selects otherwise.
-    const paymentMethod =
-      payment_method == null
-        ? "cash"
-        : typeof payment_method === "string"
-          ? payment_method.trim().toLowerCase()
-          : "";
-
-    if (!["cash", "paystack"].includes(paymentMethod)) {
-      return NextResponse.json(
-        { error: "Please select a valid payment method." },
-        { status: 400 }
-      );
-    }
-
+    // Customers choose their payment method after the ride is completed.
+    const paymentMethod = "pending";
     const normalizedCustomerEmail =
       typeof customer_email === "string"
         ? customer_email.trim().toLowerCase()
         : "";
-
-    if (
-      paymentMethod === "paystack" &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        normalizedCustomerEmail
-      )
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Please provide a valid email address for online payment.",
-        },
-        { status: 400 }
-      );
-    }
 
     let fareEstimate: number | null = null;
 
@@ -329,10 +301,7 @@ export async function POST(request: Request) {
           ride_status: "requested",
           payment_status: "unpaid",
           payment_method: paymentMethod,
-          customer_email:
-            paymentMethod === "paystack"
-              ? normalizedCustomerEmail
-              : null,
+          customer_email: normalizedCustomerEmail || null,
           payment_reference: null,
           payment_paid_at: null,
           driver_id: matchedDriverId,

@@ -283,11 +283,13 @@ const response = await fetch(
     }
   }
 
-  async function confirmCashPayment(rideId: string) {
+  async function confirmCashPayment(rideId: string, action: "confirm" | "dispute" = "confirm") {
     if (!driver) return
 
     const confirmed = window.confirm(
-      "Confirm that you have actually received the cash fare for this completed ride?",
+      action === "confirm"
+        ? "Confirm that you have actually received the full cash fare for this completed ride?"
+        : "Report that the customer did not hand over the cash fare. KFM will review this payment.",
     )
 
     if (!confirmed) return
@@ -320,6 +322,7 @@ const response = await fetch(
           body: JSON.stringify({
             ride_id: rideId,
             driver_id: driver.id,
+            action,
           }),
         },
       )
@@ -950,6 +953,8 @@ const response = await fetch(
                           ? "Cash"
                           : ride.payment_method?.toLowerCase() === "paystack"
                             ? "Pay Online"
+                            : ride.payment_method?.toLowerCase() === "pending"
+                            ? "Customer to choose after completion"
                             : ride.payment_method || "Not recorded"}
                       </p>
                     </div>
@@ -970,7 +975,11 @@ const response = await fetch(
                           ? "PAID"
                           : ride.payment_status?.toLowerCase() === "unpaid"
                             ? "UNPAID"
-                            : ride.payment_status || "Not recorded"}
+                            : ride.payment_status?.toLowerCase() === "cash_pending_driver"
+                              ? "AWAITING DRIVER CONFIRMATION"
+                              : ride.payment_status?.toLowerCase() === "cash_disputed"
+                                ? "CASH PAYMENT DISPUTED"
+                                : ride.payment_status || "Not recorded"}
                       </p>
 
                       {ride.payment_status?.toLowerCase() === "paid" &&
@@ -988,7 +997,7 @@ const response = await fetch(
 
                       {ride.ride_status?.toLowerCase() === "completed" &&
                         ride.payment_method?.toLowerCase() === "cash" &&
-                        ride.payment_status?.toLowerCase() === "unpaid" && (
+                        ride.payment_status?.toLowerCase() === "cash_pending_driver" && (
                           <Button
                             className="mt-3 bg-green-600 hover:bg-green-700"
                             disabled={updatingRideId === ride.id}
@@ -997,6 +1006,14 @@ const response = await fetch(
                             {updatingRideId === ride.id
                               ? "Confirming..."
                               : "Confirm Cash Received"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="mt-3 ml-2 border-red-300 text-red-700 hover:bg-red-50"
+                            disabled={updatingRideId === ride.id}
+                            onClick={() => confirmCashPayment(ride.id, "dispute")}
+                          >
+                            Report Cash Not Received
                           </Button>
                         )}
                     </div>
