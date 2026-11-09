@@ -79,17 +79,50 @@ export async function POST(request: Request) {
 
     const authenticatedUser = await authResponse.json()
 
-    if (!authenticatedUser?.id || authenticatedUser.id !== driver_id) {
-      return NextResponse.json(
-        { error: "You are not authorized to update this driver's ride." },
-        { status: 403 },
-      )
-    }
-
     const headers = {
       apikey: serviceKey,
       Authorization: `Bearer ${serviceKey}`,
       "Content-Type": "application/json",
+    }
+
+    // Verify that the signed-in account owns this driver profile.
+    // drivers.id and the Supabase Auth user ID are different UUIDs;
+    // drivers.user_id links the profile to its authenticated account.
+    const driverProfileResponse = await fetch(
+      `${supabaseUrl}/rest/v1/drivers` +
+        `?id=eq.${encodeURIComponent(driver_id)}` +
+        `&select=id,user_id&limit=1`,
+      {
+        headers,
+        cache: "no-store",
+      },
+    )
+
+    if (!driverProfileResponse.ok) {
+      console.error(
+        "KFM DRIVER OWNERSHIP CHECK FAILED:",
+        await driverProfileResponse.text(),
+      )
+      return NextResponse.json(
+        { error: "Unable to verify your driver profile." },
+        { status: 500 },
+      )
+    }
+
+    const driverProfiles = await driverProfileResponse.json()
+    const driverProfile = Array.isArray(driverProfiles)
+      ? driverProfiles[0]
+      : null
+
+    if (
+      !authenticatedUser?.id ||
+      !driverProfile ||
+      driverProfile.user_id !== authenticatedUser.id
+    ) {
+      return NextResponse.json(
+        { error: "You are not authorized to update this driver's ride." },
+        { status: 403 },
+      )
     }
 
     // Confirm that this ride is currently assigned to this driver.
