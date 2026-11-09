@@ -183,11 +183,29 @@ export default function DriverDashboardPage() {
       console.error("Assigned ride loading error:", err)
 
       const message =
-        err instanceof Error
-          ? err.message
-          : "Unable to load assigned rides."
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message?: unknown }).message || "Unknown database error")
+          : err instanceof Error
+            ? err.message
+            : "Unknown database error"
 
-      setError(message)
+      const code =
+        err && typeof err === "object" && "code" in err
+          ? String((err as { code?: unknown }).code || "")
+          : ""
+
+      console.error("Assigned ride query details:", {
+        message,
+        code,
+        details: err && typeof err === "object" && "details" in err
+          ? (err as { details?: unknown }).details
+          : null,
+        hint: err && typeof err === "object" && "hint" in err
+          ? (err as { hint?: unknown }).hint
+          : null,
+      })
+
+      setError(`Unable to load assigned rides: ${message}${code ? ` ( ${code} )` : ""}`)
       setRideRequests([])
     } finally {
       setLoadingRides(false)
