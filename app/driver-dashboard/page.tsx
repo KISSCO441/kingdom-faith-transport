@@ -500,6 +500,25 @@ const response = await fetch(
     (ride) => ride.payment_status?.toLowerCase() === "paid",
   )
 
+  const dailyDisputedRecords = dailyCompletedRecords.filter(
+    (ride) => (ride.payment_status || "").toLowerCase().includes("disputed"),
+  )
+
+  const dailyPendingRecords = dailyCompletedRecords.filter((ride) => {
+    const status = (ride.payment_status || "").toLowerCase()
+    return status !== "paid" && !status.includes("disputed")
+  })
+
+  const dailyDisputedFares = dailyDisputedRecords.reduce(
+    (total, ride) => total + Number(ride.fare_estimate || 0),
+    0,
+  )
+
+  const dailyPendingFares = dailyPendingRecords.reduce(
+    (total, ride) => total + Number(ride.fare_estimate || 0),
+    0,
+  )
+
   const dailyCompletedFares = dailyCompletedRecords.reduce(
     (total, ride) => total + Number(ride.fare_estimate || 0),
     0,
@@ -1165,7 +1184,7 @@ const response = await fetch(
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-xl bg-gray-50 p-4">
               <p className="text-xs font-medium uppercase text-gray-500">Rides recorded</p>
               <p className="mt-1 text-2xl font-bold">{dailyRideRecords.length}</p>
@@ -1181,6 +1200,16 @@ const response = await fetch(
             <div className="rounded-xl bg-gray-50 p-4">
               <p className="text-xs font-medium uppercase text-gray-500">Verified payments</p>
               <p className="mt-1 text-2xl font-bold text-green-700">GH₵ {dailyVerifiedFares.toFixed(2)}</p>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-medium uppercase text-gray-500">Pending payments</p>
+              <p className="mt-1 text-2xl font-bold text-amber-700">GH₵ {dailyPendingFares.toFixed(2)}</p>
+              <p className="mt-1 text-xs text-gray-500">{dailyPendingRecords.length} completed ride(s)</p>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-medium uppercase text-gray-500">Disputed fares</p>
+              <p className="mt-1 text-2xl font-bold text-red-700">GH₵ {dailyDisputedFares.toFixed(2)}</p>
+              <p className="mt-1 text-xs text-gray-500">{dailyDisputedRecords.length} completed ride(s) awaiting review</p>
             </div>
           </div>
 
