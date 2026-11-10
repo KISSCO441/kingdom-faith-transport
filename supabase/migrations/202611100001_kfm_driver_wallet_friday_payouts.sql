@@ -124,6 +124,7 @@ begin
      and (
        tg_op = 'INSERT'
        or lower(coalesce(old.payment_status,'')) <> 'paid'
+       or (lower(coalesce(old.ride_status,'')) <> 'completed' and lower(coalesce(new.ride_status,'')) = 'completed')
      ) then
     v_fare := round(coalesce(new.fare_estimate,0)::numeric, 2);
     if v_fare <= 0 then
@@ -156,14 +157,16 @@ begin
       jsonb_build_object('booking_code',new.booking_code,'payment_method',new.payment_method,'payment_paid_at',new.payment_paid_at)
     ) on conflict do nothing;
 
-    insert into public.kfm_wallet_transactions(
-      wallet_account_id, driver_id, ride_id, transaction_type, direction, amount, reference, description, metadata
-    ) values (
-      v_kfm_wallet_id, null, new.id, 'ride_kfm_commission', 'credit', v_kfm_share,
-      'KFM-COMMISSION-' || upper(replace(new.id::text,'-','')),
-      'KFM 20% commission for booking ' || coalesce(new.booking_code,new.id::text),
-      jsonb_build_object('booking_code',new.booking_code,'payment_method',new.payment_method,'payment_paid_at',new.payment_paid_at)
-    ) on conflict do nothing;
+    if v_kfm_share > 0 then
+      insert into public.kfm_wallet_transactions(
+        wallet_account_id, driver_id, ride_id, transaction_type, direction, amount, reference, description, metadata
+      ) values (
+        v_kfm_wallet_id, null, new.id, 'ride_kfm_commission', 'credit', v_kfm_share,
+        'KFM-COMMISSION-' || upper(replace(new.id::text,'-','')),
+        'KFM 20% commission for booking ' || coalesce(new.booking_code,new.id::text),
+        jsonb_build_object('booking_code',new.booking_code,'payment_method',new.payment_method,'payment_paid_at',new.payment_paid_at)
+      ) on conflict do nothing;
+    end if;
   end if;
 
   -- Defensive reversal if a previously paid ride is later formally disputed/refunded.
