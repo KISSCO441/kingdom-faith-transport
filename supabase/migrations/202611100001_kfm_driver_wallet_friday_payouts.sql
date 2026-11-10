@@ -23,7 +23,7 @@ create table if not exists public.kfm_wallet_transactions (
   ride_id uuid references public.ride_requests(id) on delete restrict,
   payout_id uuid,
   transaction_type text not null check (transaction_type in (
-    'ride_driver_credit','ride_kfm_commission','ride_driver_reversal','ride_kfm_reversal','weekly_payout_debit'
+    'ride_driver_credit','ride_kfm_commission','ride_driver_reversal','ride_kfm_reversal','cash_commission_debit','cash_commission_reversal','weekly_payout_debit'
   )),
   direction text not null check (direction in ('credit','debit')),
   amount numeric(12,2) not null check (amount > 0),
@@ -42,29 +42,6 @@ create index if not exists kfm_wallet_transactions_account_created_idx
   on public.kfm_wallet_transactions(wallet_account_id, created_at desc);
 create index if not exists kfm_wallet_transactions_driver_created_idx
   on public.kfm_wallet_transactions(driver_id, created_at desc);
-
-create table if not exists public.kfm_driver_payout_profiles (
-  id uuid primary key default gen_random_uuid(),
-  driver_id uuid not null unique references public.drivers(id) on delete restrict,
-  payout_method text not null check (payout_method in ('mobile_money','bank')),
-  account_name text not null,
-  mobile_money_number text,
-  mobile_money_network text check (mobile_money_network in ('MTN','Telecel','AirtelTigo')),
-  bank_name text,
-  bank_branch text,
-  bank_account_number text,
-  verification_status text not null default 'pending' check (verification_status in ('pending','verified','rejected')),
-  admin_note text,
-  verified_by uuid,
-  verified_at timestamptz,
-  updated_at timestamptz not null default now(),
-  created_at timestamptz not null default now(),
-  check (
-    (payout_method = 'mobile_money' and mobile_money_number is not null and mobile_money_network is not null)
-    or
-    (payout_method = 'bank' and bank_name is not null and bank_account_number is not null)
-  )
-);
 
 create table if not exists public.kfm_driver_payout_batches (
   id uuid primary key default gen_random_uuid(),
@@ -88,7 +65,10 @@ create table if not exists public.kfm_driver_payouts (
   batch_id uuid not null references public.kfm_driver_payout_batches(id) on delete restrict,
   driver_id uuid not null references public.drivers(id) on delete restrict,
   wallet_account_id uuid not null references public.kfm_wallet_accounts(id) on delete restrict,
-  payout_profile_id uuid not null references public.kfm_driver_payout_profiles(id) on delete restrict,
+  payout_method text not null default 'mobile_money' check (payout_method = 'mobile_money'),
+  payout_account_name text not null,
+  payout_mobile_money_number text not null,
+  payout_mobile_money_network text not null check (payout_mobile_money_network in ('MTN','Telecel','AirtelTigo')),
   amount numeric(12,2) not null check (amount > 0),
   payout_status text not null default 'pending' check (payout_status in ('pending','approved','paid','held')),
   payout_reference text,
@@ -124,12 +104,10 @@ begin
      and (
        tg_op = 'INSERT'
        or lower(coalesce(old.payment_status,'')) <> 'paid'
-       or (lower(coalesce(old.ride_status,'')) <> 'completed' and lower(coalesce(new.ride_status,'')) = 'completed')
+       or lower(coalesce(old.ride_status,'')) <> 'completed'
      ) then
     v_fare := round(coalesce(new.fare_estimate,0)::numeric, 2);
-    if v_fare <= 0 then
-      return new;
-    end if;
+    if v_fare <= 0 then return new; end if;
     v_driver_share := round(coalesce(new.driver_share_amount, round(v_fare * 0.80, 2)), 2);
     v_kfm_share := round(coalesce(new.kfm_commission_amount, v_fare - v_driver_share), 2);
     if v_driver_share <= 0 or v_kfm_share < 0 or round(v_driver_share + v_kfm_share,2) <> v_fare then
@@ -148,28 +126,46 @@ begin
     select id into v_kfm_wallet_id
       from public.kfm_wallet_accounts where account_type = 'kfm' and driver_id is null;
 
-    insert into public.kfm_wallet_transactions(
-      wallet_account_id, driver_id, ride_id, transaction_type, direction, amount, reference, description, metadata
-    ) values (
-      v_driver_wallet_id, new.driver_id, new.id, 'ride_driver_credit', 'credit', v_driver_share,
-      'KFM-DRIVER-' || upper(replace(new.id::text,'-','')),
-      'Verified driver 80% share for booking ' || coalesce(new.booking_code,new.id::text),
-      jsonb_build_object('booking_code',new.booking_code,'payment_method',new.payment_method,'payment_paid_at',new.payment_paid_at)
-    ) on conflict do nothing;
+    if lower(coalesce(new.payment_method,'')) = 'cash' then
+      -- Driver collected the full fare: KFM's 20% is due from the driver.
+      -- A debit may take the driver's ledger below zero; it is not cash received by KFM.
+      insert into public.kfm_wallet_transactions(
+        wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+      ) values (
+        v_driver_wallet_id,new.driver_id,new.id,'cash_commission_debit','debit',v_kfm_share,
+        'KFM-CASH-DUE-' || upper(replace(new.id::text,'-','')),
+        'KFM 20% cash commission due for booking ' || coalesce(new.booking_code,new.id::text),
+        jsonb_build_object('booking_code',new.booking_code,'payment_method','cash','collection_status','due_from_driver')
+      ) on conflict do nothing;
+    else
+      -- Online payment: credit the driver's 80%; any negative balance is offset by this credit.
+      insert into public.kfm_wallet_transactions(
+        wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+      ) values (
+        v_driver_wallet_id,new.driver_id,new.id,'ride_driver_credit','credit',v_driver_share,
+        'KFM-DRIVER-' || upper(replace(new.id::text,'-','')),
+        'Verified driver 80% share for booking ' || coalesce(new.booking_code,new.id::text),
+        jsonb_build_object('booking_code',new.booking_code,'payment_method',new.payment_method,'payment_paid_at',new.payment_paid_at)
+      ) on conflict do nothing;
+    end if;
 
     if v_kfm_share > 0 then
       insert into public.kfm_wallet_transactions(
-        wallet_account_id, driver_id, ride_id, transaction_type, direction, amount, reference, description, metadata
+        wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
       ) values (
-        v_kfm_wallet_id, null, new.id, 'ride_kfm_commission', 'credit', v_kfm_share,
+        v_kfm_wallet_id,null,new.id,'ride_kfm_commission','credit',v_kfm_share,
         'KFM-COMMISSION-' || upper(replace(new.id::text,'-','')),
-        'KFM 20% commission for booking ' || coalesce(new.booking_code,new.id::text),
-        jsonb_build_object('booking_code',new.booking_code,'payment_method',new.payment_method,'payment_paid_at',new.payment_paid_at)
+        case when lower(coalesce(new.payment_method,'')) = 'cash'
+          then 'KFM 20% cash commission due from driver for booking ' || coalesce(new.booking_code,new.id::text)
+          else 'KFM 20% commission for booking ' || coalesce(new.booking_code,new.id::text) end,
+        jsonb_build_object('booking_code',new.booking_code,'payment_method',new.payment_method,
+          'payment_paid_at',new.payment_paid_at,
+          'collection_status',case when lower(coalesce(new.payment_method,'')) = 'cash' then 'due_from_driver' else 'received_online' end)
       ) on conflict do nothing;
     end if;
   end if;
 
-  -- Defensive reversal if a previously paid ride is later formally disputed/refunded.
+  -- Reverse ledger effects if KFM later formally changes a paid ride to disputed/refunded.
   if tg_op = 'UPDATE'
      and lower(coalesce(old.payment_status,'')) = 'paid'
      and lower(coalesce(new.payment_status,'')) in ('cash_disputed','refunded')
@@ -178,30 +174,41 @@ begin
       where account_type = 'driver' and driver_id = old.driver_id;
     select id into v_kfm_wallet_id from public.kfm_wallet_accounts
       where account_type = 'kfm' and driver_id is null;
+
     if v_driver_wallet_id is not null then
       insert into public.kfm_wallet_transactions(
         wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description
       )
       select v_driver_wallet_id,old.driver_id,old.id,'ride_driver_reversal','debit',amount,
         'KFM-DRIVER-REVERSAL-' || upper(replace(old.id::text,'-','')),
-        'Reversal pending KFM dispute/refund review for booking ' || coalesce(old.booking_code,old.id::text)
+        'Reversal of online driver share for booking ' || coalesce(old.booking_code,old.id::text)
       from public.kfm_wallet_transactions
       where ride_id = old.id and transaction_type = 'ride_driver_credit'
       on conflict do nothing;
+
+      insert into public.kfm_wallet_transactions(
+        wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description
+      )
+      select v_driver_wallet_id,old.driver_id,old.id,'cash_commission_reversal','credit',amount,
+        'KFM-CASH-DUE-REVERSAL-' || upper(replace(old.id::text,'-','')),
+        'Reversal of cash commission due for booking ' || coalesce(old.booking_code,old.id::text)
+      from public.kfm_wallet_transactions
+      where ride_id = old.id and transaction_type = 'cash_commission_debit'
+      on conflict do nothing;
     end if;
+
     if v_kfm_wallet_id is not null then
       insert into public.kfm_wallet_transactions(
         wallet_account_id,ride_id,transaction_type,direction,amount,reference,description
       )
       select v_kfm_wallet_id,old.id,'ride_kfm_reversal','debit',amount,
         'KFM-COMMISSION-REVERSAL-' || upper(replace(old.id::text,'-','')),
-        'Reversal pending KFM dispute/refund review for booking ' || coalesce(old.booking_code,old.id::text)
+        'Reversal of KFM commission for booking ' || coalesce(old.booking_code,old.id::text)
       from public.kfm_wallet_transactions
       where ride_id = old.id and transaction_type = 'ride_kfm_commission'
       on conflict do nothing;
     end if;
   end if;
-
   return new;
 end;
 $$;
@@ -231,29 +238,36 @@ begin
     values (p_period_start,p_period_end,p_scheduled_for,p_created_by)
     returning id into v_batch_id;
 
-  insert into public.kfm_driver_payouts(batch_id,driver_id,wallet_account_id,payout_profile_id,amount)
-  select v_batch_id, a.driver_id, a.id, p.id,
+  -- Use the existing verified registration record; no separate payout profile is collected.
+  insert into public.kfm_driver_payouts(
+    batch_id,driver_id,wallet_account_id,payout_method,payout_account_name,
+    payout_mobile_money_number,payout_mobile_money_network,amount
+  )
+  select v_batch_id,a.driver_id,a.id,'mobile_money',
+    coalesce(nullif(trim(d.full_name),''),nullif(trim(d.name),''),'KFM Driver'),
+    trim(d.momo_number),d.momo_network,
     round(sum(case when t.direction='credit' then t.amount else -t.amount end)
       - coalesce(reserved.amount,0),2)
   from public.kfm_wallet_accounts a
-  join public.kfm_driver_payout_profiles p on p.driver_id=a.driver_id and p.verification_status='verified'
+  join public.drivers d on d.id=a.driver_id
   join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
   left join lateral (
-    select sum(dp.amount) as amount
-    from public.kfm_driver_payouts dp
+    select sum(dp.amount) as amount from public.kfm_driver_payouts dp
     where dp.driver_id=a.driver_id and dp.payout_status in ('pending','approved')
   ) reserved on true
   where a.account_type='driver'
-  group by a.id,a.driver_id,p.id,reserved.amount
+    and upper(coalesce(d.status,''))='VERIFIED'
+    and nullif(trim(d.momo_number),'') is not null
+    and d.momo_network in ('MTN','Telecel','AirtelTigo')
+  group by a.id,a.driver_id,d.full_name,d.name,d.momo_number,d.momo_network,reserved.amount
   having round(sum(case when t.direction='credit' then t.amount else -t.amount end)
       - coalesce(reserved.amount,0),2) > 0
   on conflict(batch_id,driver_id) do nothing;
 
-  select count(*), coalesce(sum(amount),0) into v_count,v_total
+  select count(*),coalesce(sum(amount),0) into v_count,v_total
   from public.kfm_driver_payouts where batch_id=v_batch_id;
   update public.kfm_driver_payout_batches
-    set payout_count=v_count,total_amount=v_total
-    where id=v_batch_id;
+    set payout_count=v_count,total_amount=v_total where id=v_batch_id;
   return jsonb_build_object('batch_id',v_batch_id,'payout_count',v_count,'total_amount',v_total);
 end;
 $$;
@@ -327,11 +341,9 @@ $$;
 
 alter table public.kfm_wallet_accounts enable row level security;
 alter table public.kfm_wallet_transactions enable row level security;
-alter table public.kfm_driver_payout_profiles enable row level security;
 alter table public.kfm_driver_payout_batches enable row level security;
 alter table public.kfm_driver_payouts enable row level security;
-revoke all on public.kfm_wallet_accounts,public.kfm_wallet_transactions,public.kfm_driver_payout_profiles,
-  public.kfm_driver_payout_batches,public.kfm_driver_payouts from anon,authenticated;
+revoke all on public.kfm_wallet_accounts,public.kfm_wallet_transactions,public.kfm_driver_payout_batches,public.kfm_driver_payouts from anon,authenticated;
 revoke all on function public.kfm_record_paid_ride_wallet_entries() from public,anon,authenticated;
 revoke all on function public.kfm_create_driver_payout_batch(date,date,date,uuid) from public,anon,authenticated;
 revoke all on function public.kfm_approve_driver_payout_batch(uuid,uuid) from public,anon,authenticated;
@@ -421,7 +433,6 @@ as $$
   where a.account_type='kfm';
 $$;
 
-grant all on public.kfm_wallet_accounts,public.kfm_wallet_transactions,public.kfm_driver_payout_profiles,
-  public.kfm_driver_payout_batches,public.kfm_driver_payouts to service_role;
+grant all on public.kfm_wallet_accounts,public.kfm_wallet_transactions,public.kfm_driver_payout_batches,public.kfm_driver_payouts to service_role;
 revoke all on function public.kfm_get_kfm_commission_balance() from public,anon,authenticated;
 grant execute on function public.kfm_get_kfm_commission_balance() to service_role;
