@@ -110,10 +110,64 @@ export async function POST(request: Request) {
       );
     }
 
+    // Customer comments are also emailed directly to the KFM transport inbox.
+    // Ratings remain stored in the database without generating an email.
+    if (hasComment) {
+      const resendApiKey = process.env.RESEND_API_KEY;
+      const resendFromEmail = process.env.RESEND_FROM_EMAIL;
+
+      if (!resendApiKey || !resendFromEmail) {
+        await supabase
+          .from("ride_driver_ratings")
+          .delete()
+          .eq("ride_id", ride.id);
+
+        console.error("KFM ride feedback email configuration is missing.");
+        return NextResponse.json(
+          { success: false, error: "Your comment could not be delivered to KFM. Please try submitting it again later." },
+          { status: 503 }
+        );
+      }
+
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: resendFromEmail,
+          to: ["kingdomfaithtransport@gmail.com"],
+          subject: `KFM Driver Feedback — ${ride.booking_code || reference}`,
+          text: [
+            "A customer has submitted feedback about a KFM ride.",
+            `Booking: ${ride.booking_code || "Not available"}`,
+            `Ride reference: ${reference}`,
+            `Driver ID: ${ride.driver_id}`,
+            `Customer comment: ${comment}`,
+          ].join("\\n"),
+          html: `<h2>New KFM Driver Feedback</h2><p>A customer has submitted feedback about a KFM ride.</p><p><strong>Booking:</strong> ${ride.booking_code || "Not available"}</p><p><strong>Ride reference:</strong> ${reference}</p><p><strong>Driver ID:</strong> ${ride.driver_id}</p><p><strong>Customer comment:</strong> ${comment.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`,
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        await supabase
+          .from("ride_driver_ratings")
+          .delete()
+          .eq("ride_id", ride.id);
+
+        console.error("Resend rejected the KFM ride feedback email.");
+        return NextResponse.json(
+          { success: false, error: "Your comment could not be emailed to KFM. Please try again shortly." },
+          { status: 503 }
+        );
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: hasComment
-        ? "Thank you. Your comment has been recorded for KFM service assessment."
+        ? "Thank you. Your comment has been sent to KFM and recorded for service assessment."
         : "Thank you. Your driver rating has been recorded.",
       booking_code: ride.booking_code,
     });
