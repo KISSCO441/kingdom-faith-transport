@@ -74,6 +74,7 @@ export default function DriverDashboardPage() {
   const [loadingRides, setLoadingRides] = useState(false)
   const [updatingRideId, setUpdatingRideId] = useState<string | null>(null)
   const [selectedRecordDate, setSelectedRecordDate] = useState(() => new Date().toLocaleDateString("en-CA"))
+  const [selectedPaymentCategory, setSelectedPaymentCategory] = useState<"verified" | "pending" | "disputed" | null>(null)
 
   useEffect(() => {
     loadDriver()
@@ -1185,32 +1186,36 @@ const response = await fetch(
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-xl bg-gray-50 p-4">
-              <p className="text-xs font-medium uppercase text-gray-500">Rides recorded</p>
-              <p className="mt-1 text-2xl font-bold">{dailyRideRecords.length}</p>
-            </div>
-            <div className="rounded-xl bg-gray-50 p-4">
-              <p className="text-xs font-medium uppercase text-gray-500">Completed rides</p>
-              <p className="mt-1 text-2xl font-bold">{dailyCompletedRecords.length}</p>
-            </div>
-            <div className="rounded-xl bg-gray-50 p-4">
-              <p className="text-xs font-medium uppercase text-gray-500">Completed fares</p>
-              <p className="mt-1 text-2xl font-bold">GH₵ {dailyCompletedFares.toFixed(2)}</p>
-            </div>
-            <div className="rounded-xl bg-gray-50 p-4">
+            <button
+              type="button"
+              onClick={() => setSelectedPaymentCategory(selectedPaymentCategory === "verified" ? null : "verified")}
+              aria-expanded={selectedPaymentCategory === "verified"}
+              className={`rounded-xl border p-4 text-left transition hover:border-green-300 hover:bg-green-50 ${selectedPaymentCategory === "verified" ? "border-green-400 bg-green-50 ring-1 ring-green-200" : "border-transparent bg-gray-50"}`}
+            >
               <p className="text-xs font-medium uppercase text-gray-500">Verified payments</p>
               <p className="mt-1 text-2xl font-bold text-green-700">GH₵ {dailyVerifiedFares.toFixed(2)}</p>
-            </div>
-            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="mt-1 text-xs text-gray-500">{dailyPaidRecords.length} ride(s) · Select to view</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPaymentCategory(selectedPaymentCategory === "pending" ? null : "pending")}
+              aria-expanded={selectedPaymentCategory === "pending"}
+              className={`rounded-xl border p-4 text-left transition hover:border-amber-300 hover:bg-amber-50 ${selectedPaymentCategory === "pending" ? "border-amber-400 bg-amber-50 ring-1 ring-amber-200" : "border-transparent bg-gray-50"}`}
+            >
               <p className="text-xs font-medium uppercase text-gray-500">Pending payments</p>
               <p className="mt-1 text-2xl font-bold text-amber-700">GH₵ {dailyPendingFares.toFixed(2)}</p>
-              <p className="mt-1 text-xs text-gray-500">{dailyPendingRecords.length} completed ride(s)</p>
-            </div>
-            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="mt-1 text-xs text-gray-500">{dailyPendingRecords.length} completed ride(s) · Select to view</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPaymentCategory(selectedPaymentCategory === "disputed" ? null : "disputed")}
+              aria-expanded={selectedPaymentCategory === "disputed"}
+              className={`rounded-xl border p-4 text-left transition hover:border-red-300 hover:bg-red-50 ${selectedPaymentCategory === "disputed" ? "border-red-400 bg-red-50 ring-1 ring-red-200" : "border-transparent bg-gray-50"}`}
+            >
               <p className="text-xs font-medium uppercase text-gray-500">Disputed fares</p>
               <p className="mt-1 text-2xl font-bold text-red-700">GH₵ {dailyDisputedFares.toFixed(2)}</p>
-              <p className="mt-1 text-xs text-gray-500">{dailyDisputedRecords.length} completed ride(s) awaiting review</p>
-            </div>
+              <p className="mt-1 text-xs text-gray-500">{dailyDisputedRecords.length} ride(s) awaiting review · Select to view</p>
+            </button>
           </div>
 
           <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
@@ -1224,67 +1229,102 @@ const response = await fetch(
               </p>
             </div>
             <p className="mt-2 text-xs text-blue-800">
-              These are daily calculated allocations from rides marked PAID. They are not wallet credits or payouts. Pending and disputed fares are excluded.
+              Calculated from verified PAID rides only. These figures are not wallet credits or payouts.
             </p>
           </div>
 
-          <div className="mt-6 space-y-3">
-            {dailyRideRecords.length === 0 ? (
-              <div className="rounded-xl border border-dashed p-8 text-center">
-                <Clock className="mx-auto h-9 w-9 text-gray-400" />
-                <p className="mt-3 font-semibold text-gray-800">No rides recorded for this date</p>
-                <p className="mt-1 text-sm text-gray-500">Choose another date to view your previous ride records.</p>
-              </div>
-            ) : (
-              dailyRideRecords.map((ride) => (
-                <div key={ride.id} className="rounded-xl border p-4">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-xs text-gray-500">Booking Number</p>
-                      <p className="font-bold">{ride.booking_code || ride.id}</p>
-                    </div>
-                    <span className="w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                      {(ride.ride_status || "unknown").replaceAll("_", " ").toUpperCase()}
-                    </span>
+          {selectedPaymentCategory && (() => {
+            const selectedRecords =
+              selectedPaymentCategory === "verified"
+                ? dailyPaidRecords
+                : selectedPaymentCategory === "pending"
+                  ? dailyPendingRecords
+                  : dailyDisputedRecords
+            const categoryTitle =
+              selectedPaymentCategory === "verified"
+                ? "Verified Payment Details"
+                : selectedPaymentCategory === "pending"
+                  ? "Pending Payment Details"
+                  : "Disputed Fare Details"
+
+            return (
+              <div className="mt-5 rounded-xl border bg-white p-4 sm:p-5" aria-live="polite">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{categoryTitle}</h3>
+                    <p className="text-sm text-gray-500">{selectedRecords.length} ride(s) for the selected date</p>
                   </div>
-                  <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                    <div>
-                      <p className="text-xs text-gray-500">Customer</p>
-                      <p className="font-medium">{ride.customer_name || "Not provided"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Route</p>
-                      <p className="font-medium">
-                        {ride.pickup_town || "—"}{ride.pickup_area ? ` • ${ride.pickup_area}` : ""}
-                        {" → "}
-                        {ride.destination_town || "—"}{ride.destination_area ? ` • ${ride.destination_area}` : ""}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Fare</p>
-                      <p className="font-semibold">GH₵ {Number(ride.fare_estimate || 0).toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Payment method</p>
-                      <p className="font-medium">{ride.payment_method || "Not recorded"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Payment status</p>
-                      <p className={`font-semibold ${ride.payment_status?.toLowerCase() === "paid" ? "text-green-700" : ride.payment_status?.toLowerCase() === "cash_disputed" ? "text-red-700" : "text-amber-700"}`}>
-                        {(ride.payment_status || "not recorded").replaceAll("_", " ").toUpperCase()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Recorded time</p>
-                      <p className="font-medium">
-                        {new Date(ride.created_at).toLocaleTimeString("en-GH", { hour: "numeric", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setSelectedPaymentCategory(null)}>
+                    Close
+                  </Button>
                 </div>
-              ))
-            )}
-          </div>
+
+                {selectedRecords.length === 0 ? (
+                  <div className="mt-4 rounded-lg border border-dashed p-5 text-center text-sm text-gray-500">
+                    No {selectedPaymentCategory} payment records for this date.
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {selectedRecords.map((ride) => (
+                      <article key={ride.id} className="rounded-lg border p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-xs text-gray-500">Booking number</p>
+                            <p className="font-semibold text-gray-900">{ride.booking_code || ride.id}</p>
+                          </div>
+                          <p className="font-semibold text-gray-900">GH₵ {Number(ride.fare_estimate || 0).toFixed(2)}</p>
+                        </div>
+                        <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                          <div>
+                            <p className="text-xs text-gray-500">Customer</p>
+                            <p className="font-medium">{ride.customer_name || "Not provided"}</p>
+                            {ride.customer_phone && <p className="text-gray-600">{ride.customer_phone}</p>}
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Route</p>
+                            <p className="font-medium">
+                              {ride.pickup_town || "—"}{ride.pickup_area ? ` • ${ride.pickup_area}` : ""}
+                              {" → "}
+                              {ride.destination_town || "—"}{ride.destination_area ? ` • ${ride.destination_area}` : ""}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Payment method</p>
+                            <p className="font-medium">{ride.payment_method || "Not recorded"}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Payment status</p>
+                            <p className="font-medium">{(ride.payment_status || "not recorded").replaceAll("_", " ").toUpperCase()}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Ride date</p>
+                            <p className="font-medium">{new Date(ride.created_at).toLocaleString("en-GH", { dateStyle: "medium", timeStyle: "short" })}</p>
+                          </div>
+                          {selectedPaymentCategory === "verified" && ride.payment_paid_at && (
+                            <div>
+                              <p className="text-xs text-gray-500">Payment confirmed</p>
+                              <p className="font-medium">{new Date(ride.payment_paid_at).toLocaleString("en-GH", { dateStyle: "medium", timeStyle: "short" })}</p>
+                            </div>
+                          )}
+                        </div>
+                        {selectedPaymentCategory === "disputed" && (
+                          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                            <p className="font-semibold">Awaiting KFM review</p>
+                            <p className="mt-1">This payment is flagged as disputed. The driver’s report is not a final finding. The fare remains excluded from payment allocations until KFM completes its review.</p>
+                          </div>
+                        )}
+                        {selectedPaymentCategory === "pending" && (
+                          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                            Awaiting payment confirmation. This fare is not yet included in wallet or 80/20 allocations.
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </section>
 
         {/* Ride History */}
