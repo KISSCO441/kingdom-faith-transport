@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       auth.supabase.rpc("kfm_get_kfm_commission_balance"),
       auth.supabase.from("drivers").select("id,full_name,phone").order("full_name"),
     ])
-    const failed = [balances.error,profiles.error,batches.error,payouts.error].find(Boolean)
+    const failed = [balances.error,profiles.error,batches.error,payouts.error,kfmCommission.error,drivers.error].find(Boolean)
     if (failed) {
       console.error("KFM admin wallet load failed:", failed)
       return NextResponse.json({ error: "Wallet tables or RPC are not ready. Apply the wallet migration to KFM-PREVIEW first." }, { status: 503 })
