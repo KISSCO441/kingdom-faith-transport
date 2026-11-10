@@ -5,18 +5,20 @@ export async function GET(request: NextRequest) {
   const auth = await requireKfmAdmin(request)
   if (!auth.ok) return auth.response
   try {
-    const [balances, profiles, batches, payouts] = await Promise.all([
+    const [balances, profiles, batches, payouts, kfmCommission, drivers] = await Promise.all([
       auth.supabase.rpc("kfm_list_driver_wallet_balances"),
       auth.supabase.from("kfm_driver_payout_profiles").select("id,driver_id,payout_method,account_name,mobile_money_number,mobile_money_network,bank_name,bank_branch,bank_account_number,verification_status,admin_note,verified_at,updated_at"),
       auth.supabase.from("kfm_driver_payout_batches").select("id,period_start,period_end,scheduled_for,batch_status,total_amount,payout_count,created_at,approved_at").order("created_at",{ascending:false}).limit(30),
       auth.supabase.from("kfm_driver_payouts").select("id,batch_id,driver_id,amount,payout_status,payout_reference,paid_at,admin_note,created_at").order("created_at",{ascending:false}).limit(200),
+      auth.supabase.rpc("kfm_get_kfm_commission_balance"),
+      auth.supabase.from("drivers").select("id,full_name,phone").order("full_name"),
     ])
     const failed = [balances.error,profiles.error,batches.error,payouts.error].find(Boolean)
     if (failed) {
       console.error("KFM admin wallet load failed:", failed)
       return NextResponse.json({ error: "Wallet tables or RPC are not ready. Apply the wallet migration to KFM-PREVIEW first." }, { status: 503 })
     }
-    return NextResponse.json({ success:true, balances:balances.data ?? [], profiles:profiles.data ?? [], batches:batches.data ?? [], payouts:payouts.data ?? [] })
+    return NextResponse.json({ success:true, balances:balances.data ?? [], profiles:profiles.data ?? [], batches:batches.data ?? [], payouts:payouts.data ?? [], kfm_commission_balance:kfmCommission.data ?? 0, drivers:drivers.data ?? [] })
   } catch (error) {
     console.error("KFM admin wallet GET error:",error)
     return NextResponse.json({ error:"Unable to load driver wallet administration." },{status:500})
