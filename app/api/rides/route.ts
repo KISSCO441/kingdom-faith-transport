@@ -168,8 +168,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Customers choose their payment method after the ride is completed.
-    const paymentMethod = "pending";
+    const paymentMethod =
+      typeof payment_method === "string" ? payment_method.trim().toLowerCase() : "";
+
+    if (!["cash", "paystack"].includes(paymentMethod)) {
+      return NextResponse.json(
+        { error: "Please select Cash or Pay Online as your payment method." },
+        { status: 400 }
+      );
+    }
     const normalizedCustomerEmail =
       typeof customer_email === "string"
         ? customer_email.trim().toLowerCase()
