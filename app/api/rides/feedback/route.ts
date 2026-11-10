@@ -133,6 +133,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!feedback) {
+      return NextResponse.json(
+        { success: false, error: "We could not retrieve the saved feedback. Please try again." },
+        { status: 500 }
+      );
+    }
+
     // A previously emailed feedback record must not generate duplicate emails.
     if (feedback.email_sent_at) {
       return NextResponse.json({
