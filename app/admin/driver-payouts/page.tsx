@@ -22,6 +22,7 @@ export default function AdminDriverPayoutsPage(){
  const [notice,setNotice]=useState("")
  const [periodStart,setPeriodStart]=useState(()=>{const d=new Date();d.setDate(d.getDate()-7);return dateValue(d)})
  const [periodEnd,setPeriodEnd]=useState(()=>dateValue(new Date()))
+ const balanceByDriver=new Map((data?.balances||[]).map(x=>[x.driver_id,x]))
  const [scheduledFor,setScheduledFor]=useState(nextFriday)
 
  const request=useCallback(async(method:"GET"|"POST",body?:Record<string,unknown>)=>{
