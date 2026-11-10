@@ -140,6 +140,7 @@ export function BookingForm() {
   const [vehicle, setVehicle] = useState<VehicleType>("car")
   const [submitted, setSubmitted] = useState(false)
   const [bookingCode, setBookingCode] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "paystack">("paystack")
  
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -247,7 +248,7 @@ export function BookingForm() {
       customer_phone: customerPhone,
       customer_email: customerEmail || null,
       marketing_opt_in: marketingOptIn,
-      payment_method: "pending",
+      payment_method: paymentMethod,
       vehicle_type: vehicle,
       ride_option: isOkada ? "KFM Okada" : "KFM Car",
       pickup_town: pickupTown,
@@ -609,6 +610,41 @@ export function BookingForm() {
                   <input type="checkbox" name="marketing_opt_in" className="mt-1 h-4 w-4 rounded border-input" />
                   <span>Yes, send me KFM Transport offers and service updates by email, about once every 7 days. I can unsubscribe at any time.</span>
                 </label>
+              </div>
+
+              <div className="space-y-3">
+                <span className="block text-sm font-medium">How would you like to pay?</span>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("cash")}
+                    aria-pressed={paymentMethod === "cash"}
+                    className={cn(
+                      "rounded-lg border px-4 py-3 text-left transition-colors",
+                      paymentMethod === "cash"
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-input text-muted-foreground hover:border-ring",
+                    )}
+                  >
+                    <span className="block font-semibold">Pay Cash to Driver</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">Pay the driver directly after your ride.</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("paystack")}
+                    aria-pressed={paymentMethod === "paystack"}
+                    className={cn(
+                      "rounded-lg border px-4 py-3 text-left transition-colors",
+                      paymentMethod === "paystack"
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-input text-muted-foreground hover:border-ring",
+                    )}
+                  >
+                    <span className="block font-semibold">Pay Online</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">Pay securely through Paystack after your ride.</span>
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">Your payment choice is saved with this booking and cannot be changed after the ride is requested.</p>
               </div>
 
               <div className="space-y-2">
