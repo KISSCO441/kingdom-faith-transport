@@ -19,7 +19,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const reference =
       typeof body.reference === "string" ? body.reference.trim() : "";
-    const rating = Number(body.rating);
+    const hasRating = body.rating !== undefined && body.rating !== null && body.rating !== "";
+    const rating = hasRating ? Number(body.rating) : null;
+    const comment =
+      typeof body.comment === "string" ? body.comment.trim() : "";
+    const hasComment = comment.length > 0;
+    const commentLength = Array.from(comment).length;
 
     if (!reference.startsWith("KFM-RIDE-")) {
       return NextResponse.json(
@@ -28,9 +33,23 @@ export async function POST(request: Request) {
       );
     }
 
-    if (![1, 2, 3].includes(rating)) {
+    if (hasRating === hasComment) {
+      return NextResponse.json(
+        { success: false, error: "Please select a driver rating or enter a short comment." },
+        { status: 400 }
+      );
+    }
+
+    if (hasRating && ![1, 2, 3].includes(rating as number)) {
       return NextResponse.json(
         { success: false, error: "Please select one of the three driver ratings." },
+        { status: 400 }
+      );
+    }
+
+    if (hasComment && commentLength > 80) {
+      return NextResponse.json(
+        { success: false, error: "Your comment must be 80 characters or fewer." },
         { status: 400 }
       );
     }
@@ -38,7 +57,7 @@ export async function POST(request: Request) {
     const supabase = createClient(supabaseUrl, serviceKey);
     const { data: ride, error: rideError } = await supabase
       .from("ride_requests")
-      .select("id, booking_code, driver_id, ride_status, payment_status, payment_method")
+      .select("id, booking_code, driver_id, ride_status, payment_status")
       .eq("payment_reference", reference)
       .maybeSingle();
 
@@ -51,8 +70,7 @@ export async function POST(request: Request) {
 
     if (
       ride.ride_status?.toLowerCase() !== "completed" ||
-      ride.payment_status?.toLowerCase() !== "paid" ||
-      ride.payment_method?.toLowerCase() !== "paystack"
+      ride.payment_status?.toLowerCase() !== "paid"
     ) {
       return NextResponse.json(
         { success: false, error: "Feedback is available after the ride is completed and payment is confirmed." },
@@ -72,34 +90,37 @@ export async function POST(request: Request) {
       .insert({
         ride_id: ride.id,
         driver_id: ride.driver_id,
-        rating,
+        rating: hasRating ? rating : null,
+        comment: hasComment ? comment : null,
       });
 
     if (insertError?.code === "23505") {
       return NextResponse.json({
         success: true,
         already_submitted: true,
-        message: "A driver rating has already been recorded for this ride. Thank you for your feedback.",
+        message: "Feedback has already been recorded for this ride. Thank you.",
       });
     }
 
     if (insertError) {
       console.error("KFM driver feedback could not be saved:", insertError);
       return NextResponse.json(
-        { success: false, error: "We could not save your rating just now. Please try again." },
+        { success: false, error: "We could not save your feedback just now. Please try again." },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: "Thank you. Your driver rating has been recorded.",
+      message: hasComment
+        ? "Thank you. Your comment has been recorded for KFM service assessment."
+        : "Thank you. Your driver rating has been recorded.",
       booking_code: ride.booking_code,
     });
   } catch (error) {
     console.error("KFM ride feedback API error:", error);
     return NextResponse.json(
-      { success: false, error: "An unexpected error occurred while saving your rating." },
+      { success: false, error: "An unexpected error occurred while saving your feedback." },
       { status: 500 }
     );
   }
