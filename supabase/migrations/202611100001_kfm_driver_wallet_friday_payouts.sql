@@ -442,4 +442,22 @@ $$;
 
 grant all on public.kfm_wallet_accounts,public.kfm_wallet_transactions,public.kfm_driver_payout_batches,public.kfm_driver_payouts to service_role;
 revoke all on function public.kfm_get_kfm_commission_balance() from public,anon,authenticated;
+
 grant execute on function public.kfm_get_kfm_commission_balance() to service_role;
+
+create or replace function public.kfm_get_cash_commission_due_balance()
+returns numeric
+language sql
+security definer
+set search_path = public, pg_temp
+as $
+  select coalesce(sum(case when t.direction='credit' then t.amount else -t.amount end),0)::numeric(12,2)
+  from public.kfm_wallet_accounts a
+  join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
+  where a.account_type='kfm'
+    and t.transaction_type in ('ride_kfm_commission','ride_kfm_reversal')
+    and t.metadata->>'collection_status' = 'due_from_driver';
+$;
+
+revoke all on function public.kfm_get_cash_commission_due_balance() from public,anon,authenticated;
+grant execute on function public.kfm_get_cash_commission_due_balance() to service_role;
