@@ -95,24 +95,37 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: insertError } = await supabase
+    // Reuse an existing feedback record when retrying email delivery.
+    const { data: insertedFeedback, error: insertError } = await supabase
       .from("ride_driver_ratings")
       .insert({
         ride_id: ride.id,
         driver_id: ride.driver_id,
         rating: hasRating ? rating : null,
         comment: hasComment ? comment : null,
-      });
+      })
+      .select("id, rating, comment, email_sent_at")
+      .single();
+
+    let feedback = insertedFeedback;
 
     if (insertError?.code === "23505") {
-      return NextResponse.json({
-        success: true,
-        already_submitted: true,
-        message: "Feedback has already been recorded for this ride. Thank you.",
-      });
-    }
+      const { data: existingFeedback, error: existingError } = await supabase
+        .from("ride_driver_ratings")
+        .select("id, rating, comment, email_sent_at")
+        .eq("ride_id", ride.id)
+        .maybeSingle();
 
-    if (insertError) {
+      if (existingError || !existingFeedback) {
+        console.error("KFM existing ride feedback could not be loaded:", existingError);
+        return NextResponse.json(
+          { success: false, error: "We found your previous feedback but could not prepare its email. Please try again." },
+          { status: 500 }
+        );
+      }
+
+      feedback = existingFeedback;
+    } else if (insertError || !insertedFeedback) {
       console.error("KFM driver feedback could not be saved:", insertError);
       return NextResponse.json(
         { success: false, error: "We could not save your feedback just now. Please try again." },
@@ -120,26 +133,34 @@ export async function POST(request: Request) {
       );
     }
 
-    // Send every customer rating or comment directly to the KFM Transport inbox.
+    // A previously emailed feedback record must not generate duplicate emails.
+    if (feedback.email_sent_at) {
+      return NextResponse.json({
+        success: true,
+        already_submitted: true,
+        email_sent: true,
+        message: "Your feedback has already been recorded and emailed to KFM. Thank you.",
+      });
+    }
+
     const resendApiKey = process.env.RESEND_API_KEY;
     const resendFromEmail = process.env.RESEND_FROM_EMAIL;
-    const ratingLabel =
-      rating === 1 ? "Good" : rating === 2 ? "Very Good" : rating === 3 ? "Not So Good" : "";
-    const feedbackLabel = hasComment ? "Customer comment" : "Customer rating";
-    const feedbackValue = hasComment ? comment : ratingLabel;
 
     if (!resendApiKey || !resendFromEmail) {
-      await supabase
-        .from("ride_driver_ratings")
-        .delete()
-        .eq("ride_id", ride.id);
-
       console.error("KFM ride feedback email configuration is missing.");
       return NextResponse.json(
-        { success: false, error: "Your feedback could not be delivered to KFM. Please try again later." },
+        { success: false, feedback_recorded: true, error: "Your feedback is saved, but email delivery is not configured yet. KFM can safely retry delivery." },
         { status: 503 }
       );
     }
+
+    const savedRating = feedback.rating;
+    const savedComment =
+      typeof feedback.comment === "string" ? feedback.comment : "";
+    const ratingLabel =
+      savedRating === 1 ? "Good" : savedRating === 2 ? "Very Good" : savedRating === 3 ? "Not So Good" : "";
+    const feedbackLabel = savedComment ? "Customer comment" : "Customer rating";
+    const feedbackValue = savedComment || ratingLabel;
 
     const safeBookingCode = escapeHtml(ride.booking_code || "Not available");
     const safeReference = escapeHtml(reference);
@@ -168,23 +189,33 @@ export async function POST(request: Request) {
     });
 
     if (!emailResponse.ok) {
-      await supabase
-        .from("ride_driver_ratings")
-        .delete()
-        .eq("ride_id", ride.id);
-
-      console.error("Resend rejected the KFM ride feedback email.");
+      const resendError = await emailResponse.text();
+      console.error("Resend rejected the KFM ride feedback email:", resendError);
       return NextResponse.json(
-        { success: false, error: "Your feedback could not be emailed to KFM. Please try again shortly." },
+        { success: false, feedback_recorded: true, error: "Your feedback is safely saved, but KFM email delivery failed. Please try again shortly." },
         { status: 503 }
       );
     }
 
+    const { error: sentUpdateError } = await supabase
+      .from("ride_driver_ratings")
+      .update({ email_sent_at: new Date().toISOString() })
+      .eq("id", feedback.id);
+
+    if (sentUpdateError) {
+      console.error("KFM feedback email sent but delivery status could not be recorded:", sentUpdateError);
+      return NextResponse.json({
+        success: true,
+        email_sent: true,
+        message: "Your feedback email was sent to KFM. Its delivery record is being reconciled.",
+        booking_code: ride.booking_code,
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      message: hasComment
-        ? "Thank you. Your comment has been emailed to KFM and recorded for service assessment."
-        : "Thank you. Your driver rating has been emailed to KFM and recorded.",
+      email_sent: true,
+      message: "Thank you. Your comment or rating has been emailed to KFM and recorded.",
       booking_code: ride.booking_code,
     });
   } catch (error) {
