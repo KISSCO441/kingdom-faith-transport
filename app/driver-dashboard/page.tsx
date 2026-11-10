@@ -1292,6 +1292,13 @@ const response = await fetch(
 
                   </div>
 
+                  {ride.payment_status?.toLowerCase() === "cash_disputed" && (
+                    <div role="status" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+                      <p className="font-semibold">Cash Disputed — Awaiting KFM Admin Review</p>
+                      <p className="mt-1">You reported that the cash fare was not received. KFM has flagged this booking for review. Do not treat this payment as settled unless KFM resolves the dispute.</p>
+                    </div>
+                  )}
+
                   {ride.ride_status?.toLowerCase() === "completed" &&
                     ride.payment_method?.toLowerCase() === "cash" &&
                     ride.payment_status?.toLowerCase() === "cash_pending_driver" && (
