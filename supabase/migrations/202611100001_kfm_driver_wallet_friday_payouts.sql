@@ -199,11 +199,12 @@ begin
 
     if v_kfm_wallet_id is not null then
       insert into public.kfm_wallet_transactions(
-        wallet_account_id,ride_id,transaction_type,direction,amount,reference,description
+        wallet_account_id,ride_id,transaction_type,direction,amount,reference,description,metadata
       )
       select v_kfm_wallet_id,old.id,'ride_kfm_reversal','debit',amount,
         'KFM-COMMISSION-REVERSAL-' || upper(replace(old.id::text,'-','')),
-        'Reversal of KFM commission for booking ' || coalesce(old.booking_code,old.id::text)
+        'Reversal of KFM commission for booking ' || coalesce(old.booking_code,old.id::text),
+        jsonb_build_object('collection_status',metadata->>'collection_status','reverses_transaction_type','ride_kfm_commission')
       from public.kfm_wallet_transactions
       where ride_id = old.id and transaction_type = 'ride_kfm_commission'
       on conflict do nothing;
@@ -219,6 +220,10 @@ after insert or update of payment_status, ride_status on public.ride_requests
 for each row execute function public.kfm_record_paid_ride_wallet_entries();
 
 -- Atomic batch creation: only verified payout profiles and positive unreserved balances.
+-- The selected dates label the weekly accounting cycle. The amount is the driver's
+-- full current net available wallet balance, including carried-forward earnings/debts,
+-- less prior payouts and pending/approved reservations. This prevents old balances
+-- from being omitted and previously paid earnings from being paid a second time.
 create or replace function public.kfm_create_driver_payout_batch(
   p_period_start date, p_period_end date, p_scheduled_for date, p_created_by uuid
 ) returns jsonb
@@ -429,8 +434,10 @@ set search_path = public, pg_temp
 as $$
   select coalesce(sum(case when t.direction='credit' then t.amount else -t.amount end),0)::numeric(12,2)
   from public.kfm_wallet_accounts a
-  left join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
-  where a.account_type='kfm';
+  join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
+  where a.account_type='kfm'
+    and t.transaction_type in ('ride_kfm_commission','ride_kfm_reversal')
+    and t.metadata->>'collection_status' = 'received_online';
 $$;
 
 grant all on public.kfm_wallet_accounts,public.kfm_wallet_transactions,public.kfm_driver_payout_batches,public.kfm_driver_payouts to service_role;
