@@ -338,3 +338,69 @@ grant execute on function public.kfm_create_driver_payout_batch(date,date,date,u
 grant execute on function public.kfm_approve_driver_payout_batch(uuid,uuid) to service_role;
 grant execute on function public.kfm_mark_driver_payout_paid(uuid,text,uuid) to service_role;
 grant execute on function public.kfm_hold_driver_payout(uuid,uuid,text) to service_role;
+
+
+-- Authoritative wallet balance calculations are performed in the database,
+-- including every ledger row and amounts reserved by pending/approved payouts.
+create or replace function public.kfm_get_driver_wallet_balance(p_driver_id uuid)
+returns table(ledger_balance numeric,reserved_amount numeric,available_balance numeric)
+language sql
+security definer
+set search_path = public, pg_temp
+as $$
+  select
+    coalesce(sum(case when t.direction='credit' then t.amount else -t.amount end),0)::numeric(12,2),
+    coalesce((
+      select sum(p.amount) from public.kfm_driver_payouts p
+      where p.driver_id=p_driver_id and p.payout_status in ('pending','approved')
+    ),0)::numeric(12,2),
+    (
+      coalesce(sum(case when t.direction='credit' then t.amount else -t.amount end),0)
+      - coalesce((
+        select sum(p.amount) from public.kfm_driver_payouts p
+        where p.driver_id=p_driver_id and p.payout_status in ('pending','approved')
+      ),0)
+    )::numeric(12,2)
+  from public.kfm_wallet_accounts a
+  left join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
+  where a.account_type='driver' and a.driver_id=p_driver_id
+  group by a.id;
+$$;
+
+create or replace function public.kfm_list_driver_wallet_balances()
+returns table(
+  driver_id uuid, full_name text, phone text, wallet_account_id uuid,
+  ledger_balance numeric, reserved_amount numeric, available_balance numeric
+)
+language sql
+security definer
+set search_path = public, pg_temp
+as $$
+  select a.driver_id,d.full_name,d.phone,a.id,
+    coalesce(sum(case when t.direction='credit' then t.amount else -t.amount end),0)::numeric(12,2),
+    coalesce(r.amount,0)::numeric(12,2),
+    (coalesce(sum(case when t.direction='credit' then t.amount else -t.amount end),0)-coalesce(r.amount,0))::numeric(12,2)
+  from public.kfm_wallet_accounts a
+  join public.drivers d on d.id=a.driver_id
+  left join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
+  left join lateral (
+    select sum(p.amount) amount from public.kfm_driver_payouts p
+    where p.driver_id=a.driver_id and p.payout_status in ('pending','approved')
+  ) r on true
+  where a.account_type='driver'
+  group by a.id,a.driver_id,d.full_name,d.phone,r.amount
+  order by d.full_name;
+$$;
+
+do $$
+begin
+  alter table public.kfm_wallet_transactions
+    add constraint kfm_wallet_transactions_payout_fk
+    foreign key (payout_id) references public.kfm_driver_payouts(id) on delete restrict;
+exception when duplicate_object then null;
+end $$;
+
+revoke all on function public.kfm_get_driver_wallet_balance(uuid) from public,anon,authenticated;
+revoke all on function public.kfm_list_driver_wallet_balances() from public,anon,authenticated;
+grant execute on function public.kfm_get_driver_wallet_balance(uuid) to service_role;
+grant execute on function public.kfm_list_driver_wallet_balances() to service_role;
