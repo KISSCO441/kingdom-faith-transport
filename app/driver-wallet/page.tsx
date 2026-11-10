@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { ArrowLeft, Banknote, CheckCircle2, Clock3, RefreshCw, Wallet } from "lucide-react"
+import { ArrowLeft, CheckCircle2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { supabase as supabaseClient } from "@/lib/supabase"
 
@@ -53,12 +53,11 @@ export default function DriverWalletPage() {
           <p className="mt-1 text-gray-600">{data?.driver.full_name || "Driver"} · Internal earnings and Friday payout records</p>
         </header>
         {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
-        {notice && <div role="status" className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">{notice}</div>}
 
         <section className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl bg-white p-5 shadow-sm"><p className="text-sm text-gray-500">Wallet balance</p><p className={`mt-2 text-2xl font-bold ${(data?.wallet.ledger_balance || 0) < 0 ? "text-red-700" : "text-gray-900"}`}>{money(data?.wallet.ledger_balance || 0)}</p><p className="mt-1 text-xs text-gray-500">Net wallet balance after earnings, KFM cash commission and completed payouts</p></div>
           <div className="rounded-2xl bg-white p-5 shadow-sm"><p className="text-sm text-gray-500">Reserved for payout</p><p className="mt-2 text-2xl font-bold text-amber-700">{money(data?.wallet.reserved_for_payout || 0)}</p><p className="mt-1 text-xs text-gray-500">Included in a pending or approved payout batch</p></div>
-          <div className="rounded-2xl bg-white p-5 shadow-sm"><p className="text-sm text-gray-500">Available balance</p><p className="mt-2 text-2xl font-bold text-green-700">{money(data?.wallet.available_balance || 0)}</p><p className="mt-1 text-xs text-gray-500">Available for payout only when positive</p></div>
+          <div className="rounded-2xl bg-white p-5 shadow-sm"><p className="text-sm text-gray-500">Available balance</p><p className={`mt-2 text-2xl font-bold ${(data?.wallet.available_balance || 0) < 0 ? "text-red-700" : "text-green-700"}`}>{money(data?.wallet.available_balance || 0)}</p><p className="mt-1 text-xs text-gray-500">Available for payout only when positive</p></div>
         </section>
 
         <section className="rounded-2xl bg-white p-6 shadow-sm">
@@ -74,7 +73,7 @@ export default function DriverWalletPage() {
         </section>
 
         <section className="rounded-2xl bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">Wallet transactions</h2><p className="text-sm text-gray-500">Your most recent credits and payout debits</p></div><Button type="button" variant="outline" onClick={loadWallet}><RefreshCw className="mr-2 h-4 w-4" /> Refresh</Button></div>
+          <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">Wallet transactions</h2><p className="text-sm text-gray-500">Online earnings, cash commission deductions, reversals and payouts</p></div><Button type="button" variant="outline" onClick={loadWallet}><RefreshCw className="mr-2 h-4 w-4" /> Refresh</Button></div>
           <div className="mt-4 space-y-3">
             {!data?.transactions.length ? <p className="rounded-xl border border-dashed p-6 text-center text-sm text-gray-500">No wallet transactions recorded yet. Pending and disputed rides are excluded.</p> : data.transactions.map(tx=><article key={tx.id} className="flex flex-col gap-2 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">{tx.description}</p><p className="mt-1 text-xs text-gray-500">{tx.reference} · {dateTime(tx.created_at)}</p></div><p className={`font-bold ${tx.direction==="credit"?"text-green-700":"text-red-700"}`}>{tx.direction==="credit"?"+":"−"}{money(Number(tx.amount))}</p></article>)}
           </div>
