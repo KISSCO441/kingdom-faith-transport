@@ -74,7 +74,7 @@ export default function DriverDashboardPage() {
   const [loadingRides, setLoadingRides] = useState(false)
   const [updatingRideId, setUpdatingRideId] = useState<string | null>(null)
   const [selectedRecordDate, setSelectedRecordDate] = useState(() => new Date().toLocaleDateString("en-CA"))
-  const [selectedPaymentCategory, setSelectedPaymentCategory] = useState<"verified" | "pending" | "disputed" | null>(null)
+  const [selectedPaymentCategory, setSelectedPaymentCategory] = useState<"verified" | "pending" | "disputed" | "history" | null>(null)
 
   useEffect(() => {
     loadDriver()
@@ -1208,6 +1208,16 @@ const response = await fetch(
             </button>
             <button
               type="button"
+              onClick={() => setSelectedPaymentCategory(selectedPaymentCategory === "history" ? null : "history")}
+              aria-expanded={selectedPaymentCategory === "history"}
+              className={`rounded-xl border p-4 text-left transition hover:border-blue-300 hover:bg-blue-50 ${selectedPaymentCategory === "history" ? "border-blue-400 bg-blue-50 ring-1 ring-blue-200" : "border-transparent bg-gray-50"}`}
+            >
+              <p className="text-xs font-medium uppercase text-gray-500">Ride history</p>
+              <p className="mt-1 text-2xl font-bold text-blue-700">{rideHistory.length}</p>
+              <p className="mt-1 text-xs text-gray-500">Completed and cancelled rides · Select to view</p>
+            </button>
+            <button
+              type="button"
               onClick={() => setSelectedPaymentCategory(selectedPaymentCategory === "disputed" ? null : "disputed")}
               aria-expanded={selectedPaymentCategory === "disputed"}
               className={`rounded-xl border p-4 text-left transition hover:border-red-300 hover:bg-red-50 ${selectedPaymentCategory === "disputed" ? "border-red-400 bg-red-50 ring-1 ring-red-200" : "border-transparent bg-gray-50"}`}
@@ -1235,24 +1245,28 @@ const response = await fetch(
 
           {selectedPaymentCategory && (() => {
             const selectedRecords =
-              selectedPaymentCategory === "verified"
-                ? dailyPaidRecords
-                : selectedPaymentCategory === "pending"
-                  ? dailyPendingRecords
-                  : dailyDisputedRecords
+              selectedPaymentCategory === "history"
+                ? rideHistory
+                : selectedPaymentCategory === "verified"
+                  ? dailyPaidRecords
+                  : selectedPaymentCategory === "pending"
+                    ? dailyPendingRecords
+                    : dailyDisputedRecords
             const categoryTitle =
-              selectedPaymentCategory === "verified"
-                ? "Verified Payment Details"
-                : selectedPaymentCategory === "pending"
-                  ? "Pending Payment Details"
-                  : "Disputed Fare Details"
+              selectedPaymentCategory === "history"
+                ? "Ride History"
+                : selectedPaymentCategory === "verified"
+                  ? "Verified Payment Details"
+                  : selectedPaymentCategory === "pending"
+                    ? "Pending Payment Details"
+                    : "Disputed Fare Details"
 
             return (
               <div className="mt-5 rounded-xl border bg-white p-4 sm:p-5" aria-live="polite">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-gray-900">{categoryTitle}</h3>
-                    <p className="text-sm text-gray-500">{selectedRecords.length} ride(s) for the selected date</p>
+                    <p className="text-sm text-gray-500">{selectedRecords.length} {selectedPaymentCategory === "history" ? "completed or cancelled ride(s)" : "ride(s) for the selected date"}</p>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={() => setSelectedPaymentCategory(null)}>
                     Close
@@ -1261,7 +1275,7 @@ const response = await fetch(
 
                 {selectedRecords.length === 0 ? (
                   <div className="mt-4 rounded-lg border border-dashed p-5 text-center text-sm text-gray-500">
-                    No {selectedPaymentCategory} payment records for this date.
+                    {selectedPaymentCategory === "history" ? "No completed or cancelled rides are recorded yet." : `No ${selectedPaymentCategory} payment records for this date.`}
                   </div>
                 ) : (
                   <div className="mt-4 space-y-3">
@@ -1288,6 +1302,12 @@ const response = await fetch(
                               {ride.destination_town || "—"}{ride.destination_area ? ` • ${ride.destination_area}` : ""}
                             </p>
                           </div>
+                          {selectedPaymentCategory === "history" && (
+                            <div>
+                              <p className="text-xs text-gray-500">Ride status and vehicle</p>
+                              <p className="font-medium">{(ride.ride_status || "unknown").replaceAll("_", " ").toUpperCase()} · {ride.vehicle_type || "Vehicle not recorded"}</p>
+                            </div>
+                          )}
                           <div>
                             <p className="text-xs text-gray-500">Payment method</p>
                             <p className="font-medium">{ride.payment_method || "Not recorded"}</p>
@@ -1327,222 +1347,6 @@ const response = await fetch(
           })()}
         </section>
 
-        {/* Ride History */}
-        <section className="rounded-2xl bg-white p-6 shadow-sm">
-
-          <div>
-            <h2 className="text-2xl font-bold">
-              Ride History
-            </h2>
-
-            <p className="text-sm text-gray-500">
-              Completed and cancelled rides assigned to you
-            </p>
-          </div>
-
-          <div className="mt-6 space-y-4">
-
-            {rideHistory.length === 0 ? (
-              <div className="rounded-xl border border-dashed p-8 text-center">
-
-                <Clock className="mx-auto h-10 w-10 text-gray-400" />
-
-                <h3 className="mt-3 font-semibold text-gray-800">
-                  No Ride History
-                </h3>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Your completed rides will appear here.
-                </p>
-
-              </div>
-            ) : (
-              rideHistory.map((ride) => (
-                <div
-                  key={ride.id}
-                  className="rounded-xl border p-5"
-                >
-
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Booking Number
-                      </p>
-
-                      <p className="text-lg font-bold">
-                        {ride.booking_code || ride.id}
-                      </p>
-                    </div>
-
-                    <span className="w-fit rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">
-                      {ride.ride_status || "COMPLETED"}
-                    </span>
-
-                  </div>
-
-                  <div className="mt-5 grid gap-4 md:grid-cols-2">
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Customer
-                      </p>
-
-                      <p className="font-medium">
-                        {ride.customer_name || "Not provided"}
-                      </p>
-
-                      {ride.customer_phone && (
-                        <p className="text-sm text-gray-600">
-                          {ride.customer_phone}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Vehicle Requested
-                      </p>
-
-                      <p className="font-medium">
-                        {ride.vehicle_type || "Not specified"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Pickup
-                      </p>
-
-                      <p className="font-medium">
-                        {ride.pickup_town || "Not provided"}
-
-                        {ride.pickup_area
-                          ? ` • ${ride.pickup_area}`
-                          : ""}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Destination
-                      </p>
-
-                      <p className="font-medium">
-                        {ride.destination_town || "Not provided"}
-
-                        {ride.destination_area
-                          ? ` • ${ride.destination_area}`
-                          : ""}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Fare
-                      </p>
-
-                      <p className="font-semibold text-green-700">
-                        {ride.fare_estimate !== null &&
-                        ride.fare_estimate !== undefined
-                          ? `GH₵ ${Number(
-                              ride.fare_estimate,
-                            ).toFixed(2)}`
-                          : "Not provided"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Date
-                      </p>
-
-                      <p className="text-sm font-medium">
-                        {new Date(
-                          ride.created_at,
-                        ).toLocaleString("en-GH", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Payment Method
-                      </p>
-                      <p className="font-medium">
-                        {ride.payment_method?.toLowerCase() === "cash"
-                          ? "Cash"
-                          : ride.payment_method?.toLowerCase() === "paystack"
-                            ? "Pay Online"
-                            : ride.payment_method || "Not recorded"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Payment Status
-                      </p>
-                      <p className={`font-semibold ${ride.payment_status?.toLowerCase() === "paid" ? "text-green-700" : ride.payment_status?.toLowerCase() === "cash_disputed" ? "text-red-700" : "text-orange-700"}`}>
-                        {ride.payment_status?.toLowerCase() === "paid"
-                          ? "PAID"
-                          : ride.payment_status?.toLowerCase() === "cash_pending_driver"
-                            ? "AWAITING DRIVER CONFIRMATION"
-                            : ride.payment_status?.toLowerCase() === "cash_disputed"
-                              ? "CASH PAYMENT DISPUTED — KFM REVIEW"
-                              : ride.payment_status || "Not recorded"}
-                      </p>
-                      {ride.payment_status?.toLowerCase() === "paid" && ride.payment_paid_at && (
-                        <p className="mt-1 text-xs text-gray-500">
-                          Confirmed: {new Date(ride.payment_paid_at).toLocaleString("en-GH", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })}
-                        </p>
-                      )}
-                    </div>
-
-                  </div>
-
-                  {ride.payment_status?.toLowerCase() === "cash_disputed" && (
-                    <div role="status" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-                      <p className="font-semibold">Cash Disputed — Awaiting KFM Admin Review</p>
-                      <p className="mt-1">You reported that the cash fare was not received. KFM has flagged this booking for review. Do not treat this payment as settled unless KFM resolves the dispute.</p>
-                    </div>
-                  )}
-
-                  {ride.ride_status?.toLowerCase() === "completed" &&
-                    ride.payment_method?.toLowerCase() === "cash" &&
-                    ride.payment_status?.toLowerCase() === "cash_pending_driver" && (
-                      <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
-                        <div className="w-full text-sm text-amber-800">
-                          Confirm only after you have actually received the full cash fare from the customer.
-                        </div>
-                        <Button
-                          className="bg-green-600 hover:bg-green-700"
-                          disabled={updatingRideId === ride.id}
-                          onClick={() => confirmCashPayment(ride.id)}
-                        >
-                          {updatingRideId === ride.id ? "Confirming..." : "Confirm Cash Received"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="border-red-300 text-red-700 hover:bg-red-50"
-                          disabled={updatingRideId === ride.id}
-                          onClick={() => confirmCashPayment(ride.id, "dispute")}
-                        >
-                          Report Cash Not Received
-                        </Button>
-                      </div>
-                    )}
-
-                </div>
-              ))
-            )}
-
-          </div>
-        </section>
 
       </div>
     </main>
