@@ -73,6 +73,7 @@ export default function DriverDashboardPage() {
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([])
   const [loadingRides, setLoadingRides] = useState(false)
   const [updatingRideId, setUpdatingRideId] = useState<string | null>(null)
+  const [selectedRecordDate, setSelectedRecordDate] = useState(() => new Date().toLocaleDateString("en-CA"))
 
   useEffect(() => {
     loadDriver()
@@ -485,6 +486,32 @@ const response = await fetch(
       ride.ride_status === "completed" ||
       ride.ride_status === "cancelled",
   )
+
+  const dailyRideRecords = rideRequests.filter((ride) => {
+    if (!ride.created_at) return false
+    return new Date(ride.created_at).toLocaleDateString("en-CA") === selectedRecordDate
+  })
+
+  const dailyCompletedRecords = dailyRideRecords.filter(
+    (ride) => ride.ride_status?.toLowerCase() === "completed",
+  )
+
+  const dailyPaidRecords = dailyCompletedRecords.filter(
+    (ride) => ride.payment_status?.toLowerCase() === "paid",
+  )
+
+  const dailyCompletedFares = dailyCompletedRecords.reduce(
+    (total, ride) => total + Number(ride.fare_estimate || 0),
+    0,
+  )
+
+  const dailyVerifiedFares = dailyPaidRecords.reduce(
+    (total, ride) => total + Number(ride.fare_estimate || 0),
+    0,
+  )
+
+  const dailyDriverAllocation = dailyVerifiedFares * 0.8
+  const dailyKfmAllocation = dailyVerifiedFares * 0.2
 
   const isOnline = driver.availability === "ONLINE"
   const isVerified = driver.status === "VERIFIED"
@@ -1111,6 +1138,123 @@ const response = await fetch(
               ))
             )}
 
+          </div>
+        </section>
+
+
+        {/* Daily Ride Records */}
+        <section className="rounded-2xl bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Ride Records</h2>
+              <p className="text-sm text-gray-500">
+                Open your daily ride statement whenever you need it.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="driver-record-date" className="text-sm font-medium text-gray-700">
+                Select record date
+              </label>
+              <input
+                id="driver-record-date"
+                type="date"
+                value={selectedRecordDate}
+                onChange={(event) => setSelectedRecordDate(event.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-medium uppercase text-gray-500">Rides recorded</p>
+              <p className="mt-1 text-2xl font-bold">{dailyRideRecords.length}</p>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-medium uppercase text-gray-500">Completed rides</p>
+              <p className="mt-1 text-2xl font-bold">{dailyCompletedRecords.length}</p>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-medium uppercase text-gray-500">Completed fares</p>
+              <p className="mt-1 text-2xl font-bold">GH₵ {dailyCompletedFares.toFixed(2)}</p>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-medium uppercase text-gray-500">Verified payments</p>
+              <p className="mt-1 text-2xl font-bold text-green-700">GH₵ {dailyVerifiedFares.toFixed(2)}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <p className="font-semibold text-blue-900">80/20 allocation on verified payments</p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <p className="text-sm text-blue-900">
+                Driver 80%: <strong>GH₵ {dailyDriverAllocation.toFixed(2)}</strong>
+              </p>
+              <p className="text-sm text-blue-900">
+                KFM 20%: <strong>GH₵ {dailyKfmAllocation.toFixed(2)}</strong>
+              </p>
+            </div>
+            <p className="mt-2 text-xs text-blue-800">
+              These are daily calculated allocations from rides marked PAID. They are not wallet credits or payouts. Pending and disputed fares are excluded.
+            </p>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {dailyRideRecords.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-center">
+                <Clock className="mx-auto h-9 w-9 text-gray-400" />
+                <p className="mt-3 font-semibold text-gray-800">No rides recorded for this date</p>
+                <p className="mt-1 text-sm text-gray-500">Choose another date to view your previous ride records.</p>
+              </div>
+            ) : (
+              dailyRideRecords.map((ride) => (
+                <div key={ride.id} className="rounded-xl border p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-xs text-gray-500">Booking Number</p>
+                      <p className="font-bold">{ride.booking_code || ride.id}</p>
+                    </div>
+                    <span className="w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                      {(ride.ride_status || "unknown").replaceAll("_", " ").toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Customer</p>
+                      <p className="font-medium">{ride.customer_name || "Not provided"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Route</p>
+                      <p className="font-medium">
+                        {ride.pickup_town || "—"}{ride.pickup_area ? ` • ${ride.pickup_area}` : ""}
+                        {" → "}
+                        {ride.destination_town || "—"}{ride.destination_area ? ` • ${ride.destination_area}` : ""}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Fare</p>
+                      <p className="font-semibold">GH₵ {Number(ride.fare_estimate || 0).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Payment method</p>
+                      <p className="font-medium">{ride.payment_method || "Not recorded"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Payment status</p>
+                      <p className={`font-semibold ${ride.payment_status?.toLowerCase() === "paid" ? "text-green-700" : ride.payment_status?.toLowerCase() === "cash_disputed" ? "text-red-700" : "text-amber-700"}`}>
+                        {(ride.payment_status || "not recorded").replaceAll("_", " ").toUpperCase()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Recorded time</p>
+                      <p className="font-medium">
+                        {new Date(ride.created_at).toLocaleTimeString("en-GH", { hour: "numeric", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
