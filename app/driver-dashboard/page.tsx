@@ -995,29 +995,7 @@ const response = await fetch(
                           </p>
                         )}
 
-                      {ride.ride_status?.toLowerCase() === "completed" &&
-                        ride.payment_method?.toLowerCase() === "cash" &&
-                        ride.payment_status?.toLowerCase() === "cash_pending_driver" && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <Button
-                              className="bg-green-600 hover:bg-green-700"
-                              disabled={updatingRideId === ride.id}
-                              onClick={() => confirmCashPayment(ride.id)}
-                            >
-                              {updatingRideId === ride.id
-                                ? "Confirming..."
-                                : "Confirm Cash Received"}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="border-red-300 text-red-700 hover:bg-red-50"
-                              disabled={updatingRideId === ride.id}
-                              onClick={() => confirmCashPayment(ride.id, "dispute")}
-                            >
-                              Report Cash Not Received
-                            </Button>
-                          </div>
-                        )}
+
                     </div>
 
                    </div>
@@ -1276,7 +1254,75 @@ const response = await fetch(
                       </p>
                     </div>
 
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Payment Method
+                      </p>
+                      <p className="font-medium">
+                        {ride.payment_method?.toLowerCase() === "cash"
+                          ? "Cash"
+                          : ride.payment_method?.toLowerCase() === "paystack"
+                            ? "Pay Online"
+                            : ride.payment_method || "Not recorded"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Payment Status
+                      </p>
+                      <p className={`font-semibold ${ride.payment_status?.toLowerCase() === "paid" ? "text-green-700" : ride.payment_status?.toLowerCase() === "cash_disputed" ? "text-red-700" : "text-orange-700"}`}>
+                        {ride.payment_status?.toLowerCase() === "paid"
+                          ? "PAID"
+                          : ride.payment_status?.toLowerCase() === "cash_pending_driver"
+                            ? "AWAITING DRIVER CONFIRMATION"
+                            : ride.payment_status?.toLowerCase() === "cash_disputed"
+                              ? "CASH PAYMENT DISPUTED — KFM REVIEW"
+                              : ride.payment_status || "Not recorded"}
+                      </p>
+                      {ride.payment_status?.toLowerCase() === "paid" && ride.payment_paid_at && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Confirmed: {new Date(ride.payment_paid_at).toLocaleString("en-GH", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </p>
+                      )}
+                    </div>
+
                   </div>
+
+                  {ride.payment_status?.toLowerCase() === "cash_disputed" && (
+                    <div role="status" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+                      <p className="font-semibold">Cash Disputed — Awaiting KFM Admin Review</p>
+                      <p className="mt-1">You reported that the cash fare was not received. KFM has flagged this booking for review. Do not treat this payment as settled unless KFM resolves the dispute.</p>
+                    </div>
+                  )}
+
+                  {ride.ride_status?.toLowerCase() === "completed" &&
+                    ride.payment_method?.toLowerCase() === "cash" &&
+                    ride.payment_status?.toLowerCase() === "cash_pending_driver" && (
+                      <div className="mt-5 flex flex-wrap gap-3 border-t pt-4">
+                        <div className="w-full text-sm text-amber-800">
+                          Confirm only after you have actually received the full cash fare from the customer.
+                        </div>
+                        <Button
+                          className="bg-green-600 hover:bg-green-700"
+                          disabled={updatingRideId === ride.id}
+                          onClick={() => confirmCashPayment(ride.id)}
+                        >
+                          {updatingRideId === ride.id ? "Confirming..." : "Confirm Cash Received"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="border-red-300 text-red-700 hover:bg-red-50"
+                          disabled={updatingRideId === ride.id}
+                          onClick={() => confirmCashPayment(ride.id, "dispute")}
+                        >
+                          Report Cash Not Received
+                        </Button>
+                      </div>
+                    )}
 
                 </div>
               ))

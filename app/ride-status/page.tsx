@@ -387,16 +387,18 @@ export default function RideStatusPage() {
               )}
 
               {ride.ride_status === "completed" && ride.payment_method?.toLowerCase() === "cash" && (
-                <div className="mt-5 rounded-xl border border-green-200 bg-green-50 p-4">
-                  <p className="font-semibold text-green-950">Cash Payment</p>
-                  <p className="mt-1 text-sm text-green-900">
+                <div className={`mt-5 rounded-xl border p-4 ${ride.payment_status?.toLowerCase() === "cash_disputed" ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}`}>
+                  <p className={`font-semibold ${ride.payment_status?.toLowerCase() === "cash_disputed" ? "text-red-950" : "text-green-950"}`}>
+                    {ride.payment_status?.toLowerCase() === "cash_disputed" ? "Cash Payment Disputed — Awaiting KFM Admin Review" : "Cash Payment"}
+                  </p>
+                  <p className={`mt-1 text-sm ${ride.payment_status?.toLowerCase() === "cash_disputed" ? "text-red-900" : "text-green-900"}`}>
                     {ride.payment_status?.toLowerCase() === "paid"
                       ? "Your driver has confirmed receiving the cash fare. Thank you."
                       : ride.payment_status?.toLowerCase() === "cash_disputed"
-                        ? "Your driver has reported that the cash fare was not received. KFM will review this payment."
+                        ? "The driver has reported that the cash fare was not received. This is a report, not a final finding. KFM is reviewing the booking. Please contact KFM if you believe you already paid."
                         : "Your cash payment choice is recorded. The fare is awaiting confirmation from your driver."}
                   </p>
-                  {paymentFeedback && <p role="status" className="mt-3 text-sm text-green-950">{paymentFeedback}</p>}
+                  {paymentFeedback && <p role="status" className="mt-3 text-sm">{paymentFeedback}</p>}
                 </div>
               )}
 
