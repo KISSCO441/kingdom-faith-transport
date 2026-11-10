@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       `${supabaseUrl}/rest/v1/ride_requests` +
         `?id=eq.${encodeURIComponent(ride_id)}` +
         `&driver_id=eq.${encodeURIComponent(driver_id)}` +
-        `&select=id,booking_code,driver_id,ride_status`,
+        `&select=id,booking_code,driver_id,ride_status,payment_method`,
       {
         headers,
         cache: "no-store",
@@ -243,7 +243,13 @@ export async function POST(request: Request) {
             ...headers,
             Prefer: "return=representation",
           },
-          body: JSON.stringify({ ride_status: nextStatus }),
+          body: JSON.stringify({
+            ride_status: nextStatus,
+            ...(action === "complete" &&
+            String(ride.payment_method || "").toLowerCase() === "cash"
+              ? { payment_status: "cash_pending_driver" }
+              : {}),
+          }),
         },
       )
 
