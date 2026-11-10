@@ -43,15 +43,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unable to load wallet details. Please contact KFM." }, { status: 500 })
   }
   const transactions = transactionsResult.data ?? []
-  const ledgerBalance = transactions.reduce((sum, row) => sum + (row.direction === "credit" ? 1 : -1) * Number(row.amount), 0)
-  const { data: reservations, error: reservationsError } = await supabase
-    .from("kfm_driver_payouts").select("amount").eq("driver_id", driver.id).in("payout_status", ["pending", "approved"])
-  if (reservationsError) return NextResponse.json({ error: "Unable to calculate available wallet balance." }, { status: 500 })
-  const reserved = (reservations ?? []).reduce((sum, row) => sum + Number(row.amount), 0)
+  const { data: balanceRows, error: balanceError } = await supabase
+    .rpc("kfm_get_driver_wallet_balance", { p_driver_id: driver.id })
+  if (balanceError) return NextResponse.json({ error: "Unable to calculate your complete wallet balance." }, { status: 500 })
+  const balance = Array.isArray(balanceRows) ? balanceRows[0] : null
+  const ledgerBalance = Number(balance?.ledger_balance ?? 0)
+  const reserved = Number(balance?.reserved_amount ?? 0)
+  const available = Number(balance?.available_balance ?? (ledgerBalance - reserved))
   return NextResponse.json({
     success: true,
     driver: { id: driver.id, full_name: driver.full_name, phone: driver.phone },
-    wallet: { currency: "GHS", ledger_balance: Number(ledgerBalance.toFixed(2)), reserved_for_payout: Number(reserved.toFixed(2)), available_balance: Number((ledgerBalance - reserved).toFixed(2)) },
+    wallet: { currency: "GHS", ledger_balance: Number(ledgerBalance.toFixed(2)), reserved_for_payout: Number(reserved.toFixed(2)), available_balance: Number(available.toFixed(2)) },
     transactions,
     payouts: payoutsResult.data ?? [],
     payout_profile: profileResult.data ?? null,
