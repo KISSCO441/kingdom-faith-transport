@@ -23,7 +23,7 @@ create table if not exists public.kfm_wallet_transactions (
   ride_id uuid references public.ride_requests(id) on delete restrict,
   payout_id uuid,
   transaction_type text not null check (transaction_type in (
-    'ride_driver_credit','ride_kfm_commission','ride_driver_reversal','ride_kfm_reversal','cash_commission_debit','cash_commission_reversal','weekly_payout_debit'
+    'ride_driver_credit','ride_kfm_commission','ride_driver_reversal','ride_kfm_reversal','cash_commission_debit','cash_commission_reversal','cash_commission_settlement','cash_commission_recovered','weekly_payout_debit'
   )),
   direction text not null check (direction in ('credit','debit')),
   amount numeric(12,2) not null check (amount > 0),
@@ -97,15 +97,22 @@ declare
   v_kfm_share numeric(12,2);
   v_driver_wallet_id uuid;
   v_kfm_wallet_id uuid;
+  v_should_record boolean := false;
+  v_driver_balance numeric(12,2) := 0;
+  v_cash_due numeric(12,2) := 0;
+  v_settlement numeric(12,2) := 0;
 begin
+  if tg_op = 'INSERT' then
+    v_should_record := true;
+  else
+    v_should_record := lower(coalesce(old.payment_status,'')) <> 'paid'
+      or lower(coalesce(old.ride_status,'')) <> 'completed';
+  end if;
+
   if lower(coalesce(new.payment_status,'')) = 'paid'
      and lower(coalesce(new.ride_status,'')) = 'completed'
      and new.driver_id is not null
-     and (
-       tg_op = 'INSERT'
-       or lower(coalesce(old.payment_status,'')) <> 'paid'
-       or lower(coalesce(old.ride_status,'')) <> 'completed'
-     ) then
+     and v_should_record then
     v_fare := round(coalesce(new.fare_estimate,0)::numeric, 2);
     if v_fare <= 0 then return new; end if;
     -- The current KFM policy is a fixed 80% driver / 20% KFM split.
@@ -138,10 +145,25 @@ begin
         v_driver_wallet_id,new.driver_id,new.id,'cash_commission_debit','debit',v_kfm_share,
         'KFM-CASH-DUE-' || upper(replace(new.id::text,'-','')),
         'KFM 20% cash commission due for booking ' || coalesce(new.booking_code,new.id::text),
-        jsonb_build_object('booking_code',new.booking_code,'payment_method','cash','collection_status','due_from_driver')
+        jsonb_build_object('booking_code',new.booking_code,'driver_id',new.driver_id,'payment_method','cash','collection_status','due_from_driver')
       ) on conflict do nothing;
     else
-      -- Online payment: credit the driver's 80%; any negative balance is offset by this credit.
+      -- Lock this driver's wallet so concurrent online payments cannot recover the same debt twice.
+      perform 1 from public.kfm_wallet_accounts where id = v_driver_wallet_id for update;
+      select coalesce(sum(case when direction='credit' then amount else -amount end),0)
+        into v_driver_balance
+        from public.kfm_wallet_transactions where wallet_account_id = v_driver_wallet_id;
+      select coalesce(sum(case when t.transaction_type='ride_kfm_commission' then t.amount
+                               when t.transaction_type in ('ride_kfm_reversal','cash_commission_settlement') then -t.amount
+                               else 0 end),0)
+        into v_cash_due
+        from public.kfm_wallet_transactions t
+        where t.wallet_account_id = v_kfm_wallet_id
+          and t.metadata->>'driver_id' = new.driver_id::text
+          and t.metadata->>'collection_status' = 'due_from_driver';
+      v_settlement := least(v_driver_share, greatest(0,-v_driver_balance), greatest(0,v_cash_due));
+
+      -- Online payment: credit the driver's 80%; existing negative balance offsets first.
       insert into public.kfm_wallet_transactions(
         wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
       ) values (
@@ -150,6 +172,25 @@ begin
         'Verified driver 80% share for booking ' || coalesce(new.booking_code,new.id::text),
         jsonb_build_object('booking_code',new.booking_code,'payment_method',new.payment_method,'payment_paid_at',new.payment_paid_at)
       ) on conflict do nothing;
+
+      if v_settlement > 0 then
+        insert into public.kfm_wallet_transactions(
+          wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+        ) values (
+          v_kfm_wallet_id,new.driver_id,new.id,'cash_commission_settlement','debit',v_settlement,
+          'KFM-CASH-SETTLED-' || upper(replace(new.id::text,'-','')),
+          'Cash commission recovered from online earnings for driver ' || new.driver_id::text,
+          jsonb_build_object('driver_id',new.driver_id,'collection_status','due_from_driver')
+        ) on conflict do nothing;
+        insert into public.kfm_wallet_transactions(
+          wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+        ) values (
+          v_kfm_wallet_id,new.driver_id,new.id,'cash_commission_recovered','credit',v_settlement,
+          'KFM-CASH-RECOVERED-' || upper(replace(new.id::text,'-','')),
+          'Cash commission recovered by offsetting online earnings for driver ' || new.driver_id::text,
+          jsonb_build_object('driver_id',new.driver_id,'collection_status','received_from_driver_offset')
+        ) on conflict do nothing;
+      end if;
     end if;
 
     if v_kfm_share > 0 then
@@ -161,8 +202,8 @@ begin
         case when lower(coalesce(new.payment_method,'')) = 'cash'
           then 'KFM 20% cash commission due from driver for booking ' || coalesce(new.booking_code,new.id::text)
           else 'KFM 20% commission for booking ' || coalesce(new.booking_code,new.id::text) end,
-        jsonb_build_object('booking_code',new.booking_code,'payment_method',new.payment_method,
-          'payment_paid_at',new.payment_paid_at,
+        jsonb_build_object('booking_code',new.booking_code,'driver_id',new.driver_id,
+          'payment_method',new.payment_method,'payment_paid_at',new.payment_paid_at,
           'collection_status',case when lower(coalesce(new.payment_method,'')) = 'cash' then 'due_from_driver' else 'received_online' end)
       ) on conflict do nothing;
     end if;
@@ -207,7 +248,7 @@ begin
       select v_kfm_wallet_id,old.id,'ride_kfm_reversal','debit',amount,
         'KFM-COMMISSION-REVERSAL-' || upper(replace(old.id::text,'-','')),
         'Reversal of KFM commission for booking ' || coalesce(old.booking_code,old.id::text),
-        jsonb_build_object('collection_status',metadata->>'collection_status','reverses_transaction_type','ride_kfm_commission')
+        jsonb_build_object('driver_id',old.driver_id,'collection_status',metadata->>'collection_status','reverses_transaction_type','ride_kfm_commission')
       from public.kfm_wallet_transactions
       where ride_id = old.id and transaction_type = 'ride_kfm_commission'
       on conflict do nothing;
@@ -264,6 +305,7 @@ begin
       and lower(coalesce(rr.ride_status,''))='completed'
       and rr.driver_id is not null
       and coalesce(rr.fare_estimate,0)::numeric > 0
+    order by rr.created_at,rr.id
   loop
     v_driver_share := round(r.fare_estimate::numeric * 0.80,2);
     v_kfm_share := round(r.fare_estimate::numeric - v_driver_share,2);
@@ -279,9 +321,22 @@ begin
         v_driver_wallet_id,r.driver_id,r.id,'cash_commission_debit','debit',v_kfm_share,
         'KFM-CASH-DUE-' || upper(replace(r.id::text,'-','')),
         'KFM 20% cash commission due for booking ' || coalesce(r.booking_code,r.id::text),
-        jsonb_build_object('booking_code',r.booking_code,'payment_method','cash','collection_status','due_from_driver')
+        jsonb_build_object('booking_code',r.booking_code,'driver_id',r.driver_id,'payment_method','cash','collection_status','due_from_driver')
       ) on conflict do nothing;
     else
+      perform 1 from public.kfm_wallet_accounts where id = v_driver_wallet_id for update;
+      select coalesce(sum(case when direction='credit' then amount else -amount end),0)
+        into v_driver_balance
+        from public.kfm_wallet_transactions where wallet_account_id = v_driver_wallet_id;
+      select coalesce(sum(case when t.transaction_type='ride_kfm_commission' then t.amount
+                               when t.transaction_type in ('ride_kfm_reversal','cash_commission_settlement') then -t.amount
+                               else 0 end),0)
+        into v_cash_due
+        from public.kfm_wallet_transactions t
+        where t.wallet_account_id = v_kfm_wallet_id
+          and t.metadata->>'driver_id' = r.driver_id::text
+          and t.metadata->>'collection_status' = 'due_from_driver';
+      v_settlement := least(v_driver_share, greatest(0,-v_driver_balance), greatest(0,v_cash_due));
       insert into public.kfm_wallet_transactions(
         wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
       ) values (
@@ -290,6 +345,24 @@ begin
         'Verified driver 80% share for booking ' || coalesce(r.booking_code,r.id::text),
         jsonb_build_object('booking_code',r.booking_code,'payment_method',r.payment_method,'payment_paid_at',r.payment_paid_at)
       ) on conflict do nothing;
+      if v_settlement > 0 then
+        insert into public.kfm_wallet_transactions(
+          wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+        ) values (
+          v_kfm_wallet_id,r.driver_id,r.id,'cash_commission_settlement','debit',v_settlement,
+          'KFM-CASH-SETTLED-' || upper(replace(r.id::text,'-','')),
+          'Cash commission recovered from online earnings for driver ' || r.driver_id::text,
+          jsonb_build_object('driver_id',r.driver_id,'collection_status','due_from_driver')
+        ) on conflict do nothing;
+        insert into public.kfm_wallet_transactions(
+          wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+        ) values (
+          v_kfm_wallet_id,r.driver_id,r.id,'cash_commission_recovered','credit',v_settlement,
+          'KFM-CASH-RECOVERED-' || upper(replace(r.id::text,'-','')),
+          'Cash commission recovered by offsetting online earnings for driver ' || r.driver_id::text,
+          jsonb_build_object('driver_id',r.driver_id,'collection_status','received_from_driver_offset')
+        ) on conflict do nothing;
+      end if;
     end if;
 
     if v_kfm_share > 0 then
@@ -301,8 +374,8 @@ begin
         case when lower(coalesce(r.payment_method,''))='cash'
           then 'KFM 20% cash commission due from driver for booking ' || coalesce(r.booking_code,r.id::text)
           else 'KFM 20% commission for booking ' || coalesce(r.booking_code,r.id::text) end,
-        jsonb_build_object('booking_code',r.booking_code,'payment_method',r.payment_method,
-          'payment_paid_at',r.payment_paid_at,
+        jsonb_build_object('booking_code',r.booking_code,'driver_id',r.driver_id,
+          'payment_method',r.payment_method,'payment_paid_at',r.payment_paid_at,
           'collection_status',case when lower(coalesce(r.payment_method,''))='cash' then 'due_from_driver' else 'received_online' end)
       ) on conflict do nothing;
     end if;
@@ -527,7 +600,7 @@ as $$
   join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
   where a.account_type='kfm'
     and t.transaction_type in ('ride_kfm_commission','ride_kfm_reversal')
-    and t.metadata->>'collection_status' = 'received_online';
+    and t.metadata->>'collection_status' in ('received_online','received_from_driver_offset');
 $$;
 
 grant all on public.kfm_wallet_accounts,public.kfm_wallet_transactions,public.kfm_driver_payout_batches,public.kfm_driver_payouts to service_role;
@@ -545,7 +618,7 @@ as $function$
   from public.kfm_wallet_accounts a
   join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
   where a.account_type='kfm'
-    and t.transaction_type in ('ride_kfm_commission','ride_kfm_reversal')
+    and t.transaction_type in ('ride_kfm_commission','ride_kfm_reversal','cash_commission_settlement')
     and t.metadata->>'collection_status' = 'due_from_driver';
 $function$;
 
