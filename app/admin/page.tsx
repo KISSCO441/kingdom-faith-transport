@@ -12,6 +12,7 @@ const sections = [
   { title:"Classifieds Review",description:"Review paid classified adverts, publish or pause adverts, and handle buyer fraud reports.",href:"/admin/classifieds-review",icon:ClassifiedsIcon },
   { title:"Books & Publications",description:"Upload digital book covers and PDFs, set prices, and publish eBooks for Paystack checkout.",href:"/admin/books",icon:BookOpen },
   { title:"Ride Payments",description:"Review ride fares and recorded cash or online payment information.",href:"/admin/rides",icon:Wallet },
+  { title:"Driver Wallets & Friday Payouts",description:"Review driver wallet balances, KFM commission and prepare Friday Mobile Money payouts.",href:"/admin/driver-payouts",icon:Wallet },
 ];
 
 export default function AdminHomePage(){
