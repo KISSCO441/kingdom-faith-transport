@@ -70,6 +70,14 @@ export async function POST(request: NextRequest) {
       if(error) return NextResponse.json({error:error.message},{status:409})
       return NextResponse.json({success:true,result:data})
     }
+    if (action === "release-payout") {
+      const payoutId=String(body.payout_id ?? "")
+      const releaseNote=String(body.note ?? "").trim()
+      if(!payoutId || !releaseNote) return NextResponse.json({error:"Payout and a reason for releasing the hold are required."},{status:400})
+      const {data,error}=await auth.supabase.rpc("kfm_release_driver_payout",{p_payout_id:payoutId,p_admin_id:auth.user.id,p_release_note:releaseNote})
+      if(error) return NextResponse.json({error:error.message},{status:409})
+      return NextResponse.json({success:true,result:data})
+    }
     return NextResponse.json({error:"Unsupported wallet administration action."},{status:400})
   } catch (error) {
     console.error("KFM admin wallet POST error:",error)
