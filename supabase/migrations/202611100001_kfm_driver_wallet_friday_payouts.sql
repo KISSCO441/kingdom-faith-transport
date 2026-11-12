@@ -225,7 +225,7 @@ for each row execute function public.kfm_record_paid_ride_wallet_entries();
 -- One-time, idempotent backfill for rides already completed and PAID before
 -- this migration was installed. Only confirmed PAID rides qualify:
 -- cash_pending_driver and cash_disputed are deliberately excluded.
-do $
+do $$
 declare
   r record;
   v_driver_wallet_id uuid;
@@ -307,7 +307,7 @@ begin
       ) on conflict do nothing;
     end if;
   end loop;
-end $;
+end $$;
 
 -- Atomic batch creation: only verified payout profiles and positive unreserved balances.
 -- The selected dates label the weekly accounting cycle. The amount is the driver's
@@ -354,7 +354,7 @@ begin
     and upper(coalesce(d.status,''))='VERIFIED'
     and nullif(trim(d.momo_number),'') is not null
     and d.momo_network in ('MTN','Telecel','AirtelTigo')
-  group by a.id,a.driver_id,d.full_name,d.name,d.momo_number,d.momo_network,reserved.amount
+  group by a.id,a.driver_id,d.full_name,d.momo_number,d.momo_network,reserved.amount
   having round(sum(case when t.direction='credit' then t.amount else -t.amount end)
       - coalesce(reserved.amount,0),2) > 0
   on conflict(batch_id,driver_id) do nothing;
