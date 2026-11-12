@@ -569,7 +569,7 @@ as $function$
     where a.account_type='driver'
     group by a.driver_id
   )
-  select coalesce(sum(least(c.gross_due,greatest(0,-coalesce(d.ledger_balance,0)))),0)::numeric(12,2)
+  select coalesce(sum(least(greatest(0,c.gross_due),greatest(0,-coalesce(d.ledger_balance,0)))),0)::numeric(12,2)
   from cash_due c
   left join driver_balances d on d.driver_id=c.driver_id;
 $function$;
