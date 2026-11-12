@@ -110,6 +110,11 @@ begin
      and lower(coalesce(new.ride_status,'')) = 'completed'
      and new.driver_id is not null
      and lower(coalesce(new.payment_method,'')) in ('cash','paystack')
+     -- Cash must be explicitly confirmed by the assigned driver; paid status alone is insufficient.
+     and (
+       lower(coalesce(new.payment_method,'')) <> 'cash'
+       or (new.cash_confirmed_by is not null and new.cash_confirmed_at is not null)
+     )
      and v_should_record then
     v_fare := round(coalesce(new.fare_estimate,0)::numeric, 2);
     if v_fare <= 0 then return new; end if;
@@ -143,7 +148,7 @@ begin
         v_driver_wallet_id,new.driver_id,new.id,'cash_commission_debit','debit',v_kfm_share,
         'KFM-CASH-DUE-' || upper(replace(new.id::text,'-','')),
         'KFM 20% cash commission due for booking ' || coalesce(new.booking_code,new.id::text),
-        jsonb_build_object('booking_code',new.booking_code,'driver_id',new.driver_id,'payment_method','cash','collection_status','due_from_driver')
+        jsonb_build_object('booking_code',new.booking_code,'driver_id',new.driver_id,'payment_method','cash','collection_status','due_from_driver','cash_confirmed_by',new.cash_confirmed_by,'cash_confirmed_at',new.cash_confirmed_at)
       ) on conflict do nothing;
     else
       -- Online payment: credit the driver's 80%; existing negative balance offsets first.
@@ -249,6 +254,10 @@ begin
     and rr.driver_id is not null
     and coalesce(rr.fare_estimate,0)::numeric > 0
     and lower(coalesce(rr.payment_method,'')) in ('cash','paystack')
+    and (
+      lower(coalesce(rr.payment_method,'')) <> 'cash'
+      or (rr.cash_confirmed_by is not null and rr.cash_confirmed_at is not null)
+    )
   on conflict (driver_id) where account_type='driver' do nothing;
 
   if exists (
@@ -258,6 +267,10 @@ begin
       and rr.driver_id is not null
       and coalesce(rr.fare_estimate,0)::numeric > 0
     and lower(coalesce(rr.payment_method,'')) in ('cash','paystack')
+    and (
+      lower(coalesce(rr.payment_method,'')) <> 'cash'
+      or (rr.cash_confirmed_by is not null and rr.cash_confirmed_at is not null)
+    )
   ) then
     insert into public.kfm_wallet_accounts(account_type,driver_id)
     values ('kfm',null)
@@ -268,13 +281,17 @@ begin
   from public.kfm_wallet_accounts where account_type='kfm' and driver_id is null;
 
   for r in
-    select rr.id,rr.driver_id,rr.fare_estimate,rr.payment_method,rr.booking_code,rr.payment_paid_at
+    select rr.id,rr.driver_id,rr.fare_estimate,rr.payment_method,rr.booking_code,rr.payment_paid_at,rr.cash_confirmed_by,rr.cash_confirmed_at
     from public.ride_requests rr
     where lower(coalesce(rr.payment_status,''))='paid'
       and lower(coalesce(rr.ride_status,''))='completed'
       and rr.driver_id is not null
       and coalesce(rr.fare_estimate,0)::numeric > 0
     and lower(coalesce(rr.payment_method,'')) in ('cash','paystack')
+    and (
+      lower(coalesce(rr.payment_method,'')) <> 'cash'
+      or (rr.cash_confirmed_by is not null and rr.cash_confirmed_at is not null)
+    )
     order by rr.created_at,rr.id
   loop
     v_driver_share := round(r.fare_estimate::numeric * 0.80,2);
@@ -291,7 +308,7 @@ begin
         v_driver_wallet_id,r.driver_id,r.id,'cash_commission_debit','debit',v_kfm_share,
         'KFM-CASH-DUE-' || upper(replace(r.id::text,'-','')),
         'KFM 20% cash commission due for booking ' || coalesce(r.booking_code,r.id::text),
-        jsonb_build_object('booking_code',r.booking_code,'driver_id',r.driver_id,'payment_method','cash','collection_status','due_from_driver')
+        jsonb_build_object('booking_code',r.booking_code,'driver_id',r.driver_id,'payment_method','cash','collection_status','due_from_driver','cash_confirmed_by',r.cash_confirmed_by,'cash_confirmed_at',r.cash_confirmed_at)
       ) on conflict do nothing;
     else
       insert into public.kfm_wallet_transactions(
