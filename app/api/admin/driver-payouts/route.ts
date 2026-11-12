@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       const periodEnd=String(body.period_end ?? "")
       const scheduledFor=String(body.scheduled_for ?? "")
       const driverIds=Array.isArray(body.driver_ids)?body.driver_ids.filter((id):id is string=>typeof id==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)):[]
-      if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(periodStart)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(periodEnd)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(scheduledFor)||driverIds.length===0)
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(periodStart)||!/^\d{4}-\d{2}-\d{2}$/.test(periodEnd)||!/^\d{4}-\d{2}-\d{2}$/.test(scheduledFor)||driverIds.length===0)
         return NextResponse.json({error:"Choose valid dates and at least one driver."},{status:400})
       const {data,error}=await auth.supabase.rpc("kfm_create_selected_driver_payout_batch",{
         p_period_start:periodStart,p_period_end:periodEnd,p_scheduled_for:scheduledFor,p_created_by:auth.user.id,p_driver_ids:[...new Set(driverIds)],
