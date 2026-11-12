@@ -222,6 +222,93 @@ create trigger kfm_paid_ride_wallet_ledger
 after insert or update of payment_status, ride_status on public.ride_requests
 for each row execute function public.kfm_record_paid_ride_wallet_entries();
 
+-- One-time, idempotent backfill for rides already completed and PAID before
+-- this migration was installed. Only confirmed PAID rides qualify:
+-- cash_pending_driver and cash_disputed are deliberately excluded.
+do $
+declare
+  r record;
+  v_driver_wallet_id uuid;
+  v_kfm_wallet_id uuid;
+  v_driver_share numeric(12,2);
+  v_kfm_share numeric(12,2);
+begin
+  insert into public.kfm_wallet_accounts(account_type,driver_id)
+  select 'driver',rr.driver_id
+  from public.ride_requests rr
+  where lower(coalesce(rr.payment_status,''))='paid'
+    and lower(coalesce(rr.ride_status,''))='completed'
+    and rr.driver_id is not null
+    and coalesce(rr.fare_estimate,0)::numeric > 0
+  on conflict (driver_id) where account_type='driver' do nothing;
+
+  if exists (
+    select 1 from public.ride_requests rr
+    where lower(coalesce(rr.payment_status,''))='paid'
+      and lower(coalesce(rr.ride_status,''))='completed'
+      and rr.driver_id is not null
+      and coalesce(rr.fare_estimate,0)::numeric > 0
+  ) then
+    insert into public.kfm_wallet_accounts(account_type,driver_id)
+    values ('kfm',null)
+    on conflict (account_type) where account_type='kfm' do nothing;
+  end if;
+
+  select id into v_kfm_wallet_id
+  from public.kfm_wallet_accounts where account_type='kfm' and driver_id is null;
+
+  for r in
+    select rr.id,rr.driver_id,rr.fare_estimate,rr.payment_method,rr.booking_code,rr.payment_paid_at
+    from public.ride_requests rr
+    where lower(coalesce(rr.payment_status,''))='paid'
+      and lower(coalesce(rr.ride_status,''))='completed'
+      and rr.driver_id is not null
+      and coalesce(rr.fare_estimate,0)::numeric > 0
+  loop
+    v_driver_share := round(r.fare_estimate::numeric * 0.80,2);
+    v_kfm_share := round(r.fare_estimate::numeric - v_driver_share,2);
+
+    select id into v_driver_wallet_id
+    from public.kfm_wallet_accounts
+    where account_type='driver' and driver_id=r.driver_id;
+
+    if lower(coalesce(r.payment_method,''))='cash' then
+      insert into public.kfm_wallet_transactions(
+        wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+      ) values (
+        v_driver_wallet_id,r.driver_id,r.id,'cash_commission_debit','debit',v_kfm_share,
+        'KFM-CASH-DUE-' || upper(replace(r.id::text,'-','')),
+        'KFM 20% cash commission due for booking ' || coalesce(r.booking_code,r.id::text),
+        jsonb_build_object('booking_code',r.booking_code,'payment_method','cash','collection_status','due_from_driver')
+      ) on conflict do nothing;
+    else
+      insert into public.kfm_wallet_transactions(
+        wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+      ) values (
+        v_driver_wallet_id,r.driver_id,r.id,'ride_driver_credit','credit',v_driver_share,
+        'KFM-DRIVER-' || upper(replace(r.id::text,'-','')),
+        'Verified driver 80% share for booking ' || coalesce(r.booking_code,r.id::text),
+        jsonb_build_object('booking_code',r.booking_code,'payment_method',r.payment_method,'payment_paid_at',r.payment_paid_at)
+      ) on conflict do nothing;
+    end if;
+
+    if v_kfm_share > 0 then
+      insert into public.kfm_wallet_transactions(
+        wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+      ) values (
+        v_kfm_wallet_id,null,r.id,'ride_kfm_commission','credit',v_kfm_share,
+        'KFM-COMMISSION-' || upper(replace(r.id::text,'-','')),
+        case when lower(coalesce(r.payment_method,''))='cash'
+          then 'KFM 20% cash commission due from driver for booking ' || coalesce(r.booking_code,r.id::text)
+          else 'KFM 20% commission for booking ' || coalesce(r.booking_code,r.id::text) end,
+        jsonb_build_object('booking_code',r.booking_code,'payment_method',r.payment_method,
+          'payment_paid_at',r.payment_paid_at,
+          'collection_status',case when lower(coalesce(r.payment_method,''))='cash' then 'due_from_driver' else 'received_online' end)
+      ) on conflict do nothing;
+    end if;
+  end loop;
+end $;
+
 -- Atomic batch creation: only verified payout profiles and positive unreserved balances.
 -- The selected dates label the weekly accounting cycle. The amount is the driver's
 -- full current net available wallet balance, including carried-forward earnings/debts,
@@ -252,7 +339,7 @@ begin
     payout_mobile_money_number,payout_mobile_money_network,amount
   )
   select v_batch_id,a.driver_id,a.id,'mobile_money',
-    coalesce(nullif(trim(d.full_name),''),nullif(trim(d.name),''),'KFM Driver'),
+    coalesce(nullif(trim(d.full_name),''),'KFM Driver'),
     trim(d.momo_number),d.momo_network,
     round(sum(case when t.direction='credit' then t.amount else -t.amount end)
       - coalesce(reserved.amount,0),2)
