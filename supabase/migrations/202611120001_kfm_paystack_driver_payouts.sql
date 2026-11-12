@@ -86,7 +86,9 @@ begin
       raise exception 'Only an approved payout can be completed by Paystack.';
     end if;
 
-    v_admin_id := coalesce(v_payout.reviewed_by, v_payout.created_at::text::uuid);
+    select approved_by into v_admin_id from public.kfm_driver_payout_batches where id=v_payout.batch_id;
+    v_admin_id := coalesce(v_payout.reviewed_by, v_admin_id);
+    if v_admin_id is null then raise exception 'The approved payout has no reviewing administrator.'; end if;
     update public.kfm_driver_payouts
       set paystack_transfer_status='success',
           paystack_transfer_code=coalesce(p_transfer_code,paystack_transfer_code),
@@ -97,7 +99,7 @@ begin
     return public.kfm_mark_driver_payout_paid(
       v_payout.id,
       p_reference,
-      coalesce(v_payout.reviewed_by, v_payout.created_by)
+      v_admin_id
     );
   elsif p_status = 'failed' then
     update public.kfm_driver_payouts
