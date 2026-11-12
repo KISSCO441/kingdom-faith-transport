@@ -108,8 +108,11 @@ begin
      ) then
     v_fare := round(coalesce(new.fare_estimate,0)::numeric, 2);
     if v_fare <= 0 then return new; end if;
-    v_driver_share := round(coalesce(new.driver_share_amount, round(v_fare * 0.80, 2)), 2);
-    v_kfm_share := round(coalesce(new.kfm_commission_amount, v_fare - v_driver_share), 2);
+    -- The current KFM policy is a fixed 80% driver / 20% KFM split.
+    -- Calculate from the existing ride_requests fare column; do not depend on
+    -- optional allocation columns that are not part of the ride schema.
+    v_driver_share := round(v_fare * 0.80, 2);
+    v_kfm_share := round(v_fare - v_driver_share, 2);
     if v_driver_share <= 0 or v_kfm_share < 0 or round(v_driver_share + v_kfm_share,2) <> v_fare then
       raise exception 'KFM wallet allocation does not reconcile for ride %', new.id;
     end if;
