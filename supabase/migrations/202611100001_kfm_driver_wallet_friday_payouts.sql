@@ -335,6 +335,14 @@ begin
   if p_period_end < p_period_start or extract(isodow from p_scheduled_for) <> 5 then
     raise exception 'Choose a valid period and a Friday payout date.';
   end if;
+  -- Serialize batch preparation so two overlapping batches cannot reserve the
+  -- same driver's available balance at the same time.
+  perform 1
+  from public.kfm_wallet_accounts
+  where account_type='driver'
+  order by id
+  for update;
+
   insert into public.kfm_driver_payout_batches(period_start,period_end,scheduled_for,created_by)
     values (p_period_start,p_period_end,p_scheduled_for,p_created_by)
     returning id into v_batch_id;
