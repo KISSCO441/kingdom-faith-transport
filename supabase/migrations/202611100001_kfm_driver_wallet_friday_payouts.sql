@@ -109,6 +109,7 @@ begin
   if lower(coalesce(new.payment_status,'')) = 'paid'
      and lower(coalesce(new.ride_status,'')) = 'completed'
      and new.driver_id is not null
+     and lower(coalesce(new.payment_method,'')) in ('cash','paystack')
      and v_should_record then
     v_fare := round(coalesce(new.fare_estimate,0)::numeric, 2);
     if v_fare <= 0 then return new; end if;
@@ -207,9 +208,9 @@ begin
 
     if v_kfm_wallet_id is not null then
       insert into public.kfm_wallet_transactions(
-        wallet_account_id,ride_id,transaction_type,direction,amount,reference,description,metadata
+        wallet_account_id,driver_id,ride_id,transaction_type,direction,amount,reference,description,metadata
       )
-      select v_kfm_wallet_id,old.id,'ride_kfm_reversal','debit',amount,
+      select v_kfm_wallet_id,old.driver_id,old.id,'ride_kfm_reversal','debit',amount,
         'KFM-COMMISSION-REVERSAL-' || upper(replace(old.id::text,'-','')),
         'Reversal of KFM commission for booking ' || coalesce(old.booking_code,old.id::text),
         jsonb_build_object('driver_id',old.driver_id,'collection_status',metadata->>'collection_status','reverses_transaction_type','ride_kfm_commission')
@@ -230,6 +231,8 @@ for each row execute function public.kfm_record_paid_ride_wallet_entries();
 -- One-time, idempotent backfill for rides already completed and PAID before
 -- this migration was installed. Only confirmed PAID rides qualify:
 -- cash_pending_driver and cash_disputed are deliberately excluded.
+-- Only recognized payment methods (cash and confirmed Paystack) are eligible;
+-- unsupported or unknown methods are excluded from both trigger and backfill.
 do $$
 declare
   r record;
@@ -245,6 +248,7 @@ begin
     and lower(coalesce(rr.ride_status,''))='completed'
     and rr.driver_id is not null
     and coalesce(rr.fare_estimate,0)::numeric > 0
+    and lower(coalesce(rr.payment_method,'')) in ('cash','paystack')
   on conflict (driver_id) where account_type='driver' do nothing;
 
   if exists (
@@ -253,6 +257,7 @@ begin
       and lower(coalesce(rr.ride_status,''))='completed'
       and rr.driver_id is not null
       and coalesce(rr.fare_estimate,0)::numeric > 0
+    and lower(coalesce(rr.payment_method,'')) in ('cash','paystack')
   ) then
     insert into public.kfm_wallet_accounts(account_type,driver_id)
     values ('kfm',null)
@@ -269,6 +274,7 @@ begin
       and lower(coalesce(rr.ride_status,''))='completed'
       and rr.driver_id is not null
       and coalesce(rr.fare_estimate,0)::numeric > 0
+    and lower(coalesce(rr.payment_method,'')) in ('cash','paystack')
     order by rr.created_at,rr.id
   loop
     v_driver_share := round(r.fare_estimate::numeric * 0.80,2);
