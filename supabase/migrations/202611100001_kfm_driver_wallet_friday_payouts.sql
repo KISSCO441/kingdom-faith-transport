@@ -357,6 +357,9 @@ begin
     where dp.driver_id=a.driver_id and dp.payout_status in ('pending','approved')
   ) reserved on true
   where a.account_type='driver'
+    -- Carry forward the driver's net wallet balance, but never include earnings
+    -- recorded after this payout statement's period end.
+    and t.created_at < (p_period_end + 1)::timestamp
     and upper(coalesce(d.status,''))='VERIFIED'
     and nullif(trim(d.momo_number),'') is not null
     and d.momo_network in ('MTN','Telecel','AirtelTigo')
