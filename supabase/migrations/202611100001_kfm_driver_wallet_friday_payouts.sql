@@ -56,9 +56,16 @@ create table if not exists public.kfm_driver_payout_batches (
   approved_at timestamptz,
   created_at timestamptz not null default now(),
   check (period_end >= period_start),
-  check (extract(isodow from scheduled_for) = 5),
-  unique(period_start, period_end)
+  check (extract(isodow from scheduled_for) = 5)
 );
+
+-- Permit a replacement batch for the same accounting period if an earlier
+-- batch was cancelled, while preventing duplicate active batches.
+alter table public.kfm_driver_payout_batches
+  drop constraint if exists kfm_driver_payout_batches_period_start_period_end_key;
+create unique index if not exists kfm_driver_payout_batches_active_period_uidx
+  on public.kfm_driver_payout_batches(period_start, period_end)
+  where batch_status <> 'cancelled';
 
 create table if not exists public.kfm_driver_payouts (
   id uuid primary key default gen_random_uuid(),
