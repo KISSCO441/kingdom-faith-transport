@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const [balances, batches, payouts, kfmCommission, cashCommissionDue, drivers] = await Promise.all([
       auth.supabase.rpc("kfm_list_driver_wallet_balances"),
       auth.supabase.from("kfm_driver_payout_batches").select("id,period_start,period_end,scheduled_for,batch_status,total_amount,payout_count,created_at,approved_at").order("created_at",{ascending:false}).limit(30),
-      auth.supabase.from("kfm_driver_payouts").select("id,batch_id,driver_id,amount,payout_status,payout_reference,paid_at,admin_note,created_at,payout_method,payout_account_name,payout_mobile_money_number,payout_mobile_money_network").order("created_at",{ascending:false}).limit(200),
+      auth.supabase.from("kfm_driver_payouts").select("id,batch_id,driver_id,amount,payout_status,payout_reference,paid_at,admin_note,created_at,payout_method,payout_account_name,payout_mobile_money_number,payout_mobile_money_network,paystack_transfer_status,paystack_transfer_reference,paystack_transfer_message,paystack_transfer_mode").order("created_at",{ascending:false}).limit(200),
       auth.supabase.rpc("kfm_get_kfm_commission_balance"),
       auth.supabase.rpc("kfm_get_cash_commission_due_balance"),
       auth.supabase.from("drivers").select("id,full_name,phone,momo_number,momo_network,status").order("full_name"),
