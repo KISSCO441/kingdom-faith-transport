@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { supabase as supabaseClient } from "@/lib/supabase"
+import AdminAccessGuard from "@/components/admin/AdminAccessGuard"
 
 type Balance = { driver_id:string; full_name:string|null; phone:string|null; wallet_account_id:string; ledger_balance:number; reserved_amount:number; available_balance:number }
 type Batch = { id:string; period_start:string; period_end:string; scheduled_for:string; batch_status:string; total_amount:number; payout_count:number; created_at:string }
@@ -14,7 +15,7 @@ const money=(v:number)=>`GH₵ ${Number(v||0).toFixed(2)}`
 const dateValue=(d:Date)=>{const x=new Date(d.getTime()-d.getTimezoneOffset()*60000);return x.toISOString().slice(0,10)}
 function nextFriday(){const d=new Date();const days=(5-d.getDay()+7)%7;d.setDate(d.getDate()+(days===0?7:days));return dateValue(d)}
 
-export default function AdminDriverPayoutsPage(){
+function AdminDriverPayoutsContent(){
  const [data,setData]=useState<Data|null>(null)
  const [loading,setLoading]=useState(true)
  const [busy,setBusy]=useState("")
@@ -66,4 +67,8 @@ export default function AdminDriverPayoutsPage(){
   <section className="rounded-2xl bg-white p-6 shadow-sm"><h2 className="text-xl font-bold">Individual payouts</h2><p className="text-sm text-gray-500">Mark a payout as paid only after the Mobile Money transfer to the registered driver number has succeeded.</p><div className="mt-4 space-y-3">{!data?.payouts.length?<p className="rounded-xl border border-dashed p-6 text-center text-sm text-gray-500">No driver payouts have been prepared.</p>:data.payouts.map(p=>{const b=balanceByDriver.get(p.driver_id);return <article key={p.id} className="rounded-xl border p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">{p.payout_account_name} · {money(p.amount)}</p><p className="mt-1 text-sm text-gray-600">Pay to: {p.payout_mobile_money_network} · {p.payout_mobile_money_number}</p><p className="text-xs text-gray-500">{p.payout_status.toUpperCase()}{p.payout_reference?` · ${p.payout_reference}`:""}{p.admin_note?` · ${p.admin_note}`:""}</p></div><div className="flex flex-wrap gap-2">{p.payout_status==="approved"&&<Button size="sm" disabled={!!busy} onClick={()=>{const ref=window.prompt("Enter the successful external transfer reference:");if(ref?.trim())void act(p.id,{action:"mark-paid",payout_id:p.id,reference:ref},"External payout recorded as paid.")}}>Record transfer paid</Button>}{["pending","approved"].includes(p.payout_status)&&<Button size="sm" variant="outline" disabled={!!busy} onClick={()=>{const note=window.prompt("Reason for placing this payout on hold:");if(note?.trim())void act(p.id,{action:"hold-payout",payout_id:p.id,note},"Payout placed on hold.")}}>Hold payout</Button>}{p.payout_status==="held"&&<Button size="sm" variant="outline" disabled={!!busy} onClick={()=>{const note=window.prompt("Reason for releasing this payout hold:");if(note?.trim())void act(p.id,{action:"release-payout",payout_id:p.id,note},"Payout hold released. The payout is approved again; no transfer has been made.")}}>Release hold</Button>}</div></div></article>})}</div></section>
   <p className="text-xs text-gray-500">KFM internal wallet entries are accounting records, not bank transfers. Cash commission recorded as due is not cash received by KFM. All Friday Mobile Money payments remain under KFM Admin control and require a real transfer reference.</p>
  </div></main>
+}
+
+export default function AdminDriverPayoutsPage(){
+ return <AdminAccessGuard><AdminDriverPayoutsContent /></AdminAccessGuard>
 }
