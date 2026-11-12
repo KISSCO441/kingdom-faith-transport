@@ -127,6 +127,10 @@ export default function AdminRidesPage() {
     (ride) => ride.ride_status?.toUpperCase() === "COMPLETED"
   ).length
 
+  const cashDisputes = rides.filter(
+    (ride) => ride.payment_status?.toLowerCase() === "cash_disputed"
+  )
+
   const paidRides = rides.filter(
     (ride) => ride.payment_status?.toUpperCase() === "PAID"
   )
@@ -168,7 +172,7 @@ export default function AdminRidesPage() {
       return "bg-green-100 text-green-700"
     }
 
-    if (["CANCELLED", "FAILED", "REJECTED"].includes(value)) {
+    if (["CANCELLED", "FAILED", "REJECTED", "CASH_DISPUTED"].includes(value)) {
       return "bg-red-100 text-red-700"
     }
 
@@ -236,7 +240,7 @@ export default function AdminRidesPage() {
           </div>
         )}
 
-        <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <SummaryCard
             label="Total Bookings"
             value={String(rides.length)}
@@ -256,6 +260,11 @@ export default function AdminRidesPage() {
             label="Unpaid Booking Fares"
             value={formatCurrency(outstandingAmount)}
             icon={<Clock3 className="h-6 w-6 text-amber-600" />}
+          />
+          <SummaryCard
+            label="Cash Disputes — Review Required"
+            value={String(cashDisputes.length)}
+            icon={<AlertCircle className="h-6 w-6 text-red-600" />}
           />
         </section>
 
@@ -356,6 +365,14 @@ export default function AdminRidesPage() {
                     </span>
                   </div>
                 </div>
+
+                {selectedRide.payment_status?.toLowerCase() === "cash_disputed" && (
+                  <div role="alert" className="mb-2 rounded-xl border border-red-200 bg-red-50 p-4 text-red-900">
+                    <p className="font-bold">Cash Dispute — Admin Review Required</p>
+                    <p className="mt-1 text-sm">The assigned driver reported that the cash fare was not received. This is an unresolved report, not a confirmed finding. Contact both the driver and customer before making a decision. Keep the payment unpaid until the dispute is resolved.</p>
+                    <p className="mt-2 text-sm font-semibold">Booking: {selectedRide.booking_code} · Fare: {formatCurrency(selectedRide.fare_estimate)}</p>
+                  </div>
+                )}
 
                 <div className="grid gap-4 py-6 md:grid-cols-2">
                   <InfoCard title="Customer Information" icon={<User className="h-5 w-5" />}>
