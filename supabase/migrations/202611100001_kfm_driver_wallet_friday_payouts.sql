@@ -273,6 +273,9 @@ declare
   v_kfm_wallet_id uuid;
   v_driver_share numeric(12,2);
   v_kfm_share numeric(12,2);
+  v_driver_balance numeric(12,2) := 0;
+  v_cash_due numeric(12,2) := 0;
+  v_settlement numeric(12,2) := 0;
 begin
   insert into public.kfm_wallet_accounts(account_type,driver_id)
   select 'driver',rr.driver_id
@@ -599,7 +602,7 @@ as $$
   from public.kfm_wallet_accounts a
   join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
   where a.account_type='kfm'
-    and t.transaction_type in ('ride_kfm_commission','ride_kfm_reversal')
+    and t.transaction_type in ('ride_kfm_commission','ride_kfm_reversal','cash_commission_recovered')
     and t.metadata->>'collection_status' in ('received_online','received_from_driver_offset');
 $$;
 
