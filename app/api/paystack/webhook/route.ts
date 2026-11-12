@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     let event: {
       event?: string
-      data?: { reference?: string }
+      data?: { reference?: string; status?: string; transfer_code?: string; amount?: number; currency?: string; domain?: string }
     }
 
     try {
@@ -59,6 +59,37 @@ export async function POST(request: Request) {
     }
 
     console.log("KFM Paystack webhook event:", event.event)
+
+    // Driver payout transfers have their own lifecycle. Never treat a transfer
+    // webhook as a customer charge, and never mark a test transfer as paid.
+    const transferEvents: Record<string, string> = {
+      "transfer.success": "success",
+      "transfer.failed": "failed",
+      "transfer.reversed": "reversed",
+    }
+    const transferStatus = event.event ? transferEvents[event.event] : undefined
+    if (transferStatus) {
+      const transferReference = event.data?.reference
+      const amount = event.data?.amount
+      const currency = event.data?.currency
+      if (!transferReference || !Number.isSafeInteger(amount) || !currency) {
+        return NextResponse.json({ error: "Paystack transfer event is missing required verification fields." }, { status: 400 })
+      }
+
+      const { data: result, error } = await supabase.rpc("kfm_handle_paystack_driver_payout_event", {
+        p_reference: transferReference,
+        p_status: transferStatus,
+        p_transfer_code: event.data?.transfer_code || null,
+        p_amount_pesewas: amount,
+        p_currency: currency,
+        p_domain: event.data?.domain || "live",
+      })
+      if (error) {
+        console.error("KFM Paystack driver payout webhook processing failed:", error)
+        return NextResponse.json({ error: "Unable to reconcile Paystack driver payout event." }, { status: 500 })
+      }
+      return NextResponse.json({ success: true, payout: result })
+    }
 
     // Acknowledge events that do not concern successful charges.
     if (event.event !== "charge.success") {
