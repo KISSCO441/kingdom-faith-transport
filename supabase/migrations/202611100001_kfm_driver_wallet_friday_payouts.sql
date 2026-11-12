@@ -391,8 +391,12 @@ begin
   join public.drivers d on d.id=a.driver_id
   join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
   left join lateral (
-    select sum(dp.amount) as amount from public.kfm_driver_payouts dp
-    where dp.driver_id=a.driver_id and dp.payout_status in ('pending','approved')
+    select sum(dp.amount) as amount
+    from public.kfm_driver_payouts dp
+    join public.kfm_driver_payout_batches pb on pb.id=dp.batch_id
+    where dp.driver_id=a.driver_id
+      and dp.payout_status in ('pending','approved')
+      and pb.batch_status <> 'cancelled'
   ) reserved on true
   where a.account_type='driver'
     -- Carry forward the driver's net wallet balance, but never include earnings
@@ -508,8 +512,12 @@ as $$
   select
     coalesce(sum(case when t.direction='credit' then t.amount else -t.amount end),0)::numeric(12,2),
     coalesce((
-      select sum(p.amount) from public.kfm_driver_payouts p
-      where p.driver_id=p_driver_id and p.payout_status in ('pending','approved')
+      select sum(p.amount)
+      from public.kfm_driver_payouts p
+      join public.kfm_driver_payout_batches pb on pb.id=p.batch_id
+      where p.driver_id=p_driver_id
+        and p.payout_status in ('pending','approved')
+        and pb.batch_status <> 'cancelled'
     ),0)::numeric(12,2),
     (
       coalesce(sum(case when t.direction='credit' then t.amount else -t.amount end),0)
@@ -541,8 +549,12 @@ as $$
   join public.drivers d on d.id=a.driver_id
   left join public.kfm_wallet_transactions t on t.wallet_account_id=a.id
   left join lateral (
-    select sum(p.amount) amount from public.kfm_driver_payouts p
-    where p.driver_id=a.driver_id and p.payout_status in ('pending','approved')
+    select sum(p.amount) amount
+    from public.kfm_driver_payouts p
+    join public.kfm_driver_payout_batches pb on pb.id=p.batch_id
+    where p.driver_id=a.driver_id
+      and p.payout_status in ('pending','approved')
+      and pb.batch_status <> 'cancelled'
   ) r on true
   where a.account_type='driver'
   group by a.id,a.driver_id,d.full_name,d.phone,r.amount
