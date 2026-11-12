@@ -63,6 +63,157 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({success:true,batch:data})
     }
+    if (action === "send-paystack-transfer") {
+      const payoutId = String(body.payout_id ?? "")
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payoutId)) {
+        return NextResponse.json({ error: "A valid payout is required." }, { status: 400 })
+      }
+
+      const secretKey = process.env.PAYSTACK_SECRET_KEY
+      const transfersEnabled = process.env.KFM_PAYSTACK_TRANSFERS_ENABLED === "true"
+      const mode = process.env.KFM_PAYSTACK_TRANSFER_MODE || (process.env.VERCEL_ENV === "production" ? "live" : "test")
+      const isProduction = process.env.VERCEL_ENV === "production"
+      if (!transfersEnabled) return NextResponse.json({ error: "Paystack driver transfers are not enabled for this deployment." }, { status: 403 })
+      if (!secretKey) return NextResponse.json({ error: "Paystack secret key is not configured." }, { status: 503 })
+      if ((!isProduction && mode !== "test") || (mode === "test" && !secretKey.startsWith("sk_test_"))) {
+        return NextResponse.json({ error: "Preview transfers are restricted to a Paystack test secret key. No live money can be sent from Preview." }, { status: 403 })
+      }
+      if ((isProduction && mode !== "live") || (mode === "live" && (!isProduction || !secretKey.startsWith("sk_live_")))) {
+        return NextResponse.json({ error: "Live Paystack transfers are not permitted from this deployment." }, { status: 403 })
+      }
+
+      const { data: payout, error: payoutError } = await auth.supabase
+        .from("kfm_driver_payouts")
+        .select("id,batch_id,driver_id,amount,payout_status,payout_account_name,payout_mobile_money_number,payout_mobile_money_network,paystack_recipient_code,paystack_transfer_status,paystack_transfer_reference")
+        .eq("id", payoutId)
+        .maybeSingle()
+      if (payoutError || !payout) return NextResponse.json({ error: "Payout not found. Confirm the Paystack payout migration is installed." }, { status: 404 })
+      if (payout.payout_status !== "approved") return NextResponse.json({ error: "Only approved payouts can be sent through Paystack." }, { status: 409 })
+      if (payout.paystack_transfer_status !== "not_started") return NextResponse.json({ error: "A Paystack transfer has already been attempted or is awaiting a final result. Do not send it again." }, { status: 409 })
+
+      const { data: batch, error: batchError } = await auth.supabase
+        .from("kfm_driver_payout_batches")
+        .select("batch_status")
+        .eq("id", payout.batch_id)
+        .maybeSingle()
+      if (batchError || batch?.batch_status !== "approved") return NextResponse.json({ error: "The payout batch must be approved before sending." }, { status: 409 })
+
+      const { data: driver, error: driverError } = await auth.supabase
+        .from("drivers")
+        .select("id,full_name,momo_number,momo_network,status")
+        .eq("id", payout.driver_id)
+        .maybeSingle()
+      if (driverError || !driver || String(driver.status || "").toUpperCase() !== "VERIFIED") {
+        return NextResponse.json({ error: "The driver is no longer verified. Review the payout destination before proceeding." }, { status: 409 })
+      }
+      if (String(driver.momo_number || "").trim() !== String(payout.payout_mobile_money_number || "").trim()
+        || driver.momo_network !== payout.payout_mobile_money_network) {
+        return NextResponse.json({ error: "The driver's registered MoMo details have changed since this payout was prepared. Do not send; prepare a new reviewed payout." }, { status: 409 })
+      }
+
+      const bankCode: Record<string, string> = { MTN: "MTN", AirtelTigo: "ATL", Telecel: "VOD" }
+      const bank_code = bankCode[String(driver.momo_network)]
+      if (!bank_code) return NextResponse.json({ error: "This Mobile Money network is not supported for Paystack transfers." }, { status: 400 })
+
+      const amountPesewas = Math.round(Number(payout.amount) * 100)
+      if (!Number.isSafeInteger(amountPesewas) || amountPesewas <= 0) return NextResponse.json({ error: "The approved payout amount is invalid." }, { status: 400 })
+
+      const reference = `kfm_payout_${payout.id.replace(/-/g, "")}`
+      const { data: claimed, error: claimError } = await auth.supabase
+        .from("kfm_driver_payouts")
+        .update({
+          paystack_transfer_status: "initiating",
+          paystack_transfer_reference: reference,
+          paystack_transfer_mode: mode,
+          paystack_transfer_attempted_at: new Date().toISOString(),
+          paystack_transfer_message: "KFM is preparing the Paystack transfer.",
+        })
+        .eq("id", payout.id)
+        .eq("payout_status", "approved")
+        .eq("paystack_transfer_status", "not_started")
+        .select("id")
+        .maybeSingle()
+      if (claimError || !claimed) return NextResponse.json({ error: "This payout was already claimed for transfer. Refresh before taking any further action." }, { status: 409 })
+
+      try {
+        let recipientCode = payout.paystack_recipient_code
+        if (!recipientCode) {
+          const recipientResponse = await fetch("https://api.paystack.co/transferrecipient", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "mobile_money",
+              name: payout.payout_account_name || driver.full_name || "KFM Driver",
+              account_number: payout.payout_mobile_money_number,
+              bank_code,
+              currency: "GHS",
+            }),
+            cache: "no-store",
+          })
+          const recipientResult = await recipientResponse.json()
+          if (!recipientResponse.ok || recipientResult?.status !== true || !recipientResult?.data?.recipient_code) {
+            await auth.supabase.from("kfm_driver_payouts").update({
+              paystack_transfer_status: "failed",
+              paystack_transfer_message: String(recipientResult?.message || "Paystack could not create the Mobile Money recipient.").slice(0, 500),
+            }).eq("id", payout.id).eq("paystack_transfer_status", "initiating")
+            return NextResponse.json({ error: recipientResult?.message || "Paystack could not create the Mobile Money recipient." }, { status: 502 })
+          }
+          recipientCode = recipientResult.data.recipient_code
+          await auth.supabase.from("kfm_driver_payouts").update({ paystack_recipient_code: recipientCode })
+            .eq("id", payout.id).eq("paystack_transfer_status", "initiating")
+        }
+
+        const transferResponse = await fetch("https://api.paystack.co/transfer", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            source: "balance",
+            amount: amountPesewas,
+            recipient: recipientCode,
+            reference,
+            reason: `KFM Friday driver payout ${payout.id}`,
+            currency: "GHS",
+          }),
+          cache: "no-store",
+        })
+        const transferResult = await transferResponse.json()
+        if (!transferResponse.ok || transferResult?.status !== true) {
+          await auth.supabase.from("kfm_driver_payouts").update({
+            paystack_transfer_status: "failed",
+            paystack_transfer_message: String(transferResult?.message || "Paystack rejected the transfer request.").slice(0, 500),
+          }).eq("id", payout.id).eq("paystack_transfer_status", "initiating")
+          return NextResponse.json({ error: transferResult?.message || "Paystack rejected the transfer request." }, { status: 502 })
+        }
+
+        const transferStatus = String(transferResult?.data?.status || "pending").toLowerCase()
+        const safeStatus = ["pending", "otp", "success", "failed"].includes(transferStatus) ? transferStatus : "pending"
+        const storedStatus = mode === "test" && safeStatus === "success" ? "test_success" : safeStatus
+        await auth.supabase.from("kfm_driver_payouts").update({
+          paystack_transfer_status: storedStatus,
+          paystack_transfer_code: transferResult?.data?.transfer_code || null,
+          paystack_transfer_message: mode === "test" && storedStatus === "test_success"
+            ? "Paystack test transfer succeeded; no real funds were sent."
+            : String(transferResult?.message || "Paystack accepted the transfer request. Awaiting final confirmation.").slice(0, 500),
+          ...(storedStatus === "test_success" ? { paystack_transfer_completed_at: new Date().toISOString() } : {}),
+        }).eq("id", payout.id).eq("paystack_transfer_status", "initiating")
+
+        return NextResponse.json({
+          success: true,
+          transfer_status: storedStatus,
+          reference,
+          message: storedStatus === "test_success"
+            ? "Paystack test transfer succeeded. No money was sent and the payout remains unpaid."
+            : "Paystack accepted the transfer request. KFM will mark the payout paid only after Paystack confirms success.",
+        })
+      } catch (transferError) {
+        console.error("KFM Paystack transfer request outcome is uncertain:", transferError)
+        await auth.supabase.from("kfm_driver_payouts").update({
+          paystack_transfer_status: "unknown",
+          paystack_transfer_message: "The transfer request outcome could not be confirmed. Check Paystack before any retry.",
+        }).eq("id", payout.id).eq("paystack_transfer_status", "initiating")
+        return NextResponse.json({ error: "Paystack's response could not be confirmed. This payout is locked against duplicate sending; check Paystack before retrying." }, { status: 502 })
+      }
+    }
     if (action === "approve-batch") {
       const batchId = String(body.batch_id ?? "")
       if (!batchId) return NextResponse.json({error:"Payout batch is required."},{status:400})
