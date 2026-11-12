@@ -522,8 +522,12 @@ as $$
     (
       coalesce(sum(case when t.direction='credit' then t.amount else -t.amount end),0)
       - coalesce((
-        select sum(p.amount) from public.kfm_driver_payouts p
-        where p.driver_id=p_driver_id and p.payout_status in ('pending','approved')
+        select sum(p.amount)
+        from public.kfm_driver_payouts p
+        join public.kfm_driver_payout_batches pb on pb.id=p.batch_id
+        where p.driver_id=p_driver_id
+          and p.payout_status in ('pending','approved')
+          and pb.batch_status <> 'cancelled'
       ),0)
     )::numeric(12,2)
   from public.kfm_wallet_accounts a
