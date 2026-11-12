@@ -71,6 +71,12 @@ begin
     raise exception 'Paystack transfer amount or currency does not match the approved payout.';
   end if;
 
+  if p_status = 'success'
+     and v_payout.payout_status = 'paid'
+     and v_payout.paystack_transfer_status = 'success' then
+    return jsonb_build_object('payout_id',v_payout.id,'status','paid','already_processed',true);
+  end if;
+
   if p_status = 'success' then
     if p_domain = 'test' or v_payout.paystack_transfer_mode = 'test' then
       update public.kfm_driver_payouts
