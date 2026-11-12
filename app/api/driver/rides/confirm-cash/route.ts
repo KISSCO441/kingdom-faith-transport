@@ -76,6 +76,8 @@ export async function POST(request: Request) {
           payment_status: "paid",
           payment_paid_at: now,
           payment_channel: "cash",
+          cash_confirmed_by: driver.id,
+          cash_confirmed_at: now,
           driver_share_amount: Math.round(fare * 0.8 * 100) / 100,
           kfm_commission_amount: Math.round((fare - fare * 0.8) * 100) / 100,
           driver_payout_status: "pending",
